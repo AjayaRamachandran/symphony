@@ -129,6 +129,7 @@ notes = []
 noteLocations = set()
 #notes.append(Note(5, 7, True))
 currentDraggingKey = 0
+initialDraggingTime = 0
 
 toolbarHeight = 80
 innerHeight = height - toolbarHeight
@@ -167,8 +168,9 @@ while running:
                             notes.append(Note(touchedKey, touchedTime, True))
                             noteLocations.add((touchedKey, touchedTime,))
                             currentDraggingKey = touchedKey
+                            initialDraggingTime = touchedTime
                     mouseTask = True
-                    if not (currentDraggingKey, touchedTime) in noteLocations:
+                    if not (currentDraggingKey, touchedTime) in noteLocations and touchedTime > initialDraggingTime:
                         notes.append(Note(currentDraggingKey, touchedTime, False))
                         noteLocations.add((currentDraggingKey, touchedTime))
             
