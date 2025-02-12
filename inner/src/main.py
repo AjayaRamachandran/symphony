@@ -274,12 +274,15 @@ while running:
         xPos = width - 33 - 60
         pygame.draw.rect(screen, tintFromMouse((xPos, toolbarHeight/2 - 14, 60, 28))[1], (xPos, toolbarHeight/2 - 14, 60, 28), border_radius=3)
         pygame.draw.rect(screen, (0, 0, 0), (xPos, toolbarHeight/2 - 14, 60, 28), 1, 3)
-        screen.blit((brushButton if type == "brush" else (eraserButton if type == "eraser" else negaterButton)), (xPos + 20, 32))
+        if type == "select":
+            stamp("select", SUBHEADING1, xPos + 30, 40, 0.4, "center")
+        else:
+            screen.blit((brushButton if type == "brush" else eraserButton), (xPos + 20, 32))
         if tintFromMouse((xPos, toolbarHeight/2 - 14, 60, 28))[0] and pygame.mouse.get_pressed()[0] and not mouseTask:
             if type == "brush":
                 type = "eraser"
             elif type == "eraser":
-                type = "negater"
+                type = "select"
             else:
                 type = "brush"
             mouseTask = True
@@ -314,13 +317,13 @@ while running:
                 playing = not playing
         elif event.type == pygame.MOUSEWHEEL:
             if event.y > 0:
-                dRow += 0.04
+                dRow += 0.06
             if event.y < 0:
-                dRow -= 0.04
+                dRow -= 0.06
             if event.x > 0:
-                dCol += 0.04
+                dCol += 0.06
             if event.x < 0:
-                dCol -= 0.04
+                dCol -= 0.06
     viewRow = max(min(viewRow + dRow, 73.01), viewScaleY - 0.01)
     viewColumn = max(min(viewColumn + dCol, (noteCount - viewScaleX)), 0.01)
 
