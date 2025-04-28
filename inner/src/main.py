@@ -159,7 +159,7 @@ def notesToFreq(notes):
         freqs.append(noteFreq)
     return freqs
 
-def playNotes(notes, duration=1, volume=0.5, sample_rate=44100):
+def playNotes(notes, duration=1, volume=0.2, sample_rate=44100):
     frequencies = notesToFreq(notes)
     t = np.linspace(0, duration, int(sample_rate * duration), False)
     
@@ -167,13 +167,13 @@ def playNotes(notes, duration=1, volume=0.5, sample_rate=44100):
     for freq in frequencies:
         wave += np.sign(np.sin(2 * np.pi * freq * t))
     
-    wave = wave / np.max(np.abs(wave))
+    wave = wave / np.max(np.abs(wave)) - (0.6 * wave / (np.max(np.abs(wave)) ** 2))
     wave *= volume
     audio = (wave * 32767).astype(np.int16)
     
     play_obj = sa.play_buffer(audio, 1, 2, sample_rate)
 
-def assembleNotes(notes, phases, duration=1, volume=0.3, sample_rate=44100):
+def assembleNotes(notes, phases, duration=1, volume=0.2, sample_rate=44100):
     frequencies = notesToFreq(notes)
     t = np.linspace(0, duration, int(sample_rate * duration), False)
 
@@ -191,19 +191,20 @@ def assembleNotes(notes, phases, duration=1, volume=0.3, sample_rate=44100):
         wave += waveform
         newPhases[freq] = newPhase
     
-    wave = wave / np.max(np.abs(wave))
+    #wave = wave / np.max(np.abs(wave))
+    wave = wave / np.max(np.abs(wave)) - (0.6 * wave / (np.max(np.abs(wave)) ** 2))
     wave *= volume
     audio = (wave * 32767).astype(np.int16)
 
     return audio, newPhases
 
-def playNoise(duration=0.08, volume=0.5, sample_rate=44100):
+def playNoise(duration=0.08, volume=0.3, sample_rate=44100):
     t = np.linspace(0, duration, int(sample_rate * duration), False)
     
     wave = np.zeros_like(t)
     wave += np.random.random(t.shape) * 2 - 1
     
-    wave = wave / np.max(np.abs(wave))
+    wave = wave / np.max(np.abs(wave)) - (0.6 * wave / (np.max(np.abs(wave)) ** 2))
     wave *= volume
     audio = (wave * 32767).astype(np.int16)
     
@@ -359,8 +360,11 @@ while running:
                 mouseWOTask = False
                 mouseTask = True
     for note in noteMap.items():
-        #### REMEMBER TO ADD OPTIMIZATION TO ONLY DRAW SCREEN SPACE NOTES
-        note[1].draw(screen, viewRow, viewColumn)
+        #### REMEMBER TO ADD OPTIMIZATION TO ONLY DRAW SCREEN SPACE NOTES - DONE!
+        if note[1].key > viewRow - viewScaleY and note[1].key < viewRow + 1:
+            if note[1].time > viewColumn and note[1].time < viewColumn + viewScaleX + 1:
+                #print(f"Note Key : {note[1].key}, viewRow : {viewRow}, Note Time : {note[1].time}, viewColumn : {viewColumn}, viewScaleX : {viewScaleX}, viewScaleY : {viewScaleY}")
+                note[1].draw(screen, viewRow, viewColumn)
 
     for row in range(ceil(viewScaleY) + 1):
         headerX, headerY = 0, row * innerHeight / viewScaleY + toolbarHeight + (viewRow%1 * innerHeight/floor(viewScaleY)) - innerHeight/floor(viewScaleY)
