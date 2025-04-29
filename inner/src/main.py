@@ -68,7 +68,7 @@ class Head():
             playingNotes = []
             for index, note in noteMap.items():
                 if note.time == tempTick:
-                    playingNotes.append(note.key)
+                    playingNotes.append((note.key, note.lead))
             #if len(playingNotes) > 0:
                 #print(f"Playing notes {playingNotes}")
                 
@@ -88,13 +88,18 @@ class Note():
         self.originalTime = time
         self.selected = False
         self.extending = False
+        self.SScoords = [0, 0]
     
     def __str__(self):
         return f'''Note object with attrs: [key: {self.key}, time: {self.time}, lead: {self.lead}, selected: {self.selected}, originalKey: {self.originalKey}, originalTime: {self.originalTime}]'''
 
+    def setSScoords(self, x, y):
+        self.SScoords = [x, y]
+
     def draw(self, screen, viewRow, viewColumn):
         headerY = toolbarHeight + ((viewRow - self.key) * innerHeight/floor(viewScaleY))
         headerX = leftColumn + ((self.time - viewColumn - 1) * (width - leftColumn)/floor(viewScaleX))
+        self.setSScoords(headerX + (width - leftColumn)/floor(viewScaleX)/2, headerY + innerHeight/floor(viewScaleY)/2)
         if self.lead:
             pygame.draw.rect(screen, (150, 95, 20),
                          (headerX - 1, headerY - 1, (width - leftColumn)/floor(viewScaleX) + 2, innerHeight/floor(viewScaleY) + 2), border_radius=3)
@@ -134,6 +139,10 @@ class Note():
 
 ###### FUNCTIONS ######
 
+def inBounds(coords1, coords2, point) -> bool:
+    '''returns whether a point is within the bounds of two other points. order is arbitrary.'''
+    return point[0] > min(coords1[0], coords2[0]) and point[1] > min(coords1[1], coords2[1]) and point[0] < max(coords1[0], coords2[0]) and point[1] < max(coords1[1], coords2[1])
+
 def process_image(image_bytes):
     # Load the image from the BytesIO object
     image = cv2.imdecode(np.frombuffer(image_bytes, np.uint8), cv2.IMREAD_COLOR)
@@ -151,6 +160,7 @@ def process_image(image_bytes):
     return image_io
 
 def notesToFreq(notes):
+    '''converts a set of notes (as ints from C2) to frequencies'''
     freqs = []
     C2 = 65.41
     ratio = 1.05946309436
@@ -160,28 +170,33 @@ def notesToFreq(notes):
     return freqs
 
 def playNotes(notes, duration=1, volume=0.2, sample_rate=44100):
-    frequencies = notesToFreq(notes)
-    t = np.linspace(0, duration, int(sample_rate * duration), False)
-    
-    wave = np.zeros_like(t)
-    for freq in frequencies:
-        wave += np.sign(np.sin(2 * np.pi * freq * t))
-    
-    wave = wave / np.max(np.abs(wave)) - (0.6 * wave / (np.max(np.abs(wave)) ** 2))
-    wave *= volume
-    audio = (wave * 32767).astype(np.int16)
-    
-    play_obj = sa.play_buffer(audio, 1, 2, sample_rate)
+    try: # needed try catch because sound keeps randomly crashing
+        frequencies = notesToFreq(notes)
+        t = np.linspace(0, duration, int(sample_rate * duration), False)
+        
+        wave = np.zeros_like(t)
+        for freq in frequencies:
+            wave += np.sign(np.sin(2 * np.pi * freq * t))
+        
+        wave = wave / np.max(np.abs(wave)) - (0.6 * wave / (np.max(np.abs(wave)) ** 2))
+        wave *= volume * 0.6
+        audio = (wave * 32767).astype(np.int16)
+        
+        play_obj = sa.play_buffer(audio, 1, 2, sample_rate)
+    except Exception as e:
+        print(e)
 
 def assembleNotes(notes, phases, duration=1, volume=0.2, sample_rate=44100):
-    frequencies = notesToFreq(notes)
+    frequencies = notesToFreq([note[0] for note in notes])
     t = np.linspace(0, duration, int(sample_rate * duration), False)
 
     newPhases = {}
     
     wave = np.zeros_like(t)
-    for freq in frequencies:
+    for index, freq in enumerate(frequencies):
         phase = phases.get(freq, 0.0)  # default phase 0 if new
+        if notes[index][1]:
+            phase += pi
         waveform = np.sign(np.sin(2 * np.pi * freq * t + phase))
         
         # Update phase after this tile
@@ -193,23 +208,26 @@ def assembleNotes(notes, phases, duration=1, volume=0.2, sample_rate=44100):
     
     #wave = wave / np.max(np.abs(wave))
     wave = wave / np.max(np.abs(wave)) - (0.6 * wave / (np.max(np.abs(wave)) ** 2))
-    wave *= volume
+    wave *= volume * 0.6
     audio = (wave * 32767).astype(np.int16)
 
     return audio, newPhases
 
 def playNoise(duration=0.08, volume=0.3, sample_rate=44100):
-    t = np.linspace(0, duration, int(sample_rate * duration), False)
-    
-    wave = np.zeros_like(t)
-    wave += np.random.random(t.shape) * 2 - 1
-    
-    wave = wave / np.max(np.abs(wave)) - (0.6 * wave / (np.max(np.abs(wave)) ** 2))
-    wave *= volume
-    audio = (wave * 32767).astype(np.int16)
-    
-    play_obj = sa.play_buffer(audio, 1, 2, sample_rate)
-    #play_obj.wait_done()
+    try: # needed try catch because sound keeps randomly crashing
+        t = np.linspace(0, duration, int(sample_rate * duration), False)
+        
+        wave = np.zeros_like(t)
+        wave += np.random.random(t.shape) * 2 - 1
+        
+        wave = wave / np.max(np.abs(wave)) - (0.6 * wave / (np.max(np.abs(wave)) ** 2))
+        wave *= volume * 0.6
+        audio = (wave * 32767).astype(np.int16)
+        
+        play_obj = sa.play_buffer(audio, 1, 2, sample_rate)
+        #play_obj.wait_done()
+    except Exception as e:
+        print(e)
 
 def stamp(text, style, x, y, luminance, justification = "left"):
     text = style.render(text, True, (round(luminance*255), round(luminance*255), round(luminance*255)))
@@ -268,6 +286,12 @@ mouseDownTime = time.time()
 mouseWOTask = True
 mouseHoldStart = []
 
+timeOffset = 0
+keyOffset = 0
+oldKeyOffset = 0
+
+drawSelectBox = False
+
 playHead = Head(0, 1, 0)
 
 while running:
@@ -294,7 +318,7 @@ while running:
                 ## Brush - unconditionally adds notes to the track
                 if type == "brush":
                     if not mouseTask and not (touchedKey, touchedTime) in noteMap:
-                        playNotes([touchedKey], duration=1)
+                        playNotes([touchedKey], duration=0.25)
                         noteMap[(touchedKey, touchedTime)] = Note(touchedKey, touchedTime, True)
                         currentDraggingKey = touchedKey
                         initialDraggingTime = touchedTime
@@ -328,34 +352,47 @@ while running:
                             noteMap[note[0]].originalTime = noteMap[note[0]].time
                         mouseHoldStart = pygame.mouse.get_pos()
                         mouseCellStart = (touchedKey, touchedTime)
+                        
                     else:
-                        numSelected = False
-                        for note in noteMap.items():
-                            if note[1].selected:
-                                numSelected = True
-                        if mouseTask and numSelected and dist(pygame.mouse.get_pos(), mouseHoldStart) > 10:
-                            #print("dragging")
-                            (timeOffset, keyOffset) = (int((pygame.mouse.get_pos()[d] - mouseHoldStart[d]) / 
-                                                        (((width-leftColumn)/viewScaleX),(-innerHeight/viewScaleY))[d])
-                                                        for d in range(2) )
-                            delQ = []
-                            addQ = []
-                            refreshQ = False
+                        #print(timeOffset, keyOffset)
+                        if (not mouseCellStart in noteMap) and (timeOffset, keyOffset) == (0,0):
+                            drawSelectBox = True
+                        else:
+                            numSelected = False
                             for note in noteMap.items():
-                                if noteMap[note[0]].selected:
-                                    if noteMap[note[0]].key != noteMap[note[0]].originalKey + keyOffset or noteMap[note[0]].time != noteMap[note[0]].originalTime + timeOffset:
-                                        refreshQ = True
-                                    noteMap[note[0]].key = noteMap[note[0]].originalKey + keyOffset
-                                    noteMap[note[0]].time = noteMap[note[0]].originalTime + timeOffset
-                                    delQ.append(note[0])
-                                    addQ.append(((noteMap[note[0]].originalKey + keyOffset,
-                                                noteMap[note[0]].originalTime + timeOffset), note[1]))
-                            for delete in delQ:
-                                del noteMap[delete]
-                            for add in addQ:
-                                noteMap[add[0]] = add[1]
-                            if refreshQ:
-                                reevaluateLeads()
+                                if note[1].selected:
+                                    numSelected = True
+                            if mouseTask and numSelected and dist(pygame.mouse.get_pos(), mouseHoldStart) > 10:
+                                #print("dragging")
+                                (timeOffset, keyOffset) = (int((pygame.mouse.get_pos()[d] - mouseHoldStart[d]) / 
+                                                            (((width-leftColumn)/viewScaleX),(-innerHeight/viewScaleY))[d])
+                                                            for d in range(2) )
+                                delQ = []
+                                addQ = []
+                                refreshQ = False
+                                consistentKey = 0
+                                for note in noteMap.items():
+                                    if noteMap[note[0]].selected:
+                                        if consistentKey != 0 and consistentKey != noteMap[note[0]].key:
+                                            consistentKey = -1
+                                        else:
+                                            consistentKey = noteMap[note[0]].key
+                                        if noteMap[note[0]].key != noteMap[note[0]].originalKey + keyOffset or noteMap[note[0]].time != noteMap[note[0]].originalTime + timeOffset:
+                                            refreshQ = True
+                                        noteMap[note[0]].key = noteMap[note[0]].originalKey + keyOffset
+                                        noteMap[note[0]].time = noteMap[note[0]].originalTime + timeOffset
+                                        delQ.append(note[0])
+                                        addQ.append(((noteMap[note[0]].originalKey + keyOffset,
+                                                    noteMap[note[0]].originalTime + timeOffset), note[1]))
+                                for delete in delQ:
+                                    del noteMap[delete]
+                                for add in addQ:
+                                    noteMap[add[0]] = add[1]
+                                if refreshQ:
+                                    reevaluateLeads()
+                                if oldKeyOffset != keyOffset and consistentKey != -1 and consistentKey != 0:
+                                    playNotes([addQ[0][0][0]], duration=0.07)
+                            
 
                 mouseWOTask = False
                 mouseTask = True
@@ -366,6 +403,12 @@ while running:
                 #print(f"Note Key : {note[1].key}, viewRow : {viewRow}, Note Time : {note[1].time}, viewColumn : {viewColumn}, viewScaleX : {viewScaleX}, viewScaleY : {viewScaleY}")
                 note[1].draw(screen, viewRow, viewColumn)
 
+    if drawSelectBox:
+        pygame.draw.rect(screen, (255, 255, 255), (min(mouseHoldStart[0], pygame.mouse.get_pos()[0]),
+                                                                       min(mouseHoldStart[1], pygame.mouse.get_pos()[1]),
+                                                                       abs(pygame.mouse.get_pos()[0] - mouseHoldStart[0]),
+                                                                       abs(pygame.mouse.get_pos()[1] - mouseHoldStart[1])), 1)
+
     for row in range(ceil(viewScaleY) + 1):
         headerX, headerY = 0, row * innerHeight / viewScaleY + toolbarHeight + (viewRow%1 * innerHeight/floor(viewScaleY)) - innerHeight/floor(viewScaleY)
         note = f"{(NOTES_SHARP if mode == 'sharps' else NOTES_FLAT)[floor((viewRow - row) % 12)]} {floor((viewRow - row) / 12) + 2}"
@@ -374,6 +417,11 @@ while running:
         pygame.draw.rect(screen, (0, 0, 0),
                          (headerX, headerY, leftColumn, innerHeight/floor(viewScaleY)), 1, 3)
         stamp(note, SUBHEADING1, headerX + 5, headerY + 5, 0.4)
+
+        if tintFromMouse((0, headerY, leftColumn, innerHeight/floor(viewScaleY)))[0] and (pygame.mouse.get_pressed()[0]) and (toolbarHeight < pygame.mouse.get_pos()[1] < (height - 50)) and not mouseTask:
+            # mouse is clicking the note labels
+            mouseTask = True
+            playNotes([floor(viewRow - row + 1)], duration=0.25)
 
     def renderScrollBar():
         global viewColumn
@@ -480,26 +528,47 @@ while running:
     if tick == tickInterval - 1:
         None
 
+    def selectConnected(key, time):
+        '''function to take in a key and time and select all connected notes, and return whether a note exists at that key and time'''
+        noteExists = False
+        deviation = 0
+        while (key, time + deviation) in noteMap:
+            noteExists = True
+            noteMap[(key, time + deviation)].selected = True
+            if noteMap[(key, time + deviation)].lead == True:
+                noteMap[(key, time + deviation)].selected = True
+                break
+            deviation -= 1
+        deviation = 1
+        while (key, time + deviation) in noteMap:
+            noteExists = True
+            if noteMap[(key, time + deviation)].lead == True:
+                break
+            noteMap[(key, time + deviation)].selected = True
+            deviation += 1
+        return noteExists
+
     if not pygame.mouse.get_pressed()[0] and not mouseWOTask:
+        print("Unclicked")
         pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
+        if (mouseHoldStart != pygame.mouse.get_pos()) and type == "select":
+            print("Drag Selected")
+            for note in noteMap.items():
+                if inBounds(mouseHoldStart, pygame.mouse.get_pos(), note[1].SScoords):
+                    note[1].selected = True
+                    selectConnected(note[0][0], note[0][1])
         if (time.time() - mouseDownTime) < 0.2 and type == "select":
+            timeOffset = 0
+            keyOffset = 0
             if not pygame.key.get_pressed()[pygame.K_LSHIFT]: # if shift is not held, unselect all elements.
                 for note in noteMap.items():
                     note[1].selected = False
+            
             # selected from mouse selection, opposite of dragging, only happens once mouse is lifted.
-            deviation = 0
-            while (touchedKey, touchedTime + deviation) in noteMap:
-                noteMap[(touchedKey, touchedTime + deviation)].selected = True
-                if noteMap[(touchedKey, touchedTime + deviation)].lead == True:
-                    noteMap[(touchedKey, touchedTime + deviation)].selected = True
-                    break
-                deviation -= 1
-            deviation = 1
-            while (touchedKey, touchedTime + deviation) in noteMap:
-                if noteMap[(touchedKey, touchedTime + deviation)].lead == True:
-                    break
-                noteMap[(touchedKey, touchedTime + deviation)].selected = True
-                deviation += 1
+            noteExists = selectConnected(touchedKey, touchedTime)
+
+            if noteExists:
+                playNotes([touchedKey], duration=0.25)
             #for note in noteMap.items():
                 #noteMap[note[0]].originalKey = noteMap[note[0]].key
                 #noteMap[note[0]].originalTime = noteMap[note[0]].time
@@ -512,6 +581,7 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+            print("Pygame was quit")
         elif event.type == pygame.VIDEORESIZE:
             screen = pygame.display.set_mode((max(event.w, 800), max(event.h, 600)), pygame.RESIZABLE)
             width, height = (max(event.w, 800), max(event.h, 600))
@@ -529,6 +599,8 @@ while running:
                 dCol -= 0.16
             elif event.key == pygame.K_LCTRL:
                 type = "eraser"
+            elif event.key == pygame.K_LSHIFT:
+                type = "select"
             elif event.key == pygame.K_SPACE:
                 playing = not playing
                 if playing:
@@ -546,6 +618,8 @@ while running:
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_LCTRL:
                 type = "brush"
+                for note in noteMap.items():
+                    note[1].selected = False
         elif event.type == pygame.MOUSEWHEEL:
             if event.y > 0:
                 dRow += 0.06
@@ -557,6 +631,9 @@ while running:
                 dCol -= 0.06
     viewRow = max(min(viewRow + dRow, noteRange + 0.01), viewScaleY - 0.01)
     viewColumn = max(min(viewColumn + dCol, (noteCount - viewScaleX)), 0.01)
+
+    oldKeyOffset = keyOffset
+    drawSelectBox = False
 
     if not pygame.mouse.get_pressed()[0]:
         mouseTask = False
