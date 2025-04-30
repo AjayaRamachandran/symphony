@@ -326,11 +326,22 @@ timeOffset = 0
 keyOffset = 0
 oldKeyOffset = 0
 
+saveFrame = 0
+
 drawSelectBox = False
 
 playHead = Head(0, 1, 0)
 
 while running:
+    saveFrame += 1
+    if saveFrame == 1200:
+        saveFrame = 0
+
+        myPath = open(workingFile, "wb")
+        ps.noteMap = copy.deepcopy(noteMap)
+        ps.ticksPerTile = ticksPerTile
+        pkl.dump(ps, myPath, -1)
+
     screen.fill((0, 0, 0))
     transparentScreen.fill((0, 0, 0, 0))
 
@@ -743,6 +754,11 @@ if workingFile == "":
     pathBytes = bytearray(myPath.read())
     filename.write(pathBytes)
     filename.close()
+else:
+    myPath = open(workingFile, "wb")
+    ps.noteMap = copy.deepcopy(noteMap)
+    ps.ticksPerTile = ticksPerTile
+    pkl.dump(ps, myPath, -1)
     
 # quit loop
 pygame.quit()
