@@ -63,8 +63,8 @@ noteMap = {}
 class ProgramState():
     '''Class to contain the entire editor's state, with all relevant fields for opening and saving.'''
 
-    def __init__(self, speed, file_data):
-        self.ticksPerTile = speed
+    def __init__(self, tempo, file_data):
+        self.ticksPerTile = tempo
         self.noteMap = file_data
 
 if workingFile == "":
@@ -302,11 +302,24 @@ NOTES_SHARP = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
 NOTES_FLAT =  ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"]
 noteCount = 128
 noteRange = 60
+modesIntervals = [
+    ["Lydian",        [0, 2, 4, 6, 7, 9, 11]],
+    ["Ionian (maj.)", [0, 2, 4, 5, 7, 9, 11]],
+    ["Mixolydian",    [0, 2, 4, 5, 7, 9, 10]],
+    ["Dorian",        [0, 2, 3, 5, 7, 9, 10]],
+    ["Aeolian (min.)",[0, 2, 3, 5, 7, 8, 10]],
+    ["Phrygian",      [0, 1, 3, 5, 7, 8, 10]],
+    ["Locrian",       [0, 1, 3, 5, 6, 8, 10]]
+]
 
-mode = "flats"
+accidentals = "flats"
 head = False
 playing = False
 type = "brush"
+key = "Eb"
+keyIndex = 3
+mode = "Lydian"
+modeIntervals = set(modesIntervals[0][1])
 
 viewRow = 50.01
 viewColumn = 0.01
@@ -314,6 +327,7 @@ viewScaleY = 16
 viewScaleX = 32
 dRow = 0
 dCol = 0
+timeInterval = 4
 
 notes = []
 duplicatedNoteMap = {}
@@ -340,13 +354,14 @@ playHead = Head(0, 1, 0)
 
 while running:
     saveFrame += 1
-    if saveFrame == 1200 and not workingFile == "":
+    if saveFrame == 1200:
         saveFrame = 0
 
         myPath = open(workingFile if workingFile != "" else "inner/assets/workingfile.mgrid", "wb")
         ps.noteMap = copy.deepcopy(noteMap)
         ps.ticksPerTile = ticksPerTile
         pkl.dump(ps, myPath, -1)
+        myPath.close()
 
     screen.fill((0, 0, 0))
     transparentScreen.fill((0, 0, 0, 0))
@@ -357,9 +372,11 @@ while running:
         headerY = row * innerHeight / viewScaleY + toolbarHeight + (viewRow%1 * innerHeight/floor(viewScaleY)) - innerHeight/floor(viewScaleY)
         headerX = leftColumn - (viewColumn%1 * (width - leftColumn)/floor(viewScaleX)) - (width - leftColumn)/floor(viewScaleX)
         for column in range(ceil(viewScaleX) + 2):
-            cm = (floor((column+viewColumn)%4) == 0) * 8
-            pygame.draw.rect(screen, ((32 + cm, 32 + cm, 32 + cm) if floor((row - viewRow)%2) == 0 else (40 + cm, 40 + cm, 40 + cm)),
+            cm = (floor((column+viewColumn)%timeInterval) == 0) * 8
+            pygame.draw.rect(screen, ((28 + cm, 28 + cm, 28 + cm) if not (-(floor(row - viewRow) + keyIndex + 1) % 12) in modeIntervals else (43 + cm, 43 + cm, 43 + cm)),
                          (headerX, headerY, (width - leftColumn)/floor(viewScaleX), innerHeight/floor(viewScaleY)), border_radius=3)
+            #pygame.draw.rect(screen, ((32 + cm, 32 + cm, 32 + cm) if floor((row - viewRow)%2) == 0 else (40 + cm, 40 + cm, 40 + cm)),
+                         #(headerX, headerY, (width - leftColumn)/floor(viewScaleX), innerHeight/floor(viewScaleY)), border_radius=3)
             pygame.draw.rect(screen, (0, 0, 0),
                          (headerX, headerY, (width - leftColumn)/floor(viewScaleX), innerHeight/floor(viewScaleY)), 1, 3)
             headerX += (width - leftColumn)/floor(viewScaleX)
@@ -525,7 +542,7 @@ while running:
 
     for row in range(ceil(viewScaleY) + 1):
         headerX, headerY = 0, row * innerHeight / viewScaleY + toolbarHeight + (viewRow%1 * innerHeight/floor(viewScaleY)) - innerHeight/floor(viewScaleY)
-        note = f"{(NOTES_SHARP if mode == 'sharps' else NOTES_FLAT)[floor((viewRow - row) % 12)]} {floor((viewRow - row) / 12) + 2}"
+        note = f"{(NOTES_SHARP if accidentals == 'sharps' else NOTES_FLAT)[floor((viewRow - row) % 12)]} {floor((viewRow - row) / 12) + 2}"
         pygame.draw.rect(screen, ((43, 43, 43) if floor((row - viewRow)%2) == 0 else (51, 51, 51)),
                          (headerX, headerY, leftColumn, innerHeight/floor(viewScaleY)), border_radius=3)
         pygame.draw.rect(screen, (0, 0, 0),
@@ -567,7 +584,7 @@ while running:
                                                   scrollBarHeight), 1, 3)
 
     def renderToolBar():
-        global mode, mouseTask, playing, head, type
+        global accidentals, mouseTask, playing, head, type, key, keyIndex, mode, modeIntervals
         pygame.draw.rect(screen, (43, 43, 43), (0, 0, width, toolbarHeight))
         pygame.draw.line(screen, (0, 0, 0), (0, toolbarHeight), (width, toolbarHeight))
         pygame.draw.line(screen, (30, 30, 30), (0, toolbarHeight - 1), (width, toolbarHeight - 1))
@@ -596,9 +613,11 @@ while running:
         xPos = 120
         pygame.draw.rect(screen, tintFromMouse((xPos, toolbarHeight/2 - 14, 60, 28))[1], (xPos, toolbarHeight/2 - 14, 60, 28), border_radius=3)
         pygame.draw.rect(screen, (0, 0, 0), (xPos, toolbarHeight/2 - 14, 60, 28), 1, 3)
-        stamp(mode, SUBHEADING1, xPos + 30, 40, 0.4, "center")
+        stamp(accidentals, SUBHEADING1, xPos + 30, 40, 0.4, "center")
         if tintFromMouse((xPos, toolbarHeight/2 - 14, 60, 28))[0] and pygame.mouse.get_pressed()[0] and not mouseTask:
-            mode = ("sharps" if mode == "flats" else "flats")
+            keyIndex = (NOTES_SHARP if accidentals == "sharps" else NOTES_FLAT).index(key)
+            key = (NOTES_FLAT if accidentals == "sharps" else NOTES_SHARP)[keyIndex] # swaps the style of the 
+            accidentals = ("sharps" if accidentals == "flats" else "flats")
             mouseTask = True
         
         ### PLAYHEAD BUTTON
@@ -608,6 +627,28 @@ while running:
         screen.blit((headButton if playing else headButton), (xPos + 20, 32))
         if tintFromMouse((xPos, toolbarHeight/2 - 14, 60, 28))[0] and pygame.mouse.get_pressed()[0] and not mouseTask:
             head = not head
+            mouseTask = True
+
+        ### KEY BUTTON
+        xPos = width - 33 - 60 - 87 - 80
+        pygame.draw.rect(screen, tintFromMouse((xPos, toolbarHeight/2 - 14, 40, 28))[1], (xPos, toolbarHeight/2 - 14, 40, 28), border_radius=3)
+        pygame.draw.rect(screen, (0, 0, 0), (xPos, toolbarHeight/2 - 14, 40, 28), 1, 3)
+        stamp(key, SUBHEADING1, xPos + 20, 40, 0.4, "center")
+        if tintFromMouse((xPos, toolbarHeight/2 - 14, 40, 28))[0] and pygame.mouse.get_pressed()[0] and not mouseTask:
+            keyIndex = (NOTES_SHARP if accidentals == "sharps" else NOTES_FLAT).index(key)
+            key = (NOTES_SHARP if accidentals == "sharps" else NOTES_FLAT)[keyIndex + 1 if keyIndex != 11 else 0]
+            keyIndex = keyIndex + 1 if keyIndex != 11 else 0
+            mouseTask = True
+
+        ### MODE BUTTON
+        xPos = width - 33 - 60 - 127
+        pygame.draw.rect(screen, tintFromMouse((xPos, toolbarHeight/2 - 14, 100, 28))[1], (xPos, toolbarHeight/2 - 14, 100, 28), border_radius=3)
+        pygame.draw.rect(screen, (0, 0, 0), (xPos, toolbarHeight/2 - 14, 100, 28), 1, 3)
+        stamp(mode, SUBHEADING1, xPos + 50, 40, 0.4, "center")
+        if tintFromMouse((xPos, toolbarHeight/2 - 14, 100, 28))[0] and pygame.mouse.get_pressed()[0] and not mouseTask:
+            modeIndex = next(i for i, (x, _) in enumerate(modesIntervals) if x == mode)
+            mode = modesIntervals[modeIndex + 1 if modeIndex != 6 else 0][0]
+            modeIntervals = set(modesIntervals[modeIndex + 1 if modeIndex != 6 else 0][1])
             mouseTask = True
 
         ### BRUSH/ERASER/NEGATER BUTTON
