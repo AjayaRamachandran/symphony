@@ -52,8 +52,8 @@ eraserButton = pygame.image.load("inner/assets/eraser.png")
 negaterButton = pygame.image.load("inner/assets/negater.png")
 
 # imports files from the workspaces folder
-files_and_dirs = os.listdir(directory)
-files = [os.path.join(directory, f) for f in files_and_dirs if os.path.isfile(os.path.join(directory, f))]
+#files_and_dirs = os.listdir(directory)
+#files = [os.path.join(directory, f) for f in files_and_dirs if os.path.isfile(os.path.join(directory, f))]
 
 page = "Editor"
 noteMap = {}
@@ -84,8 +84,11 @@ class Head():
 
     def draw(self, screen, viewRow, viewColumn, leftColW, tileW, drawHead=False): # by default, only draws home
         if drawHead:
-            top = [(self.tick / ticksPerTile * tileW) - (viewColumn * tileW) + leftColW, toolbarHeight]
-            bottom = [(self.tick / ticksPerTile * tileW) - (viewColumn * tileW) + leftColW, height]
+            #top = [(self.tick / ticksPerTile * tileW) - (viewColumn * tileW) + leftColW, toolbarHeight]
+            #bottom = [(self.tick / ticksPerTile * tileW) - (viewColumn * tileW) + leftColW, height]
+
+            top = [(((time.time() - lastPlayTime) * 60) / ticksPerTile * tileW) - (viewColumn * tileW) + leftColW, toolbarHeight]
+            bottom = [(((time.time() - lastPlayTime) * 60) / ticksPerTile * tileW) - (viewColumn * tileW) + leftColW, height]
 
             pygame.draw.line(screen, (0, 255, 255), top, bottom, 1)
 
@@ -110,7 +113,7 @@ class Head():
                 
             #finalWave = np.concatenate([finalWave,
                                         #assembleNotes(playingNotes, duration=ticksPerTile/fps)])
-            audioChunk, phases = assembleNotes(playingNotes, phases, duration=ticksPerTile/fps)
+            audioChunk, phases = assembleNotes(playingNotes, phases, duration=ticksPerTile/60)
             finalWave = np.concatenate([finalWave, audioChunk])
             
         play_obj = sa.play_buffer(finalWave, 1, 2, 44100)
@@ -341,6 +344,7 @@ mouseTask = False
 mouseDownTime = time.time()
 mouseWOTask = True
 mouseHoldStart = []
+lastPlayTime = time.time()
 
 timeOffset = 0
 keyOffset = 0
@@ -535,7 +539,7 @@ while running:
 
     # functionality to move playhead and draw it when it is moving
     if playing:
-        playHead.tick += 1
+        playHead.tick += 1 * 60/fps
         playHead.draw(screen, viewRow, viewColumn, leftColumn, (width - leftColumn)/floor(viewScaleX), drawHead=True)
     else:
         playHead.draw(screen, viewRow, viewColumn, leftColumn, (width - leftColumn)/floor(viewScaleX))
@@ -584,7 +588,7 @@ while running:
                                                   scrollBarHeight), 1, 3)
 
     def renderToolBar():
-        global accidentals, mouseTask, playing, head, type, key, keyIndex, mode, modeIntervals
+        global accidentals, mouseTask, playing, head, type, key, keyIndex, mode, modeIntervals, lastPlayTime
         pygame.draw.rect(screen, (43, 43, 43), (0, 0, width, toolbarHeight))
         pygame.draw.line(screen, (0, 0, 0), (0, toolbarHeight), (width, toolbarHeight))
         pygame.draw.line(screen, (30, 30, 30), (0, toolbarHeight - 1), (width, toolbarHeight - 1))
@@ -604,6 +608,7 @@ while running:
             playing = not playing
             if playing:
                 playHead.play()
+                lastPlayTime = time.time()
             else:
                 play_obj.stop()
             mouseTask = True
@@ -763,6 +768,7 @@ while running:
                 playing = not playing
                 if playing:
                     playHead.play()
+                    lastPlayTime = time.time()
                 else:
                     play_obj.stop()
                 playHead.tick = playHead.home
