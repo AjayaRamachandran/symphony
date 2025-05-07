@@ -22,7 +22,7 @@ if len(sys.argv) == 2:
 else:
     workingFile = ""
 
-###### INITIALIZE ######
+###### PYGAME INITIALIZE ######
 pygame.init()
 
 width, height = (1100, 600)
@@ -38,12 +38,12 @@ TITLE1 = pygame.font.Font("inner/InterVariable.ttf", 60)
 HEADING1 = pygame.font.Font("inner/InterVariable.ttf", 24)
 SUBHEADING1 = pygame.font.Font("inner/InterVariable.ttf", 14)
 BODY = pygame.font.Font("inner/InterVariable.ttf", 14)
-SUBSCRIPT1 = pygame.font.Font("inner/InterVariable.ttf", 12)
+SUBSCRIPT1 = pygame.font.Font("inner/InterVariable.ttf", 11)
 
 bytes_io = BytesIO()
 directory = "C:/Code/React Projects/Editor/tracks"
 
-### ASSETS ###
+###### ASSETS ######
 playButton = pygame.image.load("inner/assets/play.png")
 pauseButton = pygame.image.load("inner/assets/pause.png")
 headButton = pygame.image.load("inner/assets/head.png")
@@ -58,21 +58,62 @@ negaterButton = pygame.image.load("inner/assets/negater.png")
 page = "Editor"
 noteMap = {}
 
+###### VARIABLES INITIALIZE ######
+
+tick = 0
+tickInterval = 10
+
+NOTES_SHARP = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+NOTES_FLAT =  ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"]
+noteCount = 128
+noteRange = 60
+modesIntervals = [
+    ["Lydian",        [0, 2, 4, 6, 7, 9, 11]],
+    ["Ionian (maj.)", [0, 2, 4, 5, 7, 9, 11]],
+    ["Mixolydian",    [0, 2, 4, 5, 7, 9, 10]],
+    ["Dorian",        [0, 2, 3, 5, 7, 9, 10]],
+    ["Aeolian (min.)",[0, 2, 3, 5, 7, 8, 10]],
+    ["Phrygian",      [0, 1, 3, 5, 7, 8, 10]],
+    ["Locrian",       [0, 1, 3, 5, 6, 8, 10]]
+]
+
+accidentals = "flats"
+head = False
+playing = False
+type = "brush"
+worldMessage = ""
+
+viewRow = 50.01
+viewColumn = 0.01
+viewScaleY = 16
+viewScaleX = 32
+dRow = 0
+dCol = 0
+timeInterval = 4
+
+notes = []
+duplicatedNoteMap = {}
+currentDraggingKey = 0
+initialDraggingTime = 0
+
+toolbarHeight = 80
+innerHeight = height - toolbarHeight
+
+mouseTask = False
+mouseDownTime = time.time()
+mouseWOTask = True
+mouseHoldStart = []
+lastPlayTime = time.time()
+
+timeOffset = 0
+keyOffset = 0
+oldKeyOffset = 0
+
+saveFrame = 0
+
+drawSelectBox = False
+
 ###### CLASSES ######
-
-class ProgramState():
-    '''Class to contain the entire editor's state, with all relevant fields for opening and saving.'''
-
-    def __init__(self, tempo, file_data):
-        self.ticksPerTile = tempo
-        self.noteMap = file_data
-
-if workingFile == "":
-    ps = ProgramState(10, noteMap)
-else:
-    ps = pkl.load(open(workingFile, "rb"))
-noteMap = ps.noteMap
-ticksPerTile = ps.ticksPerTile
 
 class Head():
     '''Class to contain the playhead, which plays the music.'''
@@ -84,11 +125,8 @@ class Head():
 
     def draw(self, screen, viewRow, viewColumn, leftColW, tileW, drawHead=False): # by default, only draws home
         if drawHead:
-            #top = [(self.tick / ticksPerTile * tileW) - (viewColumn * tileW) + leftColW, toolbarHeight]
-            #bottom = [(self.tick / ticksPerTile * tileW) - (viewColumn * tileW) + leftColW, height]
-
-            top = [(((time.time() - lastPlayTime) * 60) / ticksPerTile * tileW) - (viewColumn * tileW) + leftColW, toolbarHeight]
-            bottom = [(((time.time() - lastPlayTime) * 60) / ticksPerTile * tileW) - (viewColumn * tileW) + leftColW, height]
+            top = [((((time.time() - lastPlayTime) * 60) + self.home) / ticksPerTile * tileW) - (viewColumn * tileW) + leftColW, toolbarHeight]
+            bottom = [((((time.time() - lastPlayTime) * 60) + self.home) / ticksPerTile * tileW) - (viewColumn * tileW) + leftColW, height]
 
             pygame.draw.line(screen, (0, 255, 255), top, bottom, 1)
 
@@ -103,16 +141,12 @@ class Head():
         phases = {}
         finalWave = np.array([], dtype=np.int16)
         for tempTick in range(self.home // ticksPerTile + 1, noteCount):
-            #print(f"note played {random.randint(0, 100000)}")
+
             playingNotes = []
             for index, note in noteMap.items():
                 if note.time == tempTick:
                     playingNotes.append((note.key, note.lead))
-            #if len(playingNotes) > 0:
-                #print(f"Playing notes {playingNotes}")
-                
-            #finalWave = np.concatenate([finalWave,
-                                        #assembleNotes(playingNotes, duration=ticksPerTile/fps)])
+
             audioChunk, phases = assembleNotes(playingNotes, phases, duration=ticksPerTile/60)
             finalWave = np.concatenate([finalWave, audioChunk])
             
@@ -138,72 +172,126 @@ class Note():
         self.SScoords = [x, y]
 
     def draw(self, screen, viewRow, viewColumn, noteMap, transparent = False):
+        global viewScaleX, viewScaleY
         opacity = 130
         leadColor = (150, 95, 20) if not transparent else (150, 95, 20, opacity)
         outlineColor = (255, 255, 255) if not transparent else (0, 0, 0, 0)
         tailColor = (130, 75, 0) if not transparent else (130, 75, 0, opacity)
         black = (0, 0, 0) if not transparent else (0, 0, 0, 0)
-        headerY = toolbarHeight + ((viewRow - self.key) * innerHeight/floor(viewScaleY))
-        headerX = leftColumn + ((self.time - viewColumn - 1) * (width - leftColumn)/floor(viewScaleX))
-        self.setSScoords(headerX + (width - leftColumn)/floor(viewScaleX)/2, headerY + innerHeight/floor(viewScaleY)/2)
+        headerY = toolbarHeight + ((viewRow - self.key) * innerHeight/viewScaleY)
+        headerX = leftColumn + ((self.time - viewColumn - 1) * (width - leftColumn)/viewScaleX)
+        self.setSScoords(headerX + (width - leftColumn)/viewScaleX/2, headerY + innerHeight/viewScaleY/2)
         if self.lead:
             pygame.draw.rect(screen, leadColor,
-                         (headerX - 1, headerY - 1, (width - leftColumn)/floor(viewScaleX) + 2, innerHeight/floor(viewScaleY) + 2), border_radius=3)
+                         (headerX - 1, headerY - 1, (width - leftColumn)/viewScaleX + 2, innerHeight/viewScaleY + 2), border_radius=3)
             pygame.draw.rect(screen, black,
-                         (headerX - 1, headerY - 1, (width - leftColumn)/floor(viewScaleX) + 2, innerHeight/floor(viewScaleY) + 2), 1, 3)
+                         (headerX - 1, headerY - 1, (width - leftColumn)/viewScaleX + 2, innerHeight/viewScaleY + 2), 1, 3)
             if self.selected:
                 pygame.draw.line(screen, outlineColor, # top edge
-                         (headerX - 1, headerY - 1), (headerX + (width - leftColumn)/floor(viewScaleX) + 1, headerY - 1), 2)
+                         (headerX - 1, headerY - 1), (headerX + (width - leftColumn)/viewScaleX + 1, headerY - 1), 2)
                 pygame.draw.line(screen, outlineColor, # left edge
-                         (headerX - 1, headerY - 1), (headerX - 1, headerY + innerHeight/floor(viewScaleY) - 1), 2)
+                         (headerX - 1, headerY - 1), (headerX - 1, headerY + innerHeight/viewScaleY - 1), 2)
                 pygame.draw.line(screen, outlineColor, # bottom edge
-                         (headerX - 1, headerY + innerHeight/floor(viewScaleY) - 1), (headerX + (width - leftColumn)/floor(viewScaleX) + 1, headerY + innerHeight/floor(viewScaleY) - 1), 2)
+                         (headerX - 1, headerY + innerHeight/viewScaleY - 1), (headerX + (width - leftColumn)/viewScaleX + 1, headerY + innerHeight/viewScaleY - 1), 2)
                 if not (self.key, self.time + 1) in noteMap:
                     pygame.draw.line(screen, outlineColor, # right edge
-                            (headerX + (width - leftColumn)/floor(viewScaleX), headerY + 1), (headerX + (width - leftColumn)/floor(viewScaleX), headerY + innerHeight/floor(viewScaleY) - 1), 2)        
+                            (headerX + (width - leftColumn)/viewScaleX, headerY + 1), (headerX + (width - leftColumn)/viewScaleX, headerY + innerHeight/viewScaleY - 1), 2)        
         else:
             pygame.draw.rect(screen, tailColor,
-                         (headerX - 1, headerY, (width - leftColumn)/floor(viewScaleX) + 1, innerHeight/floor(viewScaleY)))
+                         (headerX - 1, headerY, (width - leftColumn)/viewScaleX + 1, innerHeight/viewScaleY))
             if (self.key, self.time + 1) in noteMap and noteMap[(self.key, self.time + 1)].lead == False:
                 if self.selected:
                     pygame.draw.line(screen, outlineColor, # top edge
-                            (headerX - 1, headerY - 1), (headerX + (width - leftColumn)/floor(viewScaleX) + 1, headerY - 1), 2)
+                            (headerX - 1, headerY - 1), (headerX + (width - leftColumn)/viewScaleX + 1, headerY - 1), 2)
                     pygame.draw.line(screen, outlineColor, # bottom edge
-                            (headerX - 1, headerY + innerHeight/floor(viewScaleY) - 1), (headerX + (width - leftColumn)/floor(viewScaleX) + 1, headerY + innerHeight/floor(viewScaleY) - 1), 2)
+                            (headerX - 1, headerY + innerHeight/viewScaleY - 1), (headerX + (width - leftColumn)/viewScaleX + 1, headerY + innerHeight/viewScaleY - 1), 2)
             else:
                 if self.selected:
                     pygame.draw.line(screen, outlineColor, # top edge
-                            (headerX - 1, headerY - 1), (headerX + (width - leftColumn)/floor(viewScaleX) + 1, headerY - 1), 2)
+                            (headerX - 1, headerY - 1), (headerX + (width - leftColumn)/viewScaleX + 1, headerY - 1), 2)
                     pygame.draw.line(screen, outlineColor, # right edge
-                            (headerX + (width - leftColumn)/floor(viewScaleX), headerY + 1), (headerX + (width - leftColumn)/floor(viewScaleX), headerY + innerHeight/floor(viewScaleY) - 1), 2)
+                            (headerX + (width - leftColumn)/viewScaleX, headerY + 1), (headerX + (width - leftColumn)/viewScaleX, headerY + innerHeight/viewScaleY - 1), 2)
                     pygame.draw.line(screen, outlineColor, # bottom edge
-                            (headerX - 1, headerY + innerHeight/floor(viewScaleY) - 1), (headerX + (width - leftColumn)/floor(viewScaleX) + 1, headerY + innerHeight/floor(viewScaleY) - 1), 2)
+                            (headerX - 1, headerY + innerHeight/viewScaleY - 1), (headerX + (width - leftColumn)/viewScaleX + 1, headerY + innerHeight/viewScaleY - 1), 2)
         if self.extending:
             pygame.draw.line(screen, (0, 255, 0), # right edge
-                            (headerX + (width - leftColumn)/floor(viewScaleX), headerY + 1), (headerX + (width - leftColumn)/floor(viewScaleX), headerY + innerHeight/floor(viewScaleY) - 1), 2)
-                    
+                            (headerX + (width - leftColumn)/viewScaleX, headerY + 1), (headerX + (width - leftColumn)/viewScaleX, headerY + innerHeight/viewScaleY - 1), 2)
+
+def toNote(note: Note):
+    return Note(note.key, note.time, note.lead)
+
+class ProgramState():
+    '''Class to contain the entire editor's state, with all relevant fields for opening and saving.'''
+
+    def __init__(self, ticksPerTile, noteMap, key, mode):
+        self.ticksPerTile = ticksPerTile
+        self.noteMap = noteMap
+        self.key = key
+        self.mode = mode
+
+    def updateAttributes(self, noteMap, ticksPerTile, key, mode):
+        self.noteMap = copy.deepcopy(noteMap)
+        self.ticksPerTile = ticksPerTile
+        self.key = key
+        self.mode = mode
+        print(f"Updated ProgramState with key {key} and mode {mode}.")
+
+def toProgramState(state : ProgramState):
+    try:
+        key = state.key
+    except:
+        key = "Eb"
+
+    try:
+        mode = state.mode
+    except:
+        mode = "Lydian"
+
+    return ProgramState(state.ticksPerTile, {key : toNote(val) for key, val in state.noteMap.items()}, key, mode)
+
+if workingFile == "":
+    ps = ProgramState(10, noteMap, "Eb", "Lydian")
+else:
+    ps = toProgramState(pkl.load(open(workingFile, "rb")))
+noteMap = ps.noteMap
+ticksPerTile = ps.ticksPerTile
+
+key = ps.key
+keyIndex = NOTES_FLAT.index(key) if accidentals == "flats" else NOTES_SHARP.index(key)
+mode = ps.mode
+modeIntervals = set(modesIntervals[0][1])
 
 ###### FUNCTIONS ######
+
+def dumpToFile(file, directory):
+    global worldMessage
+    # Get current time in epoch seconds
+    epochSeconds = time.time()
+    localTime = time.localtime(epochSeconds)
+    readableTime = time.strftime('%Y-%m-%d at %H:%M:%S', localTime)
+
+    ps.updateAttributes(noteMap, ticksPerTile, key, mode)
+    pkl.dump(ps, file, -1)
+
+    worldMessage = (f"Last Saved {readableTime} to " + directory) if directory != "inner/assets/workingfile.mgrid" else "You have unsaved changes - Please save to a file on your PC."
 
 def inBounds(coords1, coords2, point) -> bool:
     '''returns whether a point is within the bounds of two other points. order is arbitrary.'''
     return point[0] > min(coords1[0], coords2[0]) and point[1] > min(coords1[1], coords2[1]) and point[0] < max(coords1[0], coords2[0]) and point[1] < max(coords1[1], coords2[1])
 
-def process_image(image_bytes):
-    # Load the image from the BytesIO object
-    image = cv2.imdecode(np.frombuffer(image_bytes, np.uint8), cv2.IMREAD_COLOR)
-    
+def processImage(imageBytes):
+    image = cv2.imdecode(np.frombuffer(imageBytes, np.uint8), cv2.IMREAD_COLOR)
     # Apply a heavy blur to the image
-    blurred_image = cv2.GaussianBlur(image, (51, 51), 0)
+    blurredImage = cv2.GaussianBlur(image, (51, 51), 0)
     
-    height, width = blurred_image.shape[:2]
-    cropped_image = blurred_image[:, :300]
+    height, width = blurredImage.shape[:2]
+    croppedImage = blurredImage[:, :300]
     
     # Encode the image to a BytesIO object
-    _, buffer = cv2.imencode('.jpg', cropped_image)
-    image_io = BytesIO(buffer)
+    _, buffer = cv2.imencode('.jpg', croppedImage)
+    imageIO = BytesIO(buffer)
     
-    return image_io
+    return imageIO
 
 def notesToFreq(notes):
     '''converts a set of notes (as ints from C2) to frequencies'''
@@ -297,63 +385,6 @@ def reevaluateLeads():
 
 ###### MAINLOOP ######
 running = True
-
-tick = 0
-tickInterval = 10
-
-NOTES_SHARP = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
-NOTES_FLAT =  ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"]
-noteCount = 128
-noteRange = 60
-modesIntervals = [
-    ["Lydian",        [0, 2, 4, 6, 7, 9, 11]],
-    ["Ionian (maj.)", [0, 2, 4, 5, 7, 9, 11]],
-    ["Mixolydian",    [0, 2, 4, 5, 7, 9, 10]],
-    ["Dorian",        [0, 2, 3, 5, 7, 9, 10]],
-    ["Aeolian (min.)",[0, 2, 3, 5, 7, 8, 10]],
-    ["Phrygian",      [0, 1, 3, 5, 7, 8, 10]],
-    ["Locrian",       [0, 1, 3, 5, 6, 8, 10]]
-]
-
-accidentals = "flats"
-head = False
-playing = False
-type = "brush"
-key = "Eb"
-keyIndex = 3
-mode = "Lydian"
-modeIntervals = set(modesIntervals[0][1])
-
-viewRow = 50.01
-viewColumn = 0.01
-viewScaleY = 16
-viewScaleX = 32
-dRow = 0
-dCol = 0
-timeInterval = 4
-
-notes = []
-duplicatedNoteMap = {}
-currentDraggingKey = 0
-initialDraggingTime = 0
-
-toolbarHeight = 80
-innerHeight = height - toolbarHeight
-
-mouseTask = False
-mouseDownTime = time.time()
-mouseWOTask = True
-mouseHoldStart = []
-lastPlayTime = time.time()
-
-timeOffset = 0
-keyOffset = 0
-oldKeyOffset = 0
-
-saveFrame = 0
-
-drawSelectBox = False
-
 playHead = Head(0, 1, 0)
 
 while running:
@@ -362,9 +393,8 @@ while running:
         saveFrame = 0
 
         myPath = open(workingFile if workingFile != "" else "inner/assets/workingfile.mgrid", "wb")
-        ps.noteMap = copy.deepcopy(noteMap)
-        ps.ticksPerTile = ticksPerTile
-        pkl.dump(ps, myPath, -1)
+
+        dumpToFile(myPath, workingFile if workingFile != "" else "inner/assets/workingfile.mgrid")
         myPath.close()
 
     screen.fill((0, 0, 0))
@@ -373,20 +403,18 @@ while running:
     leftColumn = 60
     
     for row in range(ceil(viewScaleY) + 1):
-        headerY = row * innerHeight / viewScaleY + toolbarHeight + (viewRow%1 * innerHeight/floor(viewScaleY)) - innerHeight/floor(viewScaleY)
-        headerX = leftColumn - (viewColumn%1 * (width - leftColumn)/floor(viewScaleX)) - (width - leftColumn)/floor(viewScaleX)
+        headerY = row * innerHeight / viewScaleY + toolbarHeight + (viewRow%1 * innerHeight/viewScaleY) - innerHeight/viewScaleY
+        headerX = leftColumn - (viewColumn%1 * (width - leftColumn)/viewScaleX) - (width - leftColumn)/viewScaleX
         for column in range(ceil(viewScaleX) + 2):
             cm = (floor((column+viewColumn)%timeInterval) == 0) * 8
             pygame.draw.rect(screen, ((28 + cm, 28 + cm, 28 + cm) if not (-(floor(row - viewRow) + keyIndex + 1) % 12) in modeIntervals else (43 + cm, 43 + cm, 43 + cm)),
-                         (headerX, headerY, (width - leftColumn)/floor(viewScaleX), innerHeight/floor(viewScaleY)), border_radius=3)
-            #pygame.draw.rect(screen, ((32 + cm, 32 + cm, 32 + cm) if floor((row - viewRow)%2) == 0 else (40 + cm, 40 + cm, 40 + cm)),
-                         #(headerX, headerY, (width - leftColumn)/floor(viewScaleX), innerHeight/floor(viewScaleY)), border_radius=3)
+                         (headerX, headerY, (width - leftColumn)/viewScaleX, innerHeight/viewScaleY), border_radius=3)
             pygame.draw.rect(screen, (0, 0, 0),
-                         (headerX, headerY, (width - leftColumn)/floor(viewScaleX), innerHeight/floor(viewScaleY)), 1, 3)
-            headerX += (width - leftColumn)/floor(viewScaleX)
+                         (headerX, headerY, (width - leftColumn)/viewScaleX, innerHeight/viewScaleY), 1, 3)
+            headerX += (width - leftColumn)/viewScaleX
 
             ##### BRUSH CONTROLS #####
-            if tintFromMouse((headerX, headerY, (width - leftColumn)/floor(viewScaleX), innerHeight/floor(viewScaleY)))[0] and (pygame.mouse.get_pressed()[0]) and (toolbarHeight < pygame.mouse.get_pos()[1] < (height - 50)):
+            if tintFromMouse((headerX, headerY, (width - leftColumn)/viewScaleX, innerHeight/viewScaleY))[0] and (pygame.mouse.get_pressed()[0]) and (toolbarHeight < pygame.mouse.get_pos()[1] < (height - 50)):
                 touchedKey, touchedTime = floor(viewRow - row + 1), floor(column + viewColumn + 1)
                 if not mouseTask:
                     mouseDownTime = time.time() # sets mouse start down time
@@ -520,7 +548,6 @@ while running:
                 mouseWOTask = False
                 mouseTask = True
     for note in noteMap.items():
-        #### REMEMBER TO ADD OPTIMIZATION TO ONLY DRAW SCREEN SPACE NOTES - DONE!
         if note[1].key > viewRow - viewScaleY and note[1].key < viewRow + 1:
             if note[1].time > viewColumn and note[1].time < viewColumn + viewScaleX + 1:
                 #print(f"Note Key : {note[1].key}, viewRow : {viewRow}, Note Time : {note[1].time}, viewColumn : {viewColumn}, viewScaleX : {viewScaleX}, viewScaleY : {viewScaleY}")
@@ -540,20 +567,20 @@ while running:
     # functionality to move playhead and draw it when it is moving
     if playing:
         playHead.tick += 1 * 60/fps
-        playHead.draw(screen, viewRow, viewColumn, leftColumn, (width - leftColumn)/floor(viewScaleX), drawHead=True)
+        playHead.draw(screen, viewRow, viewColumn, leftColumn, (width - leftColumn)/viewScaleX, drawHead=True)
     else:
-        playHead.draw(screen, viewRow, viewColumn, leftColumn, (width - leftColumn)/floor(viewScaleX))
+        playHead.draw(screen, viewRow, viewColumn, leftColumn, (width - leftColumn)/viewScaleX)
 
     for row in range(ceil(viewScaleY) + 1):
-        headerX, headerY = 0, row * innerHeight / viewScaleY + toolbarHeight + (viewRow%1 * innerHeight/floor(viewScaleY)) - innerHeight/floor(viewScaleY)
+        headerX, headerY = 0, row * innerHeight / viewScaleY + toolbarHeight + (viewRow%1 * innerHeight/viewScaleY) - innerHeight/viewScaleY
         note = f"{(NOTES_SHARP if accidentals == 'sharps' else NOTES_FLAT)[floor((viewRow - row) % 12)]} {floor((viewRow - row) / 12) + 2}"
         pygame.draw.rect(screen, ((43, 43, 43) if floor((row - viewRow)%2) == 0 else (51, 51, 51)),
-                         (headerX, headerY, leftColumn, innerHeight/floor(viewScaleY)), border_radius=3)
+                         (headerX, headerY, leftColumn, innerHeight/viewScaleY), border_radius=3)
         pygame.draw.rect(screen, (0, 0, 0),
-                         (headerX, headerY, leftColumn, innerHeight/floor(viewScaleY)), 1, 3)
+                         (headerX, headerY, leftColumn, innerHeight/viewScaleY), 1, 3)
         stamp(note, SUBHEADING1, headerX + 5, headerY + 5, 0.4)
 
-        if tintFromMouse((0, headerY, leftColumn, innerHeight/floor(viewScaleY)))[0] and (pygame.mouse.get_pressed()[0]) and (toolbarHeight < pygame.mouse.get_pos()[1] < (height - 50)) and not mouseTask:
+        if tintFromMouse((0, headerY, leftColumn, innerHeight/viewScaleY))[0] and (pygame.mouse.get_pressed()[0]) and (toolbarHeight < pygame.mouse.get_pos()[1] < (height - 50)) and not mouseTask:
             # mouse is clicking the note labels
             mouseTask = True
             playNotes([floor(viewRow - row + 1)], duration=0.25)
@@ -731,11 +758,11 @@ while running:
 
             if noteExists:
                 playNotes([touchedKey], duration=0.25)
-            #for note in noteMap.items():
-                #noteMap[note[0]].originalKey = noteMap[note[0]].key
-                #noteMap[note[0]].originalTime = noteMap[note[0]].time
             mouseTask = True
         mouseWOTask = True
+
+    if worldMessage != "":
+        worldMessageRender = stamp(worldMessage, SUBSCRIPT1, width/2, 8, 0.5, "center")
 
     dRow *= 0.9
     dCol *= 0.9
@@ -748,9 +775,11 @@ while running:
             screen = pygame.display.set_mode((max(event.w, 800), max(event.h, 600)), pygame.RESIZABLE)
             width, height = (max(event.w, 800), max(event.h, 600))
             transparentScreen = pygame.Surface((width, height), pygame.SRCALPHA)
-            viewScaleX = floor(width / 34)
-            viewScaleY = floor(height / 37)
+
+            viewScaleX = (width - leftColumn) / ((1100 - leftColumn)/32) # keeps the box consistent width even when the window is resized
+            viewScaleY = (height - toolbarHeight) / ((600 - toolbarHeight)/16) # keeps the box consistent height even when the window is resized
             innerHeight = height - toolbarHeight
+
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_UP:
                 dRow += 0.16
@@ -779,17 +808,34 @@ while running:
                         delQ.append(index)
                 for q in delQ:
                     del noteMap[q]
+            elif event.key == pygame.K_s:
+                if pygame.key.get_pressed()[pygame.K_LCTRL]: # if the user presses Ctrl+S (to save)
+                    if workingFile == "": # file dialog to show up if the user's workspace is not attached to a file
+                        filename = asksaveasfile(initialfile = 'Untitled.mgrid', mode='wb',defaultextension=".mgrid", filetypes=[("Musical Composition Grid File","*.mgrid")])
+                        if filename != None:
+                            myPath = open("inner/assets/workingfile.mgrid", "wb")
+                            dumpToFile(myPath, directory=filename)
+                            myPath = open("inner/assets/workingfile.mgrid", "rb")
+
+                            pathBytes = bytearray(myPath.read())
+                            filename.write(pathBytes)
+                            filename.close()
+                        else:
+                            myPath = open("inner/assets/workingfile.mgrid", "wb")
+                            dumpToFile(myPath, "inner/assets/workingfile.mgrid")
+                    else: # save to workspace file
+                        myPath = open(workingFile, "wb")
+                        dumpToFile(myPath, workingFile)
+                    saveFrame = 0
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_LCTRL:
                 type = "brush"
                 for note in noteMap.items():
                     note[1].selected = False
             if event.key == pygame.K_LALT:
-                #print("alt unclicked")
                 for note in duplicatedNoteMap.items():
                     noteMap[note[0]] = copy.deepcopy(note[1])
                 duplicatedNoteMap.clear()
-                #print(duplicatedNoteMap)
         elif event.type == pygame.MOUSEWHEEL:
             if event.y > 0:
                 dRow += 0.06
@@ -818,10 +864,7 @@ if workingFile == "": # file dialog to show up if the user has unsaved changes (
     if filename != None:
         myPath = open("inner/assets/workingfile.mgrid", "wb")
 
-        ps.noteMap = copy.deepcopy(noteMap)
-        ps.ticksPerTile = ticksPerTile
-
-        pkl.dump(ps, myPath, -1)
+        dumpToFile(myPath, directory="inner/assets/workingfile.mgrid")
         myPath = open("inner/assets/workingfile.mgrid", "rb")
 
         pathBytes = bytearray(myPath.read())
@@ -829,9 +872,7 @@ if workingFile == "": # file dialog to show up if the user has unsaved changes (
         filename.close()
 else: # save all changes upon closing that have happened since the last autosave
     myPath = open(workingFile, "wb")
-    ps.noteMap = copy.deepcopy(noteMap)
-    ps.ticksPerTile = ticksPerTile
-    pkl.dump(ps, myPath, -1)
+    dumpToFile(myPath, directory=workingFile)
     
 # quit loop
 pygame.quit()
