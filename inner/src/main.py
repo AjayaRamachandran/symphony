@@ -12,7 +12,7 @@ import os
 import json
 import sys
 import dill as pkl
-from tkinter.filedialog import asksaveasfile
+from tkinter.filedialog import asksaveasfile, asksaveasfilename
 
 if len(sys.argv) > 3:
     print("Usage: midi_editor.exe <file.mgrid>")
@@ -813,8 +813,9 @@ while running:
                     if workingFile == "": # file dialog to show up if the user's workspace is not attached to a file
                         filename = asksaveasfile(initialfile = 'Untitled.mgrid', mode='wb',defaultextension=".mgrid", filetypes=[("Musical Composition Grid File","*.mgrid")])
                         if filename != None:
+                            filestring = filename.name
                             myPath = open("inner/assets/workingfile.mgrid", "wb")
-                            dumpToFile(myPath, directory=filename)
+                            dumpToFile(myPath, directory=filestring)
                             myPath = open("inner/assets/workingfile.mgrid", "rb")
 
                             pathBytes = bytearray(myPath.read())
