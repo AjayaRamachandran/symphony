@@ -1,0 +1,58 @@
+1. the ability to delete notes, and have the lead beat of a note automatically shift to the next beat over (the lead is the first beat of the note, a different color because it represents starting a new note playing)
+DONE
+
+2. the ability to select notes and move them around, and drag the tail end to extend or shrink them
+DRAGGING IS DONE, EXTENDING IS NOT DONE
+
+-- we are not doing extending anymore because it quite literally caused a project halt and that's no good for productivity, we don't want that to happen again.
+
+-- halfway solution might be to add an "extender/shrinker" brush that appends or removes from existing notes with a click.
+
+-- a better halfway solution might be a keyboard shortcut to extend or retract all selected notes (ex: A to ret. D to extend)
+NOT DONE
+
+3. the functionality to actually play the notes and hear them
+DONE
+
+3a. the functionality to click the note index note and have it just play without placing the note anywhere
+DONE
+
+3b. the functionality for notes that have a lead directly to the right to end sooner (to allow for staccato)
+DONE USING PHASE SHIFT
+
+3c. the functionality for notes to play when selected, if only one is selected
+DONE
+
+4. The ability to delete selected notes using BKSPC or DEL
+DONE
+
+4a. The ability to multiselect with box drag
+DONE
+
+4b. The ability to duplicate a section using alt+drag and a ghosted version follows the mouse until you let go
+DONE
+
+method: a second hashmap with all the notes that have been duplicated, and the offset, use the same method as drag but when the mouse has been let go, add the second hashmap to the first -- for drawing it, get partial opacity using a second surface
+
+5. the ability to load a .mgrid file as a load argument and the program will also autosave every 20 seconds.
+DONE
+
+6. the ability to set the play head anywhere and have play start from that point
+DONE
+
+6a. the ability to choose a tempo
+
+7. the ability to select what scale you're in and have the notes not in that scale to be slightly darker (but still accessible for out-of-scale juicy chords)
+DONE
+
+7a. the ability to choose time signature, which will change the oscillating pattern from 4 to X
+
+
+8. the ability to use different colors, which in the mscz conversion step represents different voice parts (for later)
+
+8a. A universal view, which shows all the voice parts, none grayed out (in each color view the other voice parts are gray and in the bg), any voice parts with the same note will appear 2.5D stacked up and to the left.
+
+
+
+
+
