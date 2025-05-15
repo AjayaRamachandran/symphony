@@ -24,6 +24,7 @@ else:
 
 ###### PYGAME INITIALIZE ######
 pygame.init()
+pygame.mixer.quit()
 
 width, height = (1100, 600)
 screen = pygame.display.set_mode((width, height), pygame.RESIZABLE, pygame.NOFRAME)
@@ -76,6 +77,16 @@ modesIntervals = [
     ["Phrygian",      [0, 1, 3, 5, 7, 8, 10]],
     ["Locrian",       [0, 1, 3, 5, 6, 8, 10]]
 ]
+colors = {
+    "orange" : (168, 136, 49),
+    "purple" : (134, 48, 156),
+    "cyan" : (20, 128, 150),
+    "lime" : (102, 150, 20),
+    "blue" : (61, 80, 156),
+    "pink" : (168, 49, 94)
+}
+colorsList = colors.items()
+justColors = [n[0] for n in colors.items()]
 
 accidentals = "flats"
 head = False
@@ -124,6 +135,7 @@ class Head():
         self.home = home # home is the time that the head returns to when restarted (default 0)
 
     def draw(self, screen, viewRow, viewColumn, leftColW, tileW, drawHead=False): # by default, only draws home
+        '''Method to draw the playhead.'''
         if drawHead:
             top = [((((time.time() - lastPlayTime) * 60) + self.home) / ticksPerTile * tileW) - (viewColumn * tileW) + leftColW, toolbarHeight]
             bottom = [((((time.time() - lastPlayTime) * 60) + self.home) / ticksPerTile * tileW) - (viewColumn * tileW) + leftColW, height]
@@ -155,10 +167,11 @@ class Head():
 class Note():
     '''Class to contain the Note, which represents a grid element that *does* have a sound when played.'''
 
-    def __init__(self, key:int, time:int, lead:bool):
+    def __init__(self, key:int, time:int, lead:bool, color:str = "orange"):
         self.key = key
         self.time = time
         self.lead = lead
+        self.color = color
         self.originalKey = key
         self.originalTime = time
         self.selected = False
@@ -172,15 +185,21 @@ class Note():
         self.SScoords = [x, y]
 
     def draw(self, screen, viewRow, viewColumn, noteMap, transparent = False):
+        '''Method to draw the note.'''
         global viewScaleX, viewScaleY
         opacity = 130
-        leadColor = (150, 95, 20) if not transparent else (150, 95, 20, opacity)
+        tailsDarkness = 20
+        def darkenColor(init, amt):
+            return [init[n] - (amt * (n!=3)) for n in range(len(init))] # darkens a tuple by a constant n, if init is a quadtuple with opacity, alpha is untouched.
+        leadColor = colors[self.color] if not transparent else (*colors[self.color], opacity)
         outlineColor = (255, 255, 255) if not transparent else (0, 0, 0, 0)
-        tailColor = (130, 75, 0) if not transparent else (130, 75, 0, opacity)
+        tailColor = darkenColor(leadColor, tailsDarkness)
         black = (0, 0, 0) if not transparent else (0, 0, 0, 0)
+
         headerY = toolbarHeight + ((viewRow - self.key) * innerHeight/viewScaleY)
         headerX = leftColumn + ((self.time - viewColumn - 1) * (width - leftColumn)/viewScaleX)
         self.setSScoords(headerX + (width - leftColumn)/viewScaleX/2, headerY + innerHeight/viewScaleY/2)
+
         if self.lead:
             pygame.draw.rect(screen, leadColor,
                          (headerX - 1, headerY - 1, (width - leftColumn)/viewScaleX + 2, innerHeight/viewScaleY + 2), border_radius=3)
@@ -341,7 +360,7 @@ def assembleNotes(notes, phases, duration=1, volume=0.2, sample_rate=44100):
         newPhases[freq] = newPhase
     
     #wave = wave / np.max(np.abs(wave))
-    wave = wave / np.max(np.abs(wave)) - (0.6 * wave / (np.max(np.abs(wave)) ** 2))
+    wave = wave / np.max(np.abs(wave)) - (0.6 * wave / ((np.max(np.abs(wave)) ** 2) if (np.max(np.abs(wave)) ** 2)!=0 else 999999))
     wave *= volume * 0.6
     audio = (wave * 32767).astype(np.int16)
 
@@ -428,13 +447,13 @@ while running:
                 elif type == "brush":
                     if not mouseTask and not (touchedKey, touchedTime) in noteMap:
                         playNotes([touchedKey], duration=0.25)
-                        noteMap[(touchedKey, touchedTime)] = Note(touchedKey, touchedTime, True)
+                        noteMap[(touchedKey, touchedTime)] = Note(touchedKey, touchedTime, True, color=random.choice(justColors))
                         currentDraggingKey = touchedKey
                         initialDraggingTime = touchedTime
                     reevaluateLeads()
                     mouseTask = True
                     if (not (currentDraggingKey, touchedTime) in noteMap) and touchedTime > initialDraggingTime:
-                        noteMap[(currentDraggingKey, touchedTime)] = Note(currentDraggingKey, touchedTime, False)
+                        noteMap[(currentDraggingKey, touchedTime)] = Note(currentDraggingKey, touchedTime, False, color=random.choice(justColors))
             
                 ## Eraser - unconditionally removes notes from the track
                 elif type == "eraser":
@@ -467,7 +486,8 @@ while running:
                         try:
                             mouseCellStart
                         except NameError:
-                            print("mouseCellStart not defined -- a selection was not initialized.")
+                            #print("mouseCellStart not defined -- a selection was not initialized.")
+                            None
                         else:
                             if (not mouseCellStart in noteMap) and (timeOffset, keyOffset) == (0,0):
                                 drawSelectBox = True
@@ -738,7 +758,8 @@ while running:
         try:
             mouseCellStart
         except NameError:
-            print("mouseCellStart not defined -- a selection was not initialized.")
+            #print("mouseCellStart not defined -- a selection was not initialized.")
+            None
         else:
             if (mouseHoldStart != pygame.mouse.get_pos()) and type == "select":
                 #print("Drag Selected")
