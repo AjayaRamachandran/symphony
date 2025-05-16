@@ -45,12 +45,12 @@ bytes_io = BytesIO()
 directory = "C:/Code/React Projects/Editor/tracks"
 
 ###### ASSETS ######
-playButton = pygame.image.load("inner/assets/play.png")
-pauseButton = pygame.image.load("inner/assets/pause.png")
-headButton = pygame.image.load("inner/assets/head.png")
-brushButton = pygame.image.load("inner/assets/brush.png")
-eraserButton = pygame.image.load("inner/assets/eraser.png")
-negaterButton = pygame.image.load("inner/assets/negater.png")
+playImage = pygame.image.load("inner/assets/play.png")
+pauseImage = pygame.image.load("inner/assets/pause.png")
+headImage = pygame.image.load("inner/assets/head.png")
+brushImage = pygame.image.load("inner/assets/brush.png")
+eraserImage = pygame.image.load("inner/assets/eraser.png")
+negaterImage = pygame.image.load("inner/assets/negater.png")
 
 # imports files from the workspaces folder
 #files_and_dirs = os.listdir(directory)
@@ -125,6 +125,38 @@ saveFrame = 0
 drawSelectBox = False
 
 ###### CLASSES ######
+
+class Button():
+    '''Class to contain buttons, which are used for interactivity.'''
+
+    def __init__(self, pos, width, height, text, textSize = SUBHEADING1, color = (30, 30, 30), image = None, altImage = None):
+        self.x = pos[0]
+        self.y = pos[1]
+        self.width = width
+        self.height = height
+        self.color = color
+        self.text = text
+        self.image = image
+        self.altImage = altImage
+        self.textSize = textSize
+
+    def mouseClicked(self):
+        return mouseFunction((self.x, toolbarHeight/2 - 14, self.width, self.height))[0] and pygame.mouse.get_pressed()[0] and not mouseTask
+    
+    def draw(self, condition=None, textCondition=None):
+        '''Method to draw a button.'''
+        pygame.draw.rect(screen, mouseFunction((self.x, toolbarHeight/2 - self.height/2, self.width, self.height))[1], (self.x, toolbarHeight/2 - self.height/2, self.width, self.height), border_radius=3)
+        pygame.draw.rect(screen, (0, 0, 0), (self.x, toolbarHeight/2 - self.height/2, self.width, self.height), 1, 3)
+        if self.text != None:
+            stamp(self.text, SUBHEADING1, self.x + self.width/2, self.y, 0.4, "center")
+        else:
+            if textCondition != None:
+                if textCondition:
+                    stamp(self.text, SUBHEADING1, self.x + self.width/2, self.y, 0.4, "center")
+                else:
+                    screen.blit((self.image if condition else self.altImage), (self.x + self.width/2 - 10, self.y - 8))
+            else:
+                screen.blit((self.image if condition else self.altImage), (self.x + self.width/2 - 10, self.y - 8))
 
 class Head():
     '''Class to contain the playhead, which plays the music.'''
@@ -280,6 +312,12 @@ keyIndex = NOTES_FLAT.index(key) if accidentals == "flats" else NOTES_SHARP.inde
 mode = ps.mode
 modeIntervals = set(modesIntervals[0][1])
 
+accidentalsButton = Button(pos=(120, 40), width=60, height=28, text="")
+playheadButton = Button(pos=(207, 40), width=60, height=28, text=None, image=headImage, altImage=headImage)
+keyButton = Button(pos=(width - 270, 40), width=40, height=28, text="")
+modeButton = Button(pos=(207, 40), width=100, height=28, text="")
+brushButton = Button(pos=(207, 40), width=60, height=28, text="select", image=brushImage, altImage=eraserImage)
+
 ###### FUNCTIONS ######
 
 def dumpToFile(file, directory):
@@ -392,7 +430,7 @@ def stamp(text, style, x, y, luminance, justification = "left"):
         textRect = (x - (text.get_rect()[2]/2), y - (text.get_rect()[3]/2), text.get_rect()[2], text.get_rect()[3])
     screen.blit(text, textRect)
 
-def tintFromMouse(rect):
+def mouseFunction(rect):
     '''function that returns (2 things) whether or not the mouse is in the bounding box, as well as a color.'''
     isInside = rect[0] < pygame.mouse.get_pos()[0] < rect[0] + rect[2] and rect[1] < pygame.mouse.get_pos()[1] < rect[1] + rect[3]
     return isInside, ((20, 20, 20) if isInside and pygame.mouse.get_pressed()[0] else ((30, 30, 30) if isInside else (35, 35, 35)))
@@ -433,7 +471,7 @@ while running:
             headerX += (width - leftColumn)/viewScaleX
 
             ##### BRUSH CONTROLS #####
-            if tintFromMouse((headerX, headerY, (width - leftColumn)/viewScaleX, innerHeight/viewScaleY))[0] and (pygame.mouse.get_pressed()[0]) and (toolbarHeight < pygame.mouse.get_pos()[1] < (height - 50)):
+            if mouseFunction((headerX, headerY, (width - leftColumn)/viewScaleX, innerHeight/viewScaleY))[0] and (pygame.mouse.get_pressed()[0]) and (toolbarHeight < pygame.mouse.get_pos()[1] < (height - 50)):
                 touchedKey, touchedTime = floor(viewRow - row + 1), floor(column + viewColumn + 1)
                 if not mouseTask:
                     mouseDownTime = time.time() # sets mouse start down time
@@ -600,7 +638,7 @@ while running:
                          (headerX, headerY, leftColumn, innerHeight/viewScaleY), 1, 3)
         stamp(note, SUBHEADING1, headerX + 5, headerY + 5, 0.4)
 
-        if tintFromMouse((0, headerY, leftColumn, innerHeight/viewScaleY))[0] and (pygame.mouse.get_pressed()[0]) and (toolbarHeight < pygame.mouse.get_pos()[1] < (height - 50)) and not mouseTask:
+        if mouseFunction((0, headerY, leftColumn, innerHeight/viewScaleY))[0] and (pygame.mouse.get_pressed()[0]) and (toolbarHeight < pygame.mouse.get_pos()[1] < (height - 50)) and not mouseTask:
             # mouse is clicking the note labels
             mouseTask = True
             playNotes([floor(viewRow - row + 1)], duration=0.25)
@@ -648,10 +686,10 @@ while running:
 
         ### PLAY/PAUSE BUTTON
         xPos = 33
-        pygame.draw.rect(screen, tintFromMouse((xPos, toolbarHeight/2 - 14, 60, 28))[1], (xPos, toolbarHeight/2 - 14, 60, 28), border_radius=3)
+        pygame.draw.rect(screen, mouseFunction((xPos, toolbarHeight/2 - 14, 60, 28))[1], (xPos, toolbarHeight/2 - 14, 60, 28), border_radius=3)
         pygame.draw.rect(screen, (0, 0, 0), (xPos, toolbarHeight/2 - 14, 60, 28), 1, 3)
-        screen.blit((pauseButton if playing else playButton), (xPos + 20, 32))
-        if tintFromMouse((xPos, toolbarHeight/2 - 14, 60, 28))[0] and pygame.mouse.get_pressed()[0] and not mouseTask:
+        screen.blit((pauseImage if playing else playImage), (xPos + 20, 32))
+        if mouseFunction((xPos, toolbarHeight/2 - 14, 60, 28))[0] and pygame.mouse.get_pressed()[0] and not mouseTask:
             playing = not playing
             if playing:
                 playHead.play()
@@ -662,56 +700,45 @@ while running:
             playHead.tick = playHead.home
 
         ### ACCIDENTALS BUTTON
-        xPos = 120
-        pygame.draw.rect(screen, tintFromMouse((xPos, toolbarHeight/2 - 14, 60, 28))[1], (xPos, toolbarHeight/2 - 14, 60, 28), border_radius=3)
-        pygame.draw.rect(screen, (0, 0, 0), (xPos, toolbarHeight/2 - 14, 60, 28), 1, 3)
-        stamp(accidentals, SUBHEADING1, xPos + 30, 40, 0.4, "center")
-        if tintFromMouse((xPos, toolbarHeight/2 - 14, 60, 28))[0] and pygame.mouse.get_pressed()[0] and not mouseTask:
+        accidentalsButton.x = 120
+        if accidentalsButton.mouseClicked():
             keyIndex = (NOTES_SHARP if accidentals == "sharps" else NOTES_FLAT).index(key)
             key = (NOTES_FLAT if accidentals == "sharps" else NOTES_SHARP)[keyIndex] # swaps the style of the 
             accidentals = ("sharps" if accidentals == "flats" else "flats")
             mouseTask = True
+        accidentalsButton.text = accidentals
+        accidentalsButton.draw()
         
         ### PLAYHEAD BUTTON
-        xPos = 207
-        pygame.draw.rect(screen, (30, 30, 30) if tintFromMouse((xPos, toolbarHeight/2 - 14, 60, 28))[0] or head else (35, 35, 35), (xPos, toolbarHeight/2 - 14, 60, 28), border_radius=3)
-        pygame.draw.rect(screen, (0, 0, 0), (xPos, toolbarHeight/2 - 14, 60, 28), 1, 3)
-        screen.blit((headButton if playing else headButton), (xPos + 20, 32))
-        if tintFromMouse((xPos, toolbarHeight/2 - 14, 60, 28))[0] and pygame.mouse.get_pressed()[0] and not mouseTask:
+        playheadButton.x = 207
+        if playheadButton.mouseClicked():
             head = not head
             mouseTask = True
+        playheadButton.draw(condition=playing)
 
         ### KEY BUTTON
-        xPos = width - 33 - 60 - 87 - 80
-        pygame.draw.rect(screen, tintFromMouse((xPos, toolbarHeight/2 - 14, 40, 28))[1], (xPos, toolbarHeight/2 - 14, 40, 28), border_radius=3)
-        pygame.draw.rect(screen, (0, 0, 0), (xPos, toolbarHeight/2 - 14, 40, 28), 1, 3)
-        stamp(key, SUBHEADING1, xPos + 20, 40, 0.4, "center")
-        if tintFromMouse((xPos, toolbarHeight/2 - 14, 40, 28))[0] and pygame.mouse.get_pressed()[0] and not mouseTask:
+        keyButton.x = width - 270
+        if keyButton.mouseClicked():
             keyIndex = (NOTES_SHARP if accidentals == "sharps" else NOTES_FLAT).index(key)
             key = (NOTES_SHARP if accidentals == "sharps" else NOTES_FLAT)[keyIndex + 1 if keyIndex != 11 else 0]
             keyIndex = keyIndex + 1 if keyIndex != 11 else 0
             mouseTask = True
+        keyButton.text = key
+        keyButton.draw()
 
         ### MODE BUTTON
-        xPos = width - 33 - 60 - 127
-        pygame.draw.rect(screen, tintFromMouse((xPos, toolbarHeight/2 - 14, 100, 28))[1], (xPos, toolbarHeight/2 - 14, 100, 28), border_radius=3)
-        pygame.draw.rect(screen, (0, 0, 0), (xPos, toolbarHeight/2 - 14, 100, 28), 1, 3)
-        stamp(mode, SUBHEADING1, xPos + 50, 40, 0.4, "center")
-        if tintFromMouse((xPos, toolbarHeight/2 - 14, 100, 28))[0] and pygame.mouse.get_pressed()[0] and not mouseTask:
+        modeButton.x = width - 220
+        if modeButton.mouseClicked():
             modeIndex = next(i for i, (x, _) in enumerate(modesIntervals) if x == mode)
             mode = modesIntervals[modeIndex + 1 if modeIndex != 6 else 0][0]
             modeIntervals = set(modesIntervals[modeIndex + 1 if modeIndex != 6 else 0][1])
             mouseTask = True
+        modeButton.text = mode
+        modeButton.draw()
 
         ### BRUSH/ERASER/NEGATER BUTTON
-        xPos = width - 33 - 60
-        pygame.draw.rect(screen, tintFromMouse((xPos, toolbarHeight/2 - 14, 60, 28))[1], (xPos, toolbarHeight/2 - 14, 60, 28), border_radius=3)
-        pygame.draw.rect(screen, (0, 0, 0), (xPos, toolbarHeight/2 - 14, 60, 28), 1, 3)
-        if type == "select":
-            stamp("select", SUBHEADING1, xPos + 30, 40, 0.4, "center")
-        else:
-            screen.blit((brushButton if type == "brush" else eraserButton), (xPos + 20, 32))
-        if tintFromMouse((xPos, toolbarHeight/2 - 14, 60, 28))[0] and pygame.mouse.get_pressed()[0] and not mouseTask:
+        brushButton.x = width - 93
+        if brushButton.mouseClicked():
             if type == "brush":
                 type = "eraser"
             elif type == "eraser":
@@ -721,6 +748,7 @@ while running:
                 for note in noteMap.items():
                     note[1].selected = False
             mouseTask = True
+        brushButton.draw(condition=(type == "brush"), textCondition=(type == "select"))
 
     renderScrollBar()
     renderToolBar()
