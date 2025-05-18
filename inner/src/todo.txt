@@ -50,9 +50,12 @@ DONE
 
 8. the ability to use different colors, which in the mscz conversion step represents different voice parts (for later)
 
-8a. A universal view, which shows all the voice parts, none grayed out (in each color view the other voice parts are gray and in the bg), any voice parts with the same note will appear 2.5D stacked up and to the left.
+8a. the ability to have different color options, and have the drawn notes reflect that color
+DONE
 
+8b. change the hashmap scheme to involve the color as well, so we can allow notes to overlap if they are diff color
+DONE
 
+8c. A universal view, which shows all the voice parts, none grayed out (in each color view the other voice parts are gray and in the bg), any voice parts with the same note will appear 2.5D stacked up and to the left.
 
-
-
+8d. a wave type is associated with each color to make better music, and playback singles out voice parts unless in universal view

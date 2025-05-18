@@ -27,6 +27,7 @@ pygame.init()
 pygame.mixer.quit()
 
 width, height = (1100, 600)
+minWidth, minHeight = (1100, 600)
 screen = pygame.display.set_mode((width, height), pygame.RESIZABLE, pygame.NOFRAME)
 transparentScreen = pygame.Surface((width, height), pygame.SRCALPHA)
 pygame.display.set_caption("MIDI Grid v1.0 Beta")
@@ -86,12 +87,13 @@ colors = {
     "pink" : (168, 49, 94)
 }
 colorsList = colors.items()
-justColors = [n[0] for n in colors.items()]
+justColors = [n[1] for n in colorsList]
+justColorNames = [n[0] for n in colorsList]
 
 accidentals = "flats"
 head = False
 playing = False
-type = "brush"
+brushType = "brush"
 worldMessage = ""
 
 viewRow = 50.01
@@ -109,6 +111,7 @@ initialDraggingTime = 0
 
 toolbarHeight = 80
 innerHeight = height - toolbarHeight
+globalVolume = 0.3
 
 mouseTask = False
 mouseDownTime = time.time()
@@ -129,34 +132,39 @@ drawSelectBox = False
 class Button():
     '''Class to contain buttons, which are used for interactivity.'''
 
-    def __init__(self, pos, width, height, text, textSize = SUBHEADING1, color = (30, 30, 30), image = None, altImage = None):
+    def __init__(self, pos, width, height, textSize = SUBHEADING1, color = (30, 30, 30), colorCycle = None):
         self.x = pos[0]
         self.y = pos[1]
         self.width = width
         self.height = height
-        self.color = color
-        self.text = text
-        self.image = image
-        self.altImage = altImage
         self.textSize = textSize
+        self.colorCycle = colorCycle
+        self.color = colorCycle[0] if colorCycle != None else color
 
     def mouseClicked(self):
         return mouseFunction((self.x, toolbarHeight/2 - 14, self.width, self.height))[0] and pygame.mouse.get_pressed()[0] and not mouseTask
     
-    def draw(self, condition=None, textCondition=None):
+    def draw(self, itemToDraw = None):
         '''Method to draw a button.'''
-        pygame.draw.rect(screen, mouseFunction((self.x, toolbarHeight/2 - self.height/2, self.width, self.height))[1], (self.x, toolbarHeight/2 - self.height/2, self.width, self.height), border_radius=3)
-        pygame.draw.rect(screen, (0, 0, 0), (self.x, toolbarHeight/2 - self.height/2, self.width, self.height), 1, 3)
-        if self.text != None:
-            stamp(self.text, SUBHEADING1, self.x + self.width/2, self.y, 0.4, "center")
+        if self.colorCycle != None:
+            pygame.draw.rect(screen, self.color, (self.x, toolbarHeight/2 - self.height/2, self.width, self.height), border_radius=3)
         else:
-            if textCondition != None:
-                if textCondition:
-                    stamp(self.text, SUBHEADING1, self.x + self.width/2, self.y, 0.4, "center")
-                else:
-                    screen.blit((self.image if condition else self.altImage), (self.x + self.width/2 - 10, self.y - 8))
+            pygame.draw.rect(screen, mouseFunction((self.x, toolbarHeight/2 - self.height/2, self.width, self.height))[1], (self.x, toolbarHeight/2 - self.height/2, self.width, self.height), border_radius=3)
+        pygame.draw.rect(screen, (0, 0, 0), (self.x, toolbarHeight/2 - self.height/2, self.width, self.height), 1, 3)
+    
+        if self.colorCycle == None:
+            if type(itemToDraw) == str:
+                stamp(itemToDraw, self.textSize, self.x + self.width/2, self.y, 0.4, "center")
             else:
-                screen.blit((self.image if condition else self.altImage), (self.x + self.width/2 - 10, self.y - 8))
+                screen.blit(itemToDraw, (self.x + self.width/2 - 8, self.y - 8))
+
+    def nextColor(self):
+        nextIndex = (justColors.index(self.color) + 1) % (len(colors.items()))
+        self.color = justColors[nextIndex]
+
+    def getColorName(self):
+        i = justColors.index(self.color)
+        return justColorNames[i]
 
 class Head():
     '''Class to contain the playhead, which plays the music.'''
@@ -220,11 +228,16 @@ class Note():
         '''Method to draw the note.'''
         global viewScaleX, viewScaleY
         opacity = 130
-        tailsDarkness = 20
         def darkenColor(init, amt):
             return [init[n] - (amt * (n!=3)) for n in range(len(init))] # darkens a tuple by a constant n, if init is a quadtuple with opacity, alpha is untouched.
-        leadColor = colors[self.color] if not transparent else (*colors[self.color], opacity)
-        outlineColor = (255, 255, 255) if not transparent else (0, 0, 0, 0)
+        if self.color == colorButton.getColorName() or colorButton.getColorName() == "ALL":
+            leadColor = colors[self.color] if not transparent else (*colors[self.color], opacity)
+            outlineColor = (255, 255, 255) if not transparent else (0, 0, 0, 0)
+            tailsDarkness = 20
+        else:
+            leadColor = (80, 80, 80) if not transparent else (80, 80, 80, opacity)
+            outlineColor = (255, 255, 255) if not transparent else (0, 0, 0, 0)
+            tailsDarkness = 5
         tailColor = darkenColor(leadColor, tailsDarkness)
         black = (0, 0, 0) if not transparent else (0, 0, 0, 0)
 
@@ -312,11 +325,13 @@ keyIndex = NOTES_FLAT.index(key) if accidentals == "flats" else NOTES_SHARP.inde
 mode = ps.mode
 modeIntervals = set(modesIntervals[0][1])
 
-accidentalsButton = Button(pos=(120, 40), width=60, height=28, text="")
-playheadButton = Button(pos=(207, 40), width=60, height=28, text=None, image=headImage, altImage=headImage)
-keyButton = Button(pos=(width - 270, 40), width=40, height=28, text="")
-modeButton = Button(pos=(207, 40), width=100, height=28, text="")
-brushButton = Button(pos=(207, 40), width=60, height=28, text="select", image=brushImage, altImage=eraserImage)
+playPauseButton = Button(pos=(33, 40), width=60, height=28)
+accidentalsButton = Button(pos=(120, 40), width=60, height=28)
+playheadButton = Button(pos=(207, 40), width=60, height=28)
+keyButton = Button(pos=(width - 260, 40), width=40, height=28)
+modeButton = Button(pos=(width - 220, 40), width=100, height=28)
+brushButton = Button(pos=(width - 93, 40), width=60, height=28)
+colorButton = Button(pos=(width - 320, 40), width=28, height=28, colorCycle=justColors)
 
 ###### FUNCTIONS ######
 
@@ -370,7 +385,7 @@ def playNotes(notes, duration=1, volume=0.2, sample_rate=44100):
             wave += np.sign(np.sin(2 * np.pi * freq * t))
         
         wave = wave / np.max(np.abs(wave)) - (0.6 * wave / (np.max(np.abs(wave)) ** 2))
-        wave *= volume * 0.6
+        wave *= volume * globalVolume
         audio = (wave * 32767).astype(np.int16)
         
         play_obj = sa.play_buffer(audio, 1, 2, sample_rate)
@@ -399,7 +414,7 @@ def assembleNotes(notes, phases, duration=1, volume=0.2, sample_rate=44100):
     
     #wave = wave / np.max(np.abs(wave))
     wave = wave / np.max(np.abs(wave)) - (0.6 * wave / ((np.max(np.abs(wave)) ** 2) if (np.max(np.abs(wave)) ** 2)!=0 else 999999))
-    wave *= volume * 0.6
+    wave *= volume * globalVolume
     audio = (wave * 32767).astype(np.int16)
 
     return audio, newPhases
@@ -412,7 +427,7 @@ def playNoise(duration=0.08, volume=0.3, sample_rate=44100):
         wave += np.random.random(t.shape) * 2 - 1
         
         wave = wave / np.max(np.abs(wave)) - (0.6 * wave / (np.max(np.abs(wave)) ** 2))
-        wave *= volume * 0.6
+        wave *= volume * globalVolume
         audio = (wave * 32767).astype(np.int16)
         
         play_obj = sa.play_buffer(audio, 1, 2, sample_rate)
@@ -437,8 +452,9 @@ def mouseFunction(rect):
 
 def reevaluateLeads():
     for note in noteMap.items():
-        if not ((note[0][0], note[0][1] - 1) in noteMap):
-            noteMap[note[0]].lead = True
+        if colorName == note[1].color:
+            if not ((note[0][0], note[0][1] - 1, colorName) in noteMap):
+                noteMap[note[0]].lead = True
 
 ###### MAINLOOP ######
 running = True
@@ -458,6 +474,8 @@ while running:
     transparentScreen.fill((0, 0, 0, 0))
 
     leftColumn = 60
+
+    colorName = colorButton.getColorName()
     
     for row in range(ceil(viewScaleY) + 1):
         headerY = row * innerHeight / viewScaleY + toolbarHeight + (viewRow%1 * innerHeight/viewScaleY) - innerHeight/viewScaleY
@@ -482,24 +500,24 @@ while running:
                         playHead.home = (touchedTime - 1) * ticksPerTile
                         mouseTask = True
                 ## Brush - unconditionally adds notes to the track
-                elif type == "brush":
-                    if not mouseTask and not (touchedKey, touchedTime) in noteMap:
+                elif brushType == "brush":
+                    if not mouseTask and not (touchedKey, touchedTime, colorName) in noteMap:
                         playNotes([touchedKey], duration=0.25)
-                        noteMap[(touchedKey, touchedTime)] = Note(touchedKey, touchedTime, True, color=random.choice(justColors))
+                        noteMap[(touchedKey, touchedTime, colorName)] = Note(touchedKey, touchedTime, True, color=colorName)
                         currentDraggingKey = touchedKey
                         initialDraggingTime = touchedTime
                     reevaluateLeads()
                     mouseTask = True
-                    if (not (currentDraggingKey, touchedTime) in noteMap) and touchedTime > initialDraggingTime:
-                        noteMap[(currentDraggingKey, touchedTime)] = Note(currentDraggingKey, touchedTime, False, color=random.choice(justColors))
+                    if (not (currentDraggingKey, touchedTime, colorName) in noteMap) and touchedTime > initialDraggingTime:
+                        noteMap[(currentDraggingKey, touchedTime, colorName)] = Note(currentDraggingKey, touchedTime, False, color=colorName)
             
                 ## Eraser - unconditionally removes notes from the track
-                elif type == "eraser":
+                elif brushType == "eraser":
                     toDelete = []
                     for note in noteMap.items():
-                        if (note[1].key, note[1].time) == (touchedKey, touchedTime):
-                            toDelete.append((touchedKey, touchedTime))
-                        if (note[1].key, note[1].time - 1) == (touchedKey, touchedTime) and not note[1].lead:
+                        if (note[1].key, note[1].time, note[1].color) == (touchedKey, touchedTime, colorName):
+                            toDelete.append((touchedKey, touchedTime, colorName))
+                        if (note[1].key, note[1].time - 1, note[1].color) == (touchedKey, touchedTime, colorName) and not note[1].lead:
                             note[1].lead = True
                     for itemToDelete in toDelete:
                         del noteMap[itemToDelete]
@@ -511,13 +529,13 @@ while running:
                 # Dragging moves the note UNLESS the drag is done from the very tail end of the note, in which case
                 # all selected notes are lengthened or shortened by the drag amount.
                 
-                elif type == "select":
+                elif brushType == "select":
                     if not mouseTask: # mouse was just clicked
                         for note in noteMap.items():
                             noteMap[note[0]].originalKey = noteMap[note[0]].key
                             noteMap[note[0]].originalTime = noteMap[note[0]].time
                         mouseHoldStart = pygame.mouse.get_pos()
-                        mouseCellStart = (touchedKey, touchedTime)
+                        mouseCellStart = (touchedKey, touchedTime, colorName)
                         mouseTask = True
                     else:
                         #print(timeOffset, keyOffset)
@@ -558,7 +576,7 @@ while running:
                                                 duplicatedNoteMap[note[0]].time = duplicatedNoteMap[note[0]].originalTime + timeOffset
                                                 delQ.append(note[0])
                                                 addQ.append(((duplicatedNoteMap[note[0]].originalKey + keyOffset,
-                                                            duplicatedNoteMap[note[0]].originalTime + timeOffset), note[1]))
+                                                            duplicatedNoteMap[note[0]].originalTime + timeOffset, colorName), note[1]))
                                         for delete in delQ:
                                             del duplicatedNoteMap[delete]
                                         for add in addQ:
@@ -593,7 +611,7 @@ while running:
                                                 noteMap[note[0]].time = noteMap[note[0]].originalTime + timeOffset
                                                 delQ.append(note[0])
                                                 addQ.append(((noteMap[note[0]].originalKey + keyOffset,
-                                                            noteMap[note[0]].originalTime + timeOffset), note[1]))
+                                                            noteMap[note[0]].originalTime + timeOffset, colorName), note[1]))
                                         for delete in delQ:
                                             del noteMap[delete]
                                         for add in addQ:
@@ -673,7 +691,7 @@ while running:
                                                   scrollBarHeight), 1, 3)
 
     def renderToolBar():
-        global accidentals, mouseTask, playing, head, type, key, keyIndex, mode, modeIntervals, lastPlayTime
+        global accidentals, mouseTask, playing, head, brushType, key, keyIndex, mode, modeIntervals, lastPlayTime
         pygame.draw.rect(screen, (43, 43, 43), (0, 0, width, toolbarHeight))
         pygame.draw.line(screen, (0, 0, 0), (0, toolbarHeight), (width, toolbarHeight))
         pygame.draw.line(screen, (30, 30, 30), (0, toolbarHeight - 1), (width, toolbarHeight - 1))
@@ -685,11 +703,8 @@ while running:
         stamp("My Track 1", SUBHEADING1, width/2, 40, 0.4, "center")
 
         ### PLAY/PAUSE BUTTON
-        xPos = 33
-        pygame.draw.rect(screen, mouseFunction((xPos, toolbarHeight/2 - 14, 60, 28))[1], (xPos, toolbarHeight/2 - 14, 60, 28), border_radius=3)
-        pygame.draw.rect(screen, (0, 0, 0), (xPos, toolbarHeight/2 - 14, 60, 28), 1, 3)
-        screen.blit((pauseImage if playing else playImage), (xPos + 20, 32))
-        if mouseFunction((xPos, toolbarHeight/2 - 14, 60, 28))[0] and pygame.mouse.get_pressed()[0] and not mouseTask:
+        playPauseButton.x = 33
+        if playPauseButton.mouseClicked():
             playing = not playing
             if playing:
                 playHead.play()
@@ -698,6 +713,7 @@ while running:
                 play_obj.stop()
             mouseTask = True
             playHead.tick = playHead.home
+        playPauseButton.draw(pauseImage if playing else playImage)
 
         ### ACCIDENTALS BUTTON
         accidentalsButton.x = 120
@@ -706,25 +722,30 @@ while running:
             key = (NOTES_FLAT if accidentals == "sharps" else NOTES_SHARP)[keyIndex] # swaps the style of the 
             accidentals = ("sharps" if accidentals == "flats" else "flats")
             mouseTask = True
-        accidentalsButton.text = accidentals
-        accidentalsButton.draw()
+        accidentalsButton.draw(accidentals)
         
         ### PLAYHEAD BUTTON
         playheadButton.x = 207
         if playheadButton.mouseClicked():
             head = not head
             mouseTask = True
-        playheadButton.draw(condition=playing)
+        playheadButton.draw(headImage)
+
+        ### COLOR BUTTON
+        colorButton.x = width - 320
+        if colorButton.mouseClicked():
+            colorButton.nextColor()
+            mouseTask = True
+        colorButton.draw()
 
         ### KEY BUTTON
-        keyButton.x = width - 270
+        keyButton.x = width - 260
         if keyButton.mouseClicked():
             keyIndex = (NOTES_SHARP if accidentals == "sharps" else NOTES_FLAT).index(key)
             key = (NOTES_SHARP if accidentals == "sharps" else NOTES_FLAT)[keyIndex + 1 if keyIndex != 11 else 0]
             keyIndex = keyIndex + 1 if keyIndex != 11 else 0
             mouseTask = True
-        keyButton.text = key
-        keyButton.draw()
+        keyButton.draw(key)
 
         ### MODE BUTTON
         modeButton.x = width - 220
@@ -733,22 +754,21 @@ while running:
             mode = modesIntervals[modeIndex + 1 if modeIndex != 6 else 0][0]
             modeIntervals = set(modesIntervals[modeIndex + 1 if modeIndex != 6 else 0][1])
             mouseTask = True
-        modeButton.text = mode
-        modeButton.draw()
+        modeButton.draw(mode)
 
         ### BRUSH/ERASER/NEGATER BUTTON
         brushButton.x = width - 93
         if brushButton.mouseClicked():
-            if type == "brush":
-                type = "eraser"
-            elif type == "eraser":
-                type = "select"
+            if brushType == "brush":
+                brushType = "eraser"
+            elif brushType == "eraser":
+                brushType = "select"
             else:
-                type = "brush"
+                brushType = "brush"
                 for note in noteMap.items():
                     note[1].selected = False
             mouseTask = True
-        brushButton.draw(condition=(type == "brush"), textCondition=(type == "select"))
+        brushButton.draw("select" if brushType == "select" else brushImage if brushType == "brush" else eraserImage)
 
     renderScrollBar()
     renderToolBar()
@@ -762,19 +782,19 @@ while running:
         '''function to take in a key and time and select all connected notes, and return whether a note exists at that key and time'''
         noteExists = False
         deviation = 0
-        while (key, time + deviation) in noteMap:
+        while (key, time + deviation, colorName) in noteMap:
             noteExists = True
-            noteMap[(key, time + deviation)].selected = True
-            if noteMap[(key, time + deviation)].lead == True:
-                noteMap[(key, time + deviation)].selected = True
+            noteMap[(key, time + deviation, colorName)].selected = True
+            if noteMap[(key, time + deviation, colorName)].lead == True:
+                noteMap[(key, time + deviation, colorName)].selected = True
                 break
             deviation -= 1
         deviation = 1
-        while (key, time + deviation) in noteMap:
+        while (key, time + deviation, colorName) in noteMap:
             noteExists = True
-            if noteMap[(key, time + deviation)].lead == True:
+            if noteMap[(key, time + deviation, colorName)].lead == True:
                 break
-            noteMap[(key, time + deviation)].selected = True
+            noteMap[(key, time + deviation, colorName)].selected = True
             deviation += 1
         return noteExists
 
@@ -789,13 +809,13 @@ while running:
             #print("mouseCellStart not defined -- a selection was not initialized.")
             None
         else:
-            if (mouseHoldStart != pygame.mouse.get_pos()) and type == "select":
+            if (mouseHoldStart != pygame.mouse.get_pos()) and brushType == "select":
                 #print("Drag Selected")
                 for note in noteMap.items():
-                    if inBounds(mouseHoldStart, pygame.mouse.get_pos(), note[1].SScoords):
+                    if inBounds(mouseHoldStart, pygame.mouse.get_pos(), note[1].SScoords) and note[1].color == colorName:
                         note[1].selected = True
                         selectConnected(note[0][0], note[0][1])
-        if (time.time() - mouseDownTime) < 0.2 and type == "select":
+        if (time.time() - mouseDownTime) < 0.2 and brushType == "select":
             timeOffset = 0
             keyOffset = 0
             if not pygame.key.get_pressed()[pygame.K_LSHIFT]: # if shift is not held, unselect all elements.
@@ -821,8 +841,8 @@ while running:
             running = False
             print("Pygame was quit")
         elif event.type == pygame.VIDEORESIZE:
-            screen = pygame.display.set_mode((max(event.w, 800), max(event.h, 600)), pygame.RESIZABLE)
-            width, height = (max(event.w, 800), max(event.h, 600))
+            screen = pygame.display.set_mode((max(event.w, minWidth), max(event.h, minHeight)), pygame.RESIZABLE)
+            width, height = (max(event.w, minWidth), max(event.h, minHeight))
             transparentScreen = pygame.Surface((width, height), pygame.SRCALPHA)
 
             viewScaleX = (width - leftColumn) / ((1100 - leftColumn)/32) # keeps the box consistent width even when the window is resized
@@ -839,9 +859,9 @@ while running:
             elif event.key == pygame.K_LEFT:
                 dCol -= 0.16
             elif event.key == pygame.K_LCTRL:
-                type = "eraser"
+                brushType = "eraser"
             elif event.key == pygame.K_LSHIFT:
-                type = "select"
+                brushType = "select"
             elif event.key == pygame.K_SPACE:
                 playing = not playing
                 if playing:
@@ -879,7 +899,7 @@ while running:
                     saveFrame = 0
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_LCTRL:
-                type = "brush"
+                brushType = "brush"
                 for note in noteMap.items():
                     note[1].selected = False
             if event.key == pygame.K_LALT:
