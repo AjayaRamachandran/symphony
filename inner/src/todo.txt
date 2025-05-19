@@ -59,4 +59,4 @@ DONE
 8c. A universal view, which shows all the voice parts, none grayed out (in each color view the other voice parts are gray and in the bg), any voice parts with the same note will appear 2.5D stacked up and to the left.
 DONE
 
-8d. a wave type is associated with each color to make better music, and playback singles out voice parts unless in universal view
+8d. PHASE CORRECTION WHEN LAYERING, as well as a wave type is associated with each color to make better music, and playback singles out voice parts unless in universal view

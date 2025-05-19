@@ -295,7 +295,12 @@ class Note():
                             (headerX + (width - leftColumn)/viewScaleX, headerY + 1), (headerX + (width - leftColumn)/viewScaleX, headerY + innerHeight/viewScaleY - 1), 2)
 
 def toNote(note: Note):
-    return Note(note.key, note.time, note.lead)
+    try:
+        color = note.color
+    except:
+        color = "orange"
+
+    return Note(note.key, note.time, note.lead, color)
 
 class ProgramState():
     '''Class to contain the entire editor's state, with all relevant fields for opening and saving.'''
@@ -315,16 +320,23 @@ class ProgramState():
 
 def toProgramState(state : ProgramState):
     try:
-        key = state.key
+        stateMkey = state.key
     except:
-        key = "Eb"
+        stateMkey = "Eb"
 
     try:
-        mode = state.mode
+        statemode = state.mode
     except:
-        mode = "Lydian"
+        statemode = "Lydian"
 
-    return ProgramState(state.ticksPerTile, {key : toNote(val) for key, val in state.noteMap.items()}, key, mode)
+    newNoteMap = {}
+    for statekey, stateval in state.noteMap.items():
+        newKey = statekey
+        if len(statekey) != 3:
+            newKey = (*statekey, "orange")
+        newNoteMap[newKey] = toNote(stateval)
+
+    return ProgramState(state.ticksPerTile, newNoteMap, stateMkey, statemode)
 
 if workingFile == "":
     ps = ProgramState(10, noteMap, "Eb", "Lydian")
@@ -350,6 +362,22 @@ colorButton = Button(pos=(width - 320, 40), width=28, height=28, colorCycle=just
 
 def dumpToFile(file, directory):
     global worldMessage
+
+    # when saving, repair any discrepancies between hashmap key and obj data (rare but fatal)
+    delQ, addQ = [], []
+    for thing in noteMap.items():
+        #print(thing[0], thing[1].key, thing[1].time, thing[1].color)
+        if (thing[1].key, thing[1].time, thing[1].color) != thing[0]:
+            print("A discrepancy was found between hashmap and obj data. Repairing (prioritizing obj data) now...")
+            print(f"Discrepancy details -- HM Key: {thing[0]}, Obj Data: {(thing[1].key, thing[1].time, thing[1].color)}")
+            addQ.append([(thing[1].key, thing[1].time, thing[1].color), thing[1]])
+            delQ.append(thing[0])
+    
+    for item in delQ:
+        del noteMap[item]
+    for item in addQ:
+        noteMap[item[0]] = item[1]
+
     # Get current time in epoch seconds
     epochSeconds = time.time()
     localTime = time.localtime(epochSeconds)
@@ -489,7 +517,8 @@ while running:
     leftColumn = 60
 
     colorName = colorButton.getColorName()
-    
+
+
     for row in range(ceil(viewScaleY) + 1):
         headerY = row * innerHeight / viewScaleY + toolbarHeight + (viewRow%1 * innerHeight/viewScaleY) - innerHeight/viewScaleY
         headerX = leftColumn - (viewColumn%1 * (width - leftColumn)/viewScaleX) - (width - leftColumn)/viewScaleX
