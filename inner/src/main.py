@@ -52,6 +52,7 @@ headImage = pygame.image.load("inner/assets/head.png")
 brushImage = pygame.image.load("inner/assets/brush.png")
 eraserImage = pygame.image.load("inner/assets/eraser.png")
 negaterImage = pygame.image.load("inner/assets/negater.png")
+rainbowImage = pygame.image.load("inner/assets/rainbow.png")
 
 # imports files from the workspaces folder
 #files_and_dirs = os.listdir(directory)
@@ -84,7 +85,8 @@ colors = {
     "cyan" : (20, 128, 150),
     "lime" : (102, 150, 20),
     "blue" : (61, 80, 156),
-    "pink" : (168, 49, 94)
+    "pink" : (168, 49, 94),
+    "all" : (255, 255, 255)
 }
 colorsList = colors.items()
 justColors = [n[1] for n in colorsList]
@@ -157,6 +159,10 @@ class Button():
                 stamp(itemToDraw, self.textSize, self.x + self.width/2, self.y, 0.4, "center")
             else:
                 screen.blit(itemToDraw, (self.x + self.width/2 - 8, self.y - 8))
+        else:
+            if type(itemToDraw) == pygame.Surface:
+                screen.blit(itemToDraw, (self.x + self.width/2 - 14, self.y - 14))
+                pygame.draw.rect(screen, (0, 0, 0), (self.x, toolbarHeight/2 - self.height/2, self.width, self.height), 1, 3)
 
     def nextColor(self):
         nextIndex = (justColors.index(self.color) + 1) % (len(colors.items()))
@@ -196,7 +202,7 @@ class Head():
 
             playingNotes = []
             for index, note in noteMap.items():
-                if note.time == tempTick:
+                if note.time == tempTick and (note.color == colorName or colorName == 'all'):
                     playingNotes.append((note.key, note.lead))
 
             audioChunk, phases = assembleNotes(playingNotes, phases, duration=ticksPerTile/60)
@@ -230,7 +236,7 @@ class Note():
         opacity = 130
         def darkenColor(init, amt):
             return [init[n] - (amt * (n!=3)) for n in range(len(init))] # darkens a tuple by a constant n, if init is a quadtuple with opacity, alpha is untouched.
-        if self.color == colorButton.getColorName() or colorButton.getColorName() == "ALL":
+        if self.color == colorButton.getColorName() or colorButton.getColorName() == "all":
             leadColor = colors[self.color] if not transparent else (*colors[self.color], opacity)
             outlineColor = (255, 255, 255) if not transparent else (0, 0, 0, 0)
             tailsDarkness = 20
@@ -241,8 +247,15 @@ class Note():
         tailColor = darkenColor(leadColor, tailsDarkness)
         black = (0, 0, 0) if not transparent else (0, 0, 0, 0)
 
-        headerY = toolbarHeight + ((viewRow - self.key) * innerHeight/viewScaleY)
-        headerX = leftColumn + ((self.time - viewColumn - 1) * (width - leftColumn)/viewScaleX)
+        numToOffset = 0
+        if colorName == 'all':
+            colorsToSearch = justColorNames[:justColorNames.index(self.color)]
+            for colorI in colorsToSearch:
+                if (self.key, self.time, colorI) in noteMap:
+                    numToOffset += 1
+
+        headerY = toolbarHeight + ((viewRow - self.key) * innerHeight/viewScaleY) - numToOffset * 3
+        headerX = leftColumn + ((self.time - viewColumn - 1) * (width - leftColumn)/viewScaleX) - numToOffset * 3
         self.setSScoords(headerX + (width - leftColumn)/viewScaleX/2, headerY + innerHeight/viewScaleY/2)
 
         if self.lead:
@@ -500,7 +513,7 @@ while running:
                         playHead.home = (touchedTime - 1) * ticksPerTile
                         mouseTask = True
                 ## Brush - unconditionally adds notes to the track
-                elif brushType == "brush":
+                elif brushType == "brush" and colorName != 'all':
                     if not mouseTask and not (touchedKey, touchedTime, colorName) in noteMap:
                         playNotes([touchedKey], duration=0.25)
                         noteMap[(touchedKey, touchedTime, colorName)] = Note(touchedKey, touchedTime, True, color=colorName)
@@ -512,7 +525,7 @@ while running:
                         noteMap[(currentDraggingKey, touchedTime, colorName)] = Note(currentDraggingKey, touchedTime, False, color=colorName)
             
                 ## Eraser - unconditionally removes notes from the track
-                elif brushType == "eraser":
+                elif brushType == "eraser" and colorName != 'all':
                     toDelete = []
                     for note in noteMap.items():
                         if (note[1].key, note[1].time, note[1].color) == (touchedKey, touchedTime, colorName):
@@ -529,7 +542,7 @@ while running:
                 # Dragging moves the note UNLESS the drag is done from the very tail end of the note, in which case
                 # all selected notes are lengthened or shortened by the drag amount.
                 
-                elif brushType == "select":
+                elif brushType == "select" and colorName != 'all':
                     if not mouseTask: # mouse was just clicked
                         for note in noteMap.items():
                             noteMap[note[0]].originalKey = noteMap[note[0]].key
@@ -736,7 +749,10 @@ while running:
         if colorButton.mouseClicked():
             colorButton.nextColor()
             mouseTask = True
-        colorButton.draw()
+        if colorButton.getColorName() == "all":
+            colorButton.draw(rainbowImage)
+        else:
+            colorButton.draw()
 
         ### KEY BUTTON
         keyButton.x = width - 260
