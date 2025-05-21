@@ -30,6 +30,8 @@ width, height = (1100, 600)
 minWidth, minHeight = (1100, 600)
 screen = pygame.display.set_mode((width, height), pygame.RESIZABLE, pygame.NOFRAME)
 transparentScreen = pygame.Surface((width, height), pygame.SRCALPHA)
+otherNotes = pygame.Surface((width, height), pygame.SRCALPHA)
+thisNote = pygame.Surface((width, height), pygame.SRCALPHA)
 pygame.display.set_caption("MIDI Grid v1.0 Beta")
 pygame.display.set_icon(pygame.image.load("inner/assets/icon.png"))
 clock = pygame.time.Clock()
@@ -54,6 +56,9 @@ eraserImage = pygame.image.load("inner/assets/eraser.png")
 negaterImage = pygame.image.load("inner/assets/negater.png")
 rainbowImage = pygame.image.load("inner/assets/rainbow.png")
 
+upChevronImage = pygame.image.load("inner/assets/up.png")
+downChevronImage = pygame.image.load("inner/assets/down.png")
+
 # imports files from the workspaces folder
 #files_and_dirs = os.listdir(directory)
 #files = [os.path.join(directory, f) for f in files_and_dirs if os.path.isfile(os.path.join(directory, f))]
@@ -65,6 +70,7 @@ noteMap = {}
 
 tick = 0
 tickInterval = 10
+tempo = 360
 
 NOTES_SHARP = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
 NOTES_FLAT =  ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"]
@@ -131,6 +137,35 @@ drawSelectBox = False
 
 ###### CLASSES ######
 
+class TextBox():
+    '''Class to contain text boxes, which are used for interactivity.'''
+
+    def __init__(self, pos, width, height, text, textSize = SUBHEADING1):
+        self.x = pos[0]
+        self.y = pos[1]
+        self.width = width
+        self.height = height
+        self.textSize = textSize
+        self.selected = False
+        self.text = text
+        globalTextBoxes.append(self)
+
+    def mouseClicked(self):
+        return mouseFunction((self.x, toolbarHeight/2 - 14, self.width, self.height))[0] and pygame.mouse.get_pressed()[0] and not mouseTask
+    
+    def mouseBounds(self):
+        return mouseFunction((self.x, toolbarHeight/2 - 14, self.width, self.height))[0]
+
+    def draw(self, text):
+        '''Method to draw a textbox.'''
+        pygame.draw.rect(screen, mouseFunction((self.x, toolbarHeight/2 - self.height/2, self.width, self.height))[1], (self.x, toolbarHeight/2 - self.height/2, self.width, self.height), border_radius=3)
+        if self.selected:
+            showBar = round(time.time())%2 == 0
+            stamp(text + ("|" if showBar else ""), self.textSize, self.x + self.width/2 + showBar*2.5, self.y - showBar*1, 0.4, "center")
+        else:
+            stamp(text, self.textSize, self.x + self.width/2, self.y, 0.4, "center")
+        pygame.draw.rect(screen, (self.selected * 80, self.selected * 80, self.selected * 80), (self.x, toolbarHeight/2 - self.height/2, self.width, self.height), 1, 3)
+
 class Button():
     '''Class to contain buttons, which are used for interactivity.'''
 
@@ -183,14 +218,14 @@ class Head():
     def draw(self, screen, viewRow, viewColumn, leftColW, tileW, drawHead=False): # by default, only draws home
         '''Method to draw the playhead.'''
         if drawHead:
-            top = [((((time.time() - lastPlayTime) * 60) + self.home) / ticksPerTile * tileW) - (viewColumn * tileW) + leftColW, toolbarHeight]
-            bottom = [((((time.time() - lastPlayTime) * 60) + self.home) / ticksPerTile * tileW) - (viewColumn * tileW) + leftColW, height]
+            top = [((((time.time() - lastPlayTime) * 60)/ticksPerTile + self.home) * tileW) - (viewColumn * tileW) + leftColW, toolbarHeight]
+            bottom = [((((time.time() - lastPlayTime) * 60)/ticksPerTile + self.home) * tileW) - (viewColumn * tileW) + leftColW, height]
 
             pygame.draw.line(screen, (0, 255, 255), top, bottom, 1)
 
         if self.home != 0:
-            top = [(self.home / ticksPerTile * tileW) - (viewColumn * tileW) + leftColW, toolbarHeight]
-            bottom = [(self.home / ticksPerTile * tileW) - (viewColumn * tileW) + leftColW, height]
+            top = [(self.home * tileW) - (viewColumn * tileW) + leftColW, toolbarHeight]
+            bottom = [(self.home * tileW) - (viewColumn * tileW) + leftColW, height]
 
             pygame.draw.line(screen, (255, 255, 0), top, bottom, 1)
 
@@ -198,7 +233,7 @@ class Head():
         global play_obj
         phases = {}
         finalWave = np.array([], dtype=np.int16)
-        for tempTick in range(self.home // ticksPerTile + 1, noteCount):
+        for tempTick in range(floor(self.home) + 1, noteCount):
 
             playingNotes = []
             for index, note in noteMap.items():
@@ -248,11 +283,14 @@ class Note():
         black = (0, 0, 0) if not transparent else (0, 0, 0, 0)
 
         numToOffset = 0
+        nextKeyNumToOffset = 0
         if colorName == 'all':
             colorsToSearch = justColorNames[:justColorNames.index(self.color)]
             for colorI in colorsToSearch:
                 if (self.key, self.time, colorI) in noteMap:
                     numToOffset += 1
+                if (self.key, self.time, colorI) in noteMap:
+                    nextKeyNumToOffset += 1
 
         headerY = toolbarHeight + ((viewRow - self.key) * innerHeight/viewScaleY) - numToOffset * 3
         headerX = leftColumn + ((self.time - viewColumn - 1) * (width - leftColumn)/viewScaleX) - numToOffset * 3
@@ -272,16 +310,23 @@ class Note():
                          (headerX - 1, headerY + innerHeight/viewScaleY - 1), (headerX + (width - leftColumn)/viewScaleX + 1, headerY + innerHeight/viewScaleY - 1), 2)
                 if not (self.key, self.time + 1) in noteMap:
                     pygame.draw.line(screen, outlineColor, # right edge
-                            (headerX + (width - leftColumn)/viewScaleX, headerY + 1), (headerX + (width - leftColumn)/viewScaleX, headerY + innerHeight/viewScaleY - 1), 2)        
+                            (headerX + (width - leftColumn)/viewScaleX, headerY + 1), (headerX + (width - leftColumn)/viewScaleX, headerY + innerHeight/viewScaleY - 1), 2)
         else:
             pygame.draw.rect(screen, tailColor,
                          (headerX - 1, headerY, (width - leftColumn)/viewScaleX + 1, innerHeight/viewScaleY))
+            pygame.draw.line(screen, black, # top edge
+                        (headerX - 1, headerY - 1), (headerX + (width - leftColumn)/viewScaleX - 1, headerY - 1), 1)
+            pygame.draw.line(screen, black, # bottom edge
+                        (headerX - 1, headerY + floor(innerHeight/viewScaleY)), (headerX + (width - leftColumn)/viewScaleX - 1, headerY + floor(innerHeight/viewScaleY)), 1)
             if (self.key, self.time + 1) in noteMap and noteMap[(self.key, self.time + 1)].lead == False:
                 if self.selected:
                     pygame.draw.line(screen, outlineColor, # top edge
-                            (headerX - 1, headerY - 1), (headerX + (width - leftColumn)/viewScaleX + 1, headerY - 1), 2)
+                            (headerX - 1, headerY - 1), (headerX + (width - leftColumn)/viewScaleX - 1, headerY - 1), 2)
                     pygame.draw.line(screen, outlineColor, # bottom edge
-                            (headerX - 1, headerY + innerHeight/viewScaleY - 1), (headerX + (width - leftColumn)/viewScaleX + 1, headerY + innerHeight/viewScaleY - 1), 2)
+                            (headerX - 1, headerY + innerHeight/viewScaleY - 1), (headerX + (width - leftColumn)/viewScaleX - 1, headerY + innerHeight/viewScaleY - 1), 2)
+                if nextKeyNumToOffset < numToOffset:
+                    pygame.draw.line(screen, black, # right edge
+                        (headerX + (width - leftColumn)/viewScaleX - 1, headerY - 1), (headerX + (width - leftColumn)/viewScaleX - 1, headerY + innerHeight/viewScaleY - 1), 1)
             else:
                 if self.selected:
                     pygame.draw.line(screen, outlineColor, # top edge
@@ -290,6 +335,10 @@ class Note():
                             (headerX + (width - leftColumn)/viewScaleX, headerY + 1), (headerX + (width - leftColumn)/viewScaleX, headerY + innerHeight/viewScaleY - 1), 2)
                     pygame.draw.line(screen, outlineColor, # bottom edge
                             (headerX - 1, headerY + innerHeight/viewScaleY - 1), (headerX + (width - leftColumn)/viewScaleX + 1, headerY + innerHeight/viewScaleY - 1), 2)
+                else:
+                    pygame.draw.line(screen, black, # right edge
+                        (headerX + (width - leftColumn)/viewScaleX - 1, headerY - 1), (headerX + (width - leftColumn)/viewScaleX - 1, headerY + innerHeight/viewScaleY - 1), 1)
+        
         if self.extending:
             pygame.draw.line(screen, (0, 255, 0), # right edge
                             (headerX + (width - leftColumn)/viewScaleX, headerY + 1), (headerX + (width - leftColumn)/viewScaleX, headerY + innerHeight/viewScaleY - 1), 2)
@@ -350,6 +399,8 @@ keyIndex = NOTES_FLAT.index(key) if accidentals == "flats" else NOTES_SHARP.inde
 mode = ps.mode
 modeIntervals = set(modesIntervals[0][1])
 
+globalTextBoxes = []
+
 playPauseButton = Button(pos=(33, 40), width=60, height=28)
 accidentalsButton = Button(pos=(120, 40), width=60, height=28)
 playheadButton = Button(pos=(207, 40), width=60, height=28)
@@ -357,6 +408,13 @@ keyButton = Button(pos=(width - 260, 40), width=40, height=28)
 modeButton = Button(pos=(width - 220, 40), width=100, height=28)
 brushButton = Button(pos=(width - 93, 40), width=60, height=28)
 colorButton = Button(pos=(width - 320, 40), width=28, height=28, colorCycle=justColors)
+
+timeSigDownButton = Button(pos=(width - 420, 40), width=20, height=28)
+timeSigTextBox = TextBox(pos=(width - 400, 40), width=30, height=28, text='4')
+timeSigUpButton = Button(pos=(width - 370, 40), width=20, height=28)
+tempoDownButton = Button(pos=(300, 40), width=20, height=28)
+tempoTextBox = TextBox(pos=(320, 40), width=70, height=28, text='360')
+tempoUpButton = Button(pos=(390, 40), width=20, height=28)
 
 ###### FUNCTIONS ######
 
@@ -419,11 +477,14 @@ def notesToFreq(notes):
 def playNotes(notes, duration=1, volume=0.2, sample_rate=44100):
     try: # needed try catch because sound keeps randomly crashing
         frequencies = notesToFreq(notes)
+        freqOfFreqs = {}
+        for freq in frequencies:
+            freqOfFreqs[freq] = 1 if not (freq in freqOfFreqs) else (1 + freqOfFreqs[freq])
         t = np.linspace(0, duration, int(sample_rate * duration), False)
         
         wave = np.zeros_like(t)
-        for freq in frequencies:
-            wave += np.sign(np.sin(2 * np.pi * freq * t))
+        for freq, mag in freqOfFreqs.items():
+            wave += np.sign(np.sin(2 * np.pi * freq * t)) * mag
         
         wave = wave / np.max(np.abs(wave)) - (0.6 * wave / (np.max(np.abs(wave)) ** 2))
         wave *= volume * globalVolume
@@ -431,7 +492,7 @@ def playNotes(notes, duration=1, volume=0.2, sample_rate=44100):
         
         play_obj = sa.play_buffer(audio, 1, 2, sample_rate)
     except Exception as e:
-        print(e)
+        print(f"NoteError: {e}")
 
 def assembleNotes(notes, phases, duration=1, volume=0.2, sample_rate=44100):
     frequencies = notesToFreq([note[0] for note in notes])
@@ -497,9 +558,34 @@ def reevaluateLeads():
             if not ((note[0][0], note[0][1] - 1, colorName) in noteMap):
                 noteMap[note[0]].lead = True
 
+def unselectTextBoxes():
+    for tb in globalTextBoxes:
+        tb.selected = False
+
+def sameNoteMaps(noteMap1, noteMap2):
+    try:
+        #print(f"noteMap1: {noteMap1}")
+        #print(f"noteMap2: {noteMap2}")
+        longerNoteMap = noteMap1 if len(noteMap1.items()) >= len(noteMap2.items()) else noteMap2
+        shorterNoteMap = noteMap1 if longerNoteMap == noteMap2 else noteMap2
+        #print(f"longer: {longerNoteMap}")
+        #print(f"shorter: {shorterNoteMap}")
+        for hashkey, note1 in longerNoteMap.items():
+            note2 = shorterNoteMap[hashkey]
+            if note1.key == note2.key and note1.time == note2.time and note1.lead == note2.lead and note1.color == note2.color:
+                None
+            else:
+                return False
+        return True
+    except:
+        return False
+
 ###### MAINLOOP ######
 running = True
 playHead = Head(0, 1, 0)
+ctrlZTime = 59
+noteMapVersionTracker = []
+noteMapFutureVersionTracker = []
 
 while running:
     saveFrame += 1
@@ -510,14 +596,28 @@ while running:
 
         dumpToFile(myPath, workingFile if workingFile != "" else "inner/assets/workingfile.mgrid")
         myPath.close()
-
+    
+    ctrlZTime += 1
+    if ctrlZTime > 60:
+        if not pygame.mouse.get_pressed()[0]:
+            #try:
+                #print(f"Top:{sameNoteMaps(noteMapVersionTracker[-1], noteMap)}")
+            #except:
+                #None
+            if noteMapVersionTracker == [] or not any(sameNoteMaps(noteMapVersionTracker[-i], noteMap) for i in range(1, len(noteMapVersionTracker) + 1)):
+                noteMapVersionTracker.append(copy.deepcopy(noteMap))
+                #print(len(noteMapVersionTracker))
+                noteMapFutureVersionTracker = []
+            if len(noteMapVersionTracker) > 32:
+                noteMapVersionTracker.pop(0)
+            ctrlZTime = 0
+    #print(len(noteMapVersionTracker))
     screen.fill((0, 0, 0))
     transparentScreen.fill((0, 0, 0, 0))
 
     leftColumn = 60
 
     colorName = colorButton.getColorName()
-
 
     for row in range(ceil(viewScaleY) + 1):
         headerY = row * innerHeight / viewScaleY + toolbarHeight + (viewRow%1 * innerHeight/viewScaleY) - innerHeight/viewScaleY
@@ -539,7 +639,7 @@ while running:
                 ## Head - means that selecting time stamp
                 if head:
                     if not mouseTask:
-                        playHead.home = (touchedTime - 1) * ticksPerTile
+                        playHead.home = (touchedTime - 1)
                         mouseTask = True
                 ## Brush - unconditionally adds notes to the track
                 elif brushType == "brush" and colorName != 'all':
@@ -665,12 +765,23 @@ while running:
                             
                 mouseWOTask = False
                 mouseTask = True
+    thisNote.fill((0, 0, 0, 0))
+    otherNotes.fill((0, 0, 0, 0))
     for note in noteMap.items():
         if note[1].key > viewRow - viewScaleY and note[1].key < viewRow + 1:
             if note[1].time > viewColumn and note[1].time < viewColumn + viewScaleX + 1:
                 #print(f"Note Key : {note[1].key}, viewRow : {viewRow}, Note Time : {note[1].time}, viewColumn : {viewColumn}, viewScaleX : {viewScaleX}, viewScaleY : {viewScaleY}")
-                note[1].draw(screen, viewRow, viewColumn, noteMap)
+                if colorName == 'all':
+                    note[1].draw(screen, viewRow, viewColumn, noteMap)
+                else:
+                    if note[1].color == colorName:
+                        note[1].draw(thisNote, viewRow, viewColumn, noteMap)
+                    else:
+                        note[1].draw(otherNotes, viewRow, viewColumn, noteMap)
     
+    screen.blit(otherNotes, otherNotes.get_rect())
+    screen.blit(thisNote, thisNote.get_rect())
+     
     for note in duplicatedNoteMap.items():
         if note[1].key > viewRow - viewScaleY and note[1].key < viewRow + 1:
             if note[1].time > viewColumn and note[1].time < viewColumn + viewScaleX + 1:
@@ -733,7 +844,7 @@ while running:
                                                   scrollBarHeight), 1, 3)
 
     def renderToolBar():
-        global accidentals, mouseTask, playing, head, brushType, key, keyIndex, mode, modeIntervals, lastPlayTime
+        global accidentals, mouseTask, playing, head, brushType, key, keyIndex, mode, modeIntervals, lastPlayTime, timeInterval, ticksPerTile, tempo
         pygame.draw.rect(screen, (43, 43, 43), (0, 0, width, toolbarHeight))
         pygame.draw.line(screen, (0, 0, 0), (0, toolbarHeight), (width, toolbarHeight))
         pygame.draw.line(screen, (30, 30, 30), (0, toolbarHeight - 1), (width, toolbarHeight - 1))
@@ -815,6 +926,68 @@ while running:
             mouseTask = True
         brushButton.draw("select" if brushType == "select" else brushImage if brushType == "brush" else eraserImage)
 
+        ### TIME SIGNATURE CONTROLS
+        timeSigUpButton.x = width - 370
+        timeSigUpButton.draw(upChevronImage)
+        if timeSigUpButton.mouseClicked():
+            timeInterval += 1
+            mouseTask = True
+
+        timeSigTextBox.x = width - 400
+        if timeSigTextBox.mouseBounds():
+            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_IBEAM)
+        if timeSigTextBox.mouseClicked():
+            if not pygame.key.get_pressed()[pygame.K_LSHIFT]:
+                unselectTextBoxes()
+            timeSigTextBox.selected = True
+        timeSigTextBox.draw(str(timeSigTextBox.text))
+        if timeSigTextBox.selected:
+            timeInterval = 1 if (timeSigTextBox.text == '' or int(timeSigTextBox.text) == 0) else int(timeSigTextBox.text)
+        else:
+            timeSigTextBox.text = str(timeInterval)
+
+        timeSigDownButton.x = width - 420
+        timeSigDownButton.draw(downChevronImage)
+        if timeSigDownButton.mouseClicked():
+            timeInterval = max(1, timeInterval - 1)
+            mouseTask = True
+
+        tempoUpButton.x = width - 370
+        tempoUpButton.draw(upChevronImage)
+        if tempoUpButton.mouseClicked():
+            timeInterval += 1
+            mouseTask = True
+
+        ### TEMPO CONTROLS
+        tempoUpButton.x = 390
+        tempoUpButton.draw(upChevronImage)
+        if tempoUpButton.mouseClicked():
+            tempo += 1
+            mouseTask = True
+
+        tempoTextBox.x = 320
+        if tempoTextBox.mouseBounds():
+            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_IBEAM)
+        else:
+            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
+        if tempoTextBox.mouseClicked():
+            if not pygame.key.get_pressed()[pygame.K_LSHIFT]:
+                unselectTextBoxes()
+            tempoTextBox.text = ''
+            tempoTextBox.selected = True
+        if tempoTextBox.selected:
+            ticksPerTile = 3600 / tempo
+            tempo = 1 if (tempoTextBox.text == '' or int(tempoTextBox.text) == 0) else int(tempoTextBox.text)
+        else:
+            tempoTextBox.text = str(tempo)
+        tempoTextBox.draw(str(tempoTextBox.text) + ' tpm')
+
+        tempoDownButton.x = 300
+        tempoDownButton.draw(downChevronImage)
+        if tempoDownButton.mouseClicked():
+            tempo = max(1, tempo - 1)
+            mouseTask = True
+
     renderScrollBar()
     renderToolBar()
             
@@ -889,13 +1062,27 @@ while running:
             screen = pygame.display.set_mode((max(event.w, minWidth), max(event.h, minHeight)), pygame.RESIZABLE)
             width, height = (max(event.w, minWidth), max(event.h, minHeight))
             transparentScreen = pygame.Surface((width, height), pygame.SRCALPHA)
+            thisNote = pygame.Surface((width, height), pygame.SRCALPHA)
+            otherNotes = pygame.Surface((width, height), pygame.SRCALPHA)
 
             viewScaleX = (width - leftColumn) / ((1100 - leftColumn)/32) # keeps the box consistent width even when the window is resized
             viewScaleY = (height - toolbarHeight) / ((600 - toolbarHeight)/16) # keeps the box consistent height even when the window is resized
             innerHeight = height - toolbarHeight
 
         elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_UP:
+            if any(textBox.selected for textBox in globalTextBoxes):
+                selectedTextBoxes = [filter(lambda x : x.selected == True, globalTextBoxes)][0]
+                pressedKeys = [pygame.key.get_pressed()[possKey] for possKey in [pygame.K_0, pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7, pygame.K_8, pygame.K_9, pygame.K_BACKSPACE, pygame.K_RETURN]]
+                if pressedKeys[10]:
+                    for textBox in selectedTextBoxes:
+                        textBox.text = textBox.text[:-1]
+                if pressedKeys[11]:
+                    unselectTextBoxes()
+                else:
+                    for textBox in selectedTextBoxes:
+                        if True in pressedKeys:
+                            textBox.text = textBox.text + str(pressedKeys.index(True))
+            elif event.key == pygame.K_UP:
                 dRow += 0.16
             elif event.key == pygame.K_DOWN:
                 dRow -= 0.16
@@ -942,6 +1129,18 @@ while running:
                         myPath = open(workingFile, "wb")
                         dumpToFile(myPath, workingFile)
                     saveFrame = 0
+            elif event.key == pygame.K_z:
+                if pygame.key.get_pressed()[pygame.K_LCTRL]:
+                    if pygame.key.get_pressed()[pygame.K_LSHIFT]:
+                        noteMapVersionTracker.append(copy.deepcopy(noteMapFutureVersionTracker.pop()))
+                        if len(noteMapFutureVersionTracker) > 0:
+                            noteMap = copy.deepcopy(noteMapFutureVersionTracker[-1])
+                    else:
+                        noteMapFutureVersionTracker.append(copy.deepcopy(noteMapVersionTracker.pop()))
+                        if len(noteMapVersionTracker) > 0:
+                            noteMap = copy.deepcopy(noteMapVersionTracker[-1])
+                        #print(f"Bottom:{sameNoteMaps(noteMapVersionTracker[-1], noteMap)}")
+                        
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_LCTRL:
                 brushType = "brush"
