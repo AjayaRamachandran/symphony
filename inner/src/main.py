@@ -496,23 +496,29 @@ def playNotes(notes, duration=1, volume=0.2, sample_rate=44100):
 
 def assembleNotes(notes, phases, duration=1, volume=0.2, sample_rate=44100):
     frequencies = notesToFreq([note[0] for note in notes])
+    freqOfFreqs = {}
+    for freq in frequencies:
+        freqOfFreqs[freq] = 1 if not (freq in freqOfFreqs) else (1 + freqOfFreqs[freq])
     t = np.linspace(0, duration, int(sample_rate * duration), False)
 
     newPhases = {}
     
     wave = np.zeros_like(t)
+    visitedFreqs = set()
     for index, freq in enumerate(frequencies):
-        phase = phases.get(freq, 0.0)  # default phase 0 if new
-        if notes[index][1]:
-            phase += pi
-        waveform = np.sign(np.sin(2 * np.pi * freq * t + phase))
-        
-        # Update phase after this tile
-        phaseIncrement = 2 * np.pi * freq * duration
-        newPhase = (phase + phaseIncrement) % (2 * np.pi)
+        if not freq in visitedFreqs:
+            phase = phases.get(freq, 0.0)  # default phase 0 if new
+            if notes[index][1]:
+                phase += pi
+            waveform = np.sign(np.sin(2 * np.pi * freq * t + phase)) * freqOfFreqs[freq]
+            visitedFreqs.add(freq)
+            
+            # Update phase after this tile
+            phaseIncrement = 2 * np.pi * freq * duration
+            newPhase = (phase + phaseIncrement) % (2 * np.pi)
 
-        wave += waveform
-        newPhases[freq] = newPhase
+            wave += waveform
+            newPhases[freq] = newPhase
     
     #wave = wave / np.max(np.abs(wave))
     wave = wave / np.max(np.abs(wave)) - (0.6 * wave / ((np.max(np.abs(wave)) ** 2) if (np.max(np.abs(wave)) ** 2)!=0 else 999999))
