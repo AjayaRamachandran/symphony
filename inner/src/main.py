@@ -56,6 +56,11 @@ eraserImage = pygame.image.load("inner/assets/eraser.png")
 negaterImage = pygame.image.load("inner/assets/negater.png")
 rainbowImage = pygame.image.load("inner/assets/rainbow.png")
 
+squareWaveImage = pygame.image.load("inner/assets/square.png")
+sawtoothWaveImage = pygame.image.load("inner/assets/sawtooth.png")
+triangleWaveImage = pygame.image.load("inner/assets/triangle.png")
+waveImages = [squareWaveImage, triangleWaveImage, sawtoothWaveImage]
+
 upChevronImage = pygame.image.load("inner/assets/up.png")
 downChevronImage = pygame.image.load("inner/assets/down.png")
 
@@ -97,6 +102,12 @@ colors = {
 colorsList = colors.items()
 justColors = [n[1] for n in colorsList]
 justColorNames = [n[0] for n in colorsList]
+
+waveTypes = ['square', 'triangle', 'sawtooth']
+
+waveMap = {}
+for index, color in enumerate(colorsList):
+    waveMap[color[0]] = 0
 
 accidentals = "flats"
 head = False
@@ -238,7 +249,7 @@ class Head():
             playingNotes = []
             for index, note in noteMap.items():
                 if note.time == tempTick and (note.color == colorName or colorName == 'all'):
-                    playingNotes.append((note.key, note.lead))
+                    playingNotes.append((note.key, note.lead, note.color))
 
             audioChunk, phases = assembleNotes(playingNotes, phases, duration=ticksPerTile/60)
             finalWave = np.concatenate([finalWave, audioChunk])
@@ -395,7 +406,12 @@ noteMap = ps.noteMap
 ticksPerTile = ps.ticksPerTile
 
 key = ps.key
-keyIndex = NOTES_FLAT.index(key) if accidentals == "flats" else NOTES_SHARP.index(key)
+if "b" in key:
+    keyIndex = NOTES_FLAT.index(key)
+    accidentals = "flats"
+else:
+    keyIndex = NOTES_SHARP.index(key)
+    accidentals = "sharps"
 mode = ps.mode
 modeIntervals = set(modesIntervals[0][1])
 
@@ -407,14 +423,15 @@ playheadButton = Button(pos=(207, 40), width=60, height=28)
 keyButton = Button(pos=(width - 260, 40), width=40, height=28)
 modeButton = Button(pos=(width - 220, 40), width=100, height=28)
 brushButton = Button(pos=(width - 93, 40), width=60, height=28)
-colorButton = Button(pos=(width - 320, 40), width=28, height=28, colorCycle=justColors)
+colorButton = Button(pos=(width - 345, 40), width=28, height=28, colorCycle=justColors)
+waveButton = Button(pos=(width - 317, 40), width=28, height=28)
 
 timeSigDownButton = Button(pos=(width - 420, 40), width=20, height=28)
 timeSigTextBox = TextBox(pos=(width - 400, 40), width=30, height=28, text='4')
 timeSigUpButton = Button(pos=(width - 370, 40), width=20, height=28)
 tempoDownButton = Button(pos=(300, 40), width=20, height=28)
-tempoTextBox = TextBox(pos=(320, 40), width=70, height=28, text='360')
-tempoUpButton = Button(pos=(390, 40), width=20, height=28)
+tempoTextBox = TextBox(pos=(320, 40), width=105, height=28, text='360')
+tempoUpButton = Button(pos=(425, 40), width=20, height=28)
 
 ###### FUNCTIONS ######
 
@@ -474,7 +491,7 @@ def notesToFreq(notes):
         freqs.append(noteFreq)
     return freqs
 
-def playNotes(notes, duration=1, volume=0.2, sample_rate=44100):
+def playNotes(notes, duration=1, waves=0, volume=0.2, sample_rate=44100):
     try: # needed try catch because sound keeps randomly crashing
         frequencies = notesToFreq(notes)
         freqOfFreqs = {}
@@ -484,7 +501,12 @@ def playNotes(notes, duration=1, volume=0.2, sample_rate=44100):
         
         wave = np.zeros_like(t)
         for freq, mag in freqOfFreqs.items():
-            wave += np.sign(np.sin(2 * np.pi * freq * t)) * mag
+            if waves == 0:
+                wave = np.sign(np.sin(2 * np.pi * freq * t)) * mag
+            elif waves == 1:
+                wave = (2 / np.pi) * np.arcsin(np.sin(2 * np.pi * freq * t)) * mag
+            else:
+                wave = 2 * (t * freq - np.floor(0.5 + t * freq)) * mag
         
         wave = wave / np.max(np.abs(wave)) - (0.6 * wave / (np.max(np.abs(wave)) ** 2))
         wave *= volume * globalVolume
@@ -496,6 +518,7 @@ def playNotes(notes, duration=1, volume=0.2, sample_rate=44100):
 
 def assembleNotes(notes, phases, duration=1, volume=0.2, sample_rate=44100):
     frequencies = notesToFreq([note[0] for note in notes])
+    colorSet = [note[2] for note in notes]
     freqOfFreqs = {}
     for freq in frequencies:
         freqOfFreqs[freq] = 1 if not (freq in freqOfFreqs) else (1 + freqOfFreqs[freq])
@@ -507,12 +530,19 @@ def assembleNotes(notes, phases, duration=1, volume=0.2, sample_rate=44100):
     visitedFreqs = set()
     for index, freq in enumerate(frequencies):
         if not freq in visitedFreqs:
-            phase = phases.get(freq, 0.0)  # default phase 0 if new
+            phase = phases.get(freq, 0.0) # default phase 0 if new
+            color = colorSet[index]
             if notes[index][1]:
                 phase += pi
-            waveform = np.sign(np.sin(2 * np.pi * freq * t + phase)) * freqOfFreqs[freq]
-            visitedFreqs.add(freq)
+
+            if waveMap[color] == 0:
+                waveform = np.sign(np.sin(2 * np.pi * freq * t + phase)) * freqOfFreqs[freq]
+            elif waveMap[color] == 1:
+                waveform = (2 / np.pi) * np.arcsin(np.sin(2 * np.pi * freq * t + phase)) * freqOfFreqs[freq]
+            else:
+                waveform = 2 * (t * freq + (phase / 2 / pi) - np.floor(0.5 + t * freq + (phase / 2 / pi))) * freqOfFreqs[freq]
             
+            visitedFreqs.add(freq)
             # Update phase after this tile
             phaseIncrement = 2 * np.pi * freq * duration
             newPhase = (phase + phaseIncrement) % (2 * np.pi)
@@ -570,12 +600,9 @@ def unselectTextBoxes():
 
 def sameNoteMaps(noteMap1, noteMap2):
     try:
-        #print(f"noteMap1: {noteMap1}")
-        #print(f"noteMap2: {noteMap2}")
         longerNoteMap = noteMap1 if len(noteMap1.items()) >= len(noteMap2.items()) else noteMap2
         shorterNoteMap = noteMap1 if longerNoteMap == noteMap2 else noteMap2
-        #print(f"longer: {longerNoteMap}")
-        #print(f"shorter: {shorterNoteMap}")
+
         for hashkey, note1 in longerNoteMap.items():
             note2 = shorterNoteMap[hashkey]
             if note1.key == note2.key and note1.time == note2.time and note1.lead == note2.lead and note1.color == note2.color:
@@ -650,7 +677,7 @@ while running:
                 ## Brush - unconditionally adds notes to the track
                 elif brushType == "brush" and colorName != 'all':
                     if not mouseTask and not (touchedKey, touchedTime, colorName) in noteMap:
-                        playNotes([touchedKey], duration=0.25)
+                        playNotes([touchedKey], duration=0.25, waves=waveMap[colorName])
                         noteMap[(touchedKey, touchedTime, colorName)] = Note(touchedKey, touchedTime, True, color=colorName)
                         currentDraggingKey = touchedKey
                         initialDraggingTime = touchedTime
@@ -732,7 +759,7 @@ while running:
                                         if refreshQ:
                                             reevaluateLeads()
                                         if oldKeyOffset != keyOffset and consistentKey != -1 and consistentKey != 0:
-                                            playNotes([addQ[0][0][0]], duration=0.07)
+                                            playNotes([addQ[0][0][0]], duration=0.07, waves=waveMap[colorName])
                                 else:
                                     numSelected = False
                                     for note in noteMap.items():
@@ -767,7 +794,7 @@ while running:
                                         if refreshQ:
                                             reevaluateLeads()
                                         if oldKeyOffset != keyOffset and consistentKey != -1 and consistentKey != 0:
-                                            playNotes([addQ[0][0][0]], duration=0.07)
+                                            playNotes([addQ[0][0][0]], duration=0.07, waves=waveMap[colorName])
                             
                 mouseWOTask = False
                 mouseTask = True
@@ -818,7 +845,7 @@ while running:
         if mouseFunction((0, headerY, leftColumn, innerHeight/viewScaleY))[0] and (pygame.mouse.get_pressed()[0]) and (toolbarHeight < pygame.mouse.get_pos()[1] < (height - 50)) and not mouseTask:
             # mouse is clicking the note labels
             mouseTask = True
-            playNotes([floor(viewRow - row + 1)], duration=0.25)
+            playNotes([floor(viewRow - row + 1)], duration=0.25, waves=waveMap[colorName])
 
     def renderScrollBar():
         global viewColumn
@@ -858,7 +885,7 @@ while running:
         pygame.draw.line(screen, (45, 45, 45), (0, toolbarHeight - 3), (width, toolbarHeight - 3))
 
         ### TRACK TITLE BAR
-        pygame.draw.rect(screen, (0, 0, 0), (width/2 - 100, toolbarHeight/2 - 14, 200, 28), 1, 3)
+        pygame.draw.rect(screen, (0, 0, 0), (width/2 - 80, toolbarHeight/2 - 14, 160, 28), 1, 3)
         stamp("My Track 1", SUBHEADING1, width/2, 40, 0.4, "center")
 
         ### PLAY/PAUSE BUTTON
@@ -891,7 +918,7 @@ while running:
         playheadButton.draw(headImage)
 
         ### COLOR BUTTON
-        colorButton.x = width - 320
+        colorButton.x = width - 345
         if colorButton.mouseClicked():
             colorButton.nextColor()
             mouseTask = True
@@ -899,6 +926,13 @@ while running:
             colorButton.draw(rainbowImage)
         else:
             colorButton.draw()
+
+        ### WAVE BUTTON
+        waveButton.x = width - 317
+        if waveButton.mouseClicked():
+            waveMap[colorName] = (waveMap[colorName] + 1) % len(waveTypes)
+            mouseTask = True
+        waveButton.draw(waveImages[waveMap[colorName]])
 
         ### KEY BUTTON
         keyButton.x = width - 260
@@ -933,13 +967,13 @@ while running:
         brushButton.draw("select" if brushType == "select" else brushImage if brushType == "brush" else eraserImage)
 
         ### TIME SIGNATURE CONTROLS
-        timeSigUpButton.x = width - 370
+        timeSigUpButton.x = width - 395
         timeSigUpButton.draw(upChevronImage)
         if timeSigUpButton.mouseClicked():
             timeInterval += 1
             mouseTask = True
 
-        timeSigTextBox.x = width - 400
+        timeSigTextBox.x = width - 425
         if timeSigTextBox.mouseBounds():
             pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_IBEAM)
         if timeSigTextBox.mouseClicked():
@@ -952,20 +986,14 @@ while running:
         else:
             timeSigTextBox.text = str(timeInterval)
 
-        timeSigDownButton.x = width - 420
+        timeSigDownButton.x = width - 445
         timeSigDownButton.draw(downChevronImage)
         if timeSigDownButton.mouseClicked():
             timeInterval = max(1, timeInterval - 1)
             mouseTask = True
 
-        tempoUpButton.x = width - 370
-        tempoUpButton.draw(upChevronImage)
-        if tempoUpButton.mouseClicked():
-            timeInterval += 1
-            mouseTask = True
-
         ### TEMPO CONTROLS
-        tempoUpButton.x = 390
+        tempoUpButton.x = 425
         tempoUpButton.draw(upChevronImage)
         if tempoUpButton.mouseClicked():
             tempo += 1
@@ -1050,7 +1078,7 @@ while running:
             noteExists = selectConnected(touchedKey, touchedTime)
 
             if noteExists:
-                playNotes([touchedKey], duration=0.25)
+                playNotes([touchedKey], duration=0.25, waves=waveMap[colorName])
             mouseTask = True
         mouseWOTask = True
 
@@ -1138,11 +1166,17 @@ while running:
             elif event.key == pygame.K_z:
                 if pygame.key.get_pressed()[pygame.K_LCTRL]:
                     if pygame.key.get_pressed()[pygame.K_LSHIFT]:
-                        noteMapVersionTracker.append(copy.deepcopy(noteMapFutureVersionTracker.pop()))
+                        try:
+                            noteMapVersionTracker.append(copy.deepcopy(noteMapFutureVersionTracker.pop()))
+                        except Exception as e:
+                            print("Cannot redo further")
                         if len(noteMapFutureVersionTracker) > 0:
                             noteMap = copy.deepcopy(noteMapFutureVersionTracker[-1])
                     else:
-                        noteMapFutureVersionTracker.append(copy.deepcopy(noteMapVersionTracker.pop()))
+                        try:
+                            noteMapFutureVersionTracker.append(copy.deepcopy(noteMapVersionTracker.pop()))
+                        except Exception as e:
+                            print("Cannot undo further")
                         if len(noteMapVersionTracker) > 0:
                             noteMap = copy.deepcopy(noteMapVersionTracker[-1])
                         #print(f"Bottom:{sameNoteMaps(noteMapVersionTracker[-1], noteMap)}")
