@@ -14,10 +14,15 @@ import sys
 import dill as pkl
 from tkinter.filedialog import asksaveasfile, asksaveasfilename
 
+
+titleText = 'My Track 1'
 if len(sys.argv) > 3:
     print("Usage: midi_editor.exe <file.mgrid>")
     sys.exit(1)
-if len(sys.argv) == 2:
+if len(sys.argv) == 3:
+    workingFile = sys.argv[1]
+    titleText = sys.argv[2]
+elif len(sys.argv) == 2:
     workingFile = sys.argv[1]
 else:
     workingFile = ""
@@ -32,7 +37,7 @@ screen = pygame.display.set_mode((width, height), pygame.RESIZABLE, pygame.NOFRA
 transparentScreen = pygame.Surface((width, height), pygame.SRCALPHA)
 otherNotes = pygame.Surface((width, height), pygame.SRCALPHA)
 thisNote = pygame.Surface((width, height), pygame.SRCALPHA)
-pygame.display.set_caption("MIDI Grid v1.0 Beta")
+pygame.display.set_caption(f"{titleText} - MIDI Grid v1.0 Beta")
 pygame.display.set_icon(pygame.image.load("inner/assets/icon.png"))
 clock = pygame.time.Clock()
 fps = 60
@@ -45,7 +50,6 @@ BODY = pygame.font.Font("inner/InterVariable.ttf", 14)
 SUBSCRIPT1 = pygame.font.Font("inner/InterVariable.ttf", 11)
 
 bytes_io = BytesIO()
-directory = "C:/Code/React Projects/Editor/tracks"
 
 ###### ASSETS ######
 playImage = pygame.image.load("inner/assets/play.png")
@@ -63,10 +67,6 @@ waveImages = [squareWaveImage, triangleWaveImage, sawtoothWaveImage]
 
 upChevronImage = pygame.image.load("inner/assets/up.png")
 downChevronImage = pygame.image.load("inner/assets/down.png")
-
-# imports files from the workspaces folder
-#files_and_dirs = os.listdir(directory)
-#files = [os.path.join(directory, f) for f in files_and_dirs if os.path.isfile(os.path.join(directory, f))]
 
 page = "Editor"
 noteMap = {}
@@ -145,6 +145,7 @@ oldKeyOffset = 0
 saveFrame = 0
 
 drawSelectBox = False
+mouseFirstDown = True
 
 ###### CLASSES ######
 
@@ -365,17 +366,19 @@ def toNote(note: Note):
 class ProgramState():
     '''Class to contain the entire editor's state, with all relevant fields for opening and saving.'''
 
-    def __init__(self, ticksPerTile, noteMap, key, mode):
+    def __init__(self, ticksPerTile, noteMap, key, mode, waves):
         self.ticksPerTile = ticksPerTile
         self.noteMap = noteMap
         self.key = key
         self.mode = mode
+        self.waveMap = waves
 
-    def updateAttributes(self, noteMap, ticksPerTile, key, mode):
+    def updateAttributes(self, noteMap, ticksPerTile, key, mode, waves):
         self.noteMap = copy.deepcopy(noteMap)
         self.ticksPerTile = ticksPerTile
         self.key = key
         self.mode = mode
+        self.waveMap = waves
         print(f"Updated ProgramState with key {key} and mode {mode}.")
 
 def toProgramState(state : ProgramState):
@@ -389,6 +392,19 @@ def toProgramState(state : ProgramState):
     except:
         statemode = "Lydian"
 
+    try:
+        stateWaves = state.waveMap
+    except:
+        stateWaves = {
+            "orange" : 0,
+            "purple" : 0,
+            "cyan" : 0,
+            "lime" : 0,
+            "blue" : 0,
+            "pink" : 0,
+            "all" : 0
+        }
+
     newNoteMap = {}
     for statekey, stateval in state.noteMap.items():
         newKey = statekey
@@ -396,14 +412,16 @@ def toProgramState(state : ProgramState):
             newKey = (*statekey, "orange")
         newNoteMap[newKey] = toNote(stateval)
 
-    return ProgramState(state.ticksPerTile, newNoteMap, stateMkey, statemode)
+    return ProgramState(state.ticksPerTile, newNoteMap, stateMkey, statemode, stateWaves)
 
 if workingFile == "":
-    ps = ProgramState(10, noteMap, "Eb", "Lydian")
+    ps = ProgramState(10, noteMap, "Eb", "Lydian", waveMap)
 else:
     ps = toProgramState(pkl.load(open(workingFile, "rb")))
+
 noteMap = ps.noteMap
 ticksPerTile = ps.ticksPerTile
+waveMap = ps.waveMap
 
 key = ps.key
 if "b" in key:
@@ -447,6 +465,9 @@ def dumpToFile(file, directory):
             print(f"Discrepancy details -- HM Key: {thing[0]}, Obj Data: {(thing[1].key, thing[1].time, thing[1].color)}")
             addQ.append([(thing[1].key, thing[1].time, thing[1].color), thing[1]])
             delQ.append(thing[0])
+        
+        if (thing[1].key < 2):
+            delQ.append(thing[0])
     
     for item in delQ:
         del noteMap[item]
@@ -458,7 +479,7 @@ def dumpToFile(file, directory):
     localTime = time.localtime(epochSeconds)
     readableTime = time.strftime('%Y-%m-%d at %H:%M:%S', localTime)
 
-    ps.updateAttributes(noteMap, ticksPerTile, key, mode)
+    ps.updateAttributes(noteMap, ticksPerTile, key, mode, waveMap)
     pkl.dump(ps, file, -1)
 
     worldMessage = (f"Last Saved {readableTime} to " + directory) if directory != "inner/assets/workingfile.mgrid" else "You have unsaved changes - Please save to a file on your PC."
@@ -624,9 +645,7 @@ while running:
     saveFrame += 1
     if saveFrame == 1200:
         saveFrame = 0
-
         myPath = open(workingFile if workingFile != "" else "inner/assets/workingfile.mgrid", "wb")
-
         dumpToFile(myPath, workingFile if workingFile != "" else "inner/assets/workingfile.mgrid")
         myPath.close()
     
@@ -886,7 +905,7 @@ while running:
 
         ### TRACK TITLE BAR
         pygame.draw.rect(screen, (0, 0, 0), (width/2 - 80, toolbarHeight/2 - 14, 160, 28), 1, 3)
-        stamp("My Track 1", SUBHEADING1, width/2, 40, 0.4, "center")
+        stamp(titleText, SUBHEADING1, width/2, 40, 0.4, "center")
 
         ### PLAY/PAUSE BUTTON
         playPauseButton.x = 33
@@ -1156,6 +1175,7 @@ while running:
                             pathBytes = bytearray(myPath.read())
                             filename.write(pathBytes)
                             filename.close()
+                            workingFile = filestring
                         else:
                             myPath = open("inner/assets/workingfile.mgrid", "wb")
                             dumpToFile(myPath, "inner/assets/workingfile.mgrid")
