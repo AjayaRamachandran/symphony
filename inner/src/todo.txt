@@ -32,7 +32,7 @@ DONE
 4b. The ability to duplicate a section using alt+drag and a ghosted version follows the mouse until you let go
 DONE
 
-method: a second hashmap with all the notes that have been duplicated, and the offset, use the same method as drag but when the mouse has been let go, add the second hashmap to the first -- for drawing it, get partial opacity using a second surface
+  method: a second hashmap with all the notes that have been duplicated, and the offset, use the same method as drag but when the mouse has been let go, add the second hashmap to the first -- for drawing it, get partial opacity using a second surface
 
 5. the ability to load a .mgrid file as a load argument and the program will also autosave every 20 seconds.
 DONE
@@ -41,14 +41,16 @@ DONE
 DONE
 
 6a. the ability to choose a tempo
+DONE
 
 7. the ability to select what scale you're in and have the notes not in that scale to be slightly darker (but still accessible for out-of-scale juicy chords)
 DONE
 
 7a. the ability to choose time signature, which will change the oscillating pattern from 4 to X
-
+DONE
 
 8. the ability to use different colors, which in the mscz conversion step represents different voice parts (for later)
+DONE
 
 8a. the ability to have different color options, and have the drawn notes reflect that color
 DONE
@@ -60,3 +62,4 @@ DONE
 DONE
 
 8d. PHASE CORRECTION WHEN LAYERING, as well as a wave type is associated with each color to make better music, and playback singles out voice parts unless in universal view
+DONE
