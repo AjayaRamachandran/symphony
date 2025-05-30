@@ -2,19 +2,18 @@
 import pygame
 from io import BytesIO
 import numpy as np
-import simpleaudio as sa
-import random
+# import random
 import copy
 import cv2
 from math import *
 import time
-import os
-import json
+# import os
+# import json
 import sys
 import dill as pkl
 from tkinter.filedialog import asksaveasfile, asksaveasfilename
 
-
+### Handling Arguments
 titleText = 'My Track 1'
 if len(sys.argv) > 3:
     print("Usage: midi_editor.exe <file.mgrid>")
@@ -29,7 +28,9 @@ else:
 
 ###### PYGAME INITIALIZE ######
 pygame.init()
-pygame.mixer.quit()
+SAMPLE_RATE = 44100
+pygame.mixer.init(frequency=SAMPLE_RATE, size=-16, channels=2)  # initialize pygame mixer at module import
+play_obj = None # global to hold the last Channel/Sound so it doesn't get garbage-collected
 
 width, height = (1100, 600)
 minWidth, minHeight = (1100, 600)
@@ -68,10 +69,9 @@ waveImages = [squareWaveImage, triangleWaveImage, sawtoothWaveImage]
 upChevronImage = pygame.image.load("inner/assets/up.png")
 downChevronImage = pygame.image.load("inner/assets/down.png")
 
+###### VARIABLES INITIALIZE ######
 page = "Editor"
 noteMap = {}
-
-###### VARIABLES INITIALIZE ######
 
 tick = 0
 tickInterval = 10
@@ -163,9 +163,11 @@ class TextBox():
         globalTextBoxes.append(self)
 
     def mouseClicked(self):
+        '''Method to return whether the textbox has been clicked'''
         return mouseFunction((self.x, toolbarHeight/2 - 14, self.width, self.height))[0] and pygame.mouse.get_pressed()[0] and not mouseTask
     
     def mouseBounds(self):
+        '''Returns whether the mouse is in the bounds of the textbox'''
         return mouseFunction((self.x, toolbarHeight/2 - 14, self.width, self.height))[0]
 
     def draw(self, text):
@@ -191,10 +193,12 @@ class Button():
         self.color = colorCycle[0] if colorCycle != None else color
 
     def mouseClicked(self):
+        '''Method to return whether the button has been clicked'''
         return mouseFunction((self.x, toolbarHeight/2 - 14, self.width, self.height))[0] and pygame.mouse.get_pressed()[0] and not mouseTask
     
     def draw(self, itemToDraw = None):
         '''Method to draw a button.'''
+
         if self.colorCycle != None:
             pygame.draw.rect(screen, self.color, (self.x, toolbarHeight/2 - self.height/2, self.width, self.height), border_radius=3)
         else:
@@ -212,10 +216,12 @@ class Button():
                 pygame.draw.rect(screen, (0, 0, 0), (self.x, toolbarHeight/2 - self.height/2, self.width, self.height), 1, 3)
 
     def nextColor(self):
+        '''Switches to next color (color switcher)'''
         nextIndex = (justColors.index(self.color) + 1) % (len(colors.items()))
         self.color = justColors[nextIndex]
 
     def getColorName(self):
+        '''Returns the color in string form of the Button (used for color switching)'''
         i = justColors.index(self.color)
         return justColorNames[i]
 
@@ -242,20 +248,22 @@ class Head():
             pygame.draw.line(screen, (255, 255, 0), top, bottom, 1)
 
     def play(self):
+        '''Method to play the playhead -- contains audio playback'''
         global play_obj
         phases = {}
         finalWave = np.array([], dtype=np.int16)
+
         for tempTick in range(floor(self.home) + 1, noteCount):
+            playingNotes = [
+                (note.key, note.lead, note.color)
+                for note in noteMap.values()
+                if note.time == tempTick and (note.color == colorName or colorName == 'all')
+            ]
+            chunk, phases = assembleNotes(playingNotes, phases, duration=ticksPerTile/60)
+            finalWave = np.concatenate([finalWave, chunk])
 
-            playingNotes = []
-            for index, note in noteMap.items():
-                if note.time == tempTick and (note.color == colorName or colorName == 'all'):
-                    playingNotes.append((note.key, note.lead, note.color))
-
-            audioChunk, phases = assembleNotes(playingNotes, phases, duration=ticksPerTile/60)
-            finalWave = np.concatenate([finalWave, audioChunk])
-            
-        play_obj = sa.play_buffer(finalWave, 1, 2, 44100)
+        sound = toSound(finalWave)
+        play_obj = sound.play()
 
 class Note():
     '''Class to contain the Note, which represents a grid element that *does* have a sound when played.'''
@@ -272,14 +280,17 @@ class Note():
         self.SScoords = [0, 0]
     
     def __str__(self):
+        '''String representation of Note'''
         return f'''Note object with attrs: [key: {self.key}, time: {self.time}, lead: {self.lead}, selected: {self.selected}, originalKey: {self.originalKey}, originalTime: {self.originalTime}]'''
 
     def setSScoords(self, x, y):
+        '''Sets the screenspace coordinates of a note to the given arguments'''
         self.SScoords = [x, y]
 
     def draw(self, screen, viewRow, viewColumn, noteMap, transparent = False):
         '''Method to draw the note.'''
         global viewScaleX, viewScaleY
+
         opacity = 130
         def darkenColor(init, amt):
             return [init[n] - (amt * (n!=3)) for n in range(len(init))] # darkens a tuple by a constant n, if init is a quadtuple with opacity, alpha is untouched.
@@ -356,11 +367,11 @@ class Note():
                             (headerX + (width - leftColumn)/viewScaleX, headerY + 1), (headerX + (width - leftColumn)/viewScaleX, headerY + innerHeight/viewScaleY - 1), 2)
 
 def toNote(note: Note):
+    '''Function to convert old notes (before color was added) into new color'''
     try:
         color = note.color
     except:
         color = "orange"
-
     return Note(note.key, note.time, note.lead, color)
 
 class ProgramState():
@@ -382,6 +393,7 @@ class ProgramState():
         print(f"Updated ProgramState with key {key} and mode {mode}.")
 
 def toProgramState(state : ProgramState):
+    '''Maps a (potentially) old program state to a new one for backwards compatibility'''
     try:
         stateMkey = state.key
     except:
@@ -414,7 +426,7 @@ def toProgramState(state : ProgramState):
 
     return ProgramState(state.ticksPerTile, newNoteMap, stateMkey, statemode, stateWaves)
 
-if workingFile == "":
+if workingFile == "": # if the workingfile is not provided, initialize a new program state
     ps = ProgramState(10, noteMap, "Eb", "Lydian", waveMap)
 else:
     ps = toProgramState(pkl.load(open(workingFile, "rb")))
@@ -422,7 +434,6 @@ else:
 noteMap = ps.noteMap
 ticksPerTile = ps.ticksPerTile
 waveMap = ps.waveMap
-
 key = ps.key
 if "b" in key:
     keyIndex = NOTES_FLAT.index(key)
@@ -454,12 +465,12 @@ tempoUpButton = Button(pos=(425, 40), width=20, height=28)
 ###### FUNCTIONS ######
 
 def dumpToFile(file, directory):
+    '''Saves data to the working file, used in many places in the code'''
     global worldMessage
 
     # when saving, repair any discrepancies between hashmap key and obj data (rare but fatal)
     delQ, addQ = [], []
     for thing in noteMap.items():
-        #print(thing[0], thing[1].key, thing[1].time, thing[1].color)
         if (thing[1].key, thing[1].time, thing[1].color) != thing[0]:
             print("A discrepancy was found between hashmap and obj data. Repairing (prioritizing obj data) now...")
             print(f"Discrepancy details -- HM Key: {thing[0]}, Obj Data: {(thing[1].key, thing[1].time, thing[1].color)}")
@@ -468,14 +479,12 @@ def dumpToFile(file, directory):
         
         if (thing[1].key < 2):
             delQ.append(thing[0])
-    
     for item in delQ:
         del noteMap[item]
     for item in addQ:
         noteMap[item[0]] = item[1]
 
-    # Get current time in epoch seconds
-    epochSeconds = time.time()
+    epochSeconds = time.time() # get current time in epoch seconds
     localTime = time.localtime(epochSeconds)
     readableTime = time.strftime('%Y-%m-%d at %H:%M:%S', localTime)
 
@@ -485,25 +494,23 @@ def dumpToFile(file, directory):
     worldMessage = (f"Last Saved {readableTime} to " + directory) if directory != "inner/assets/workingfile.mgrid" else "You have unsaved changes - Please save to a file on your PC."
 
 def inBounds(coords1, coords2, point) -> bool:
-    '''returns whether a point is within the bounds of two other points. order is arbitrary.'''
+    '''Returns whether a point is within the bounds of two other points. order is arbitrary.'''
     return point[0] > min(coords1[0], coords2[0]) and point[1] > min(coords1[1], coords2[1]) and point[0] < max(coords1[0], coords2[0]) and point[1] < max(coords1[1], coords2[1])
 
 def processImage(imageBytes):
+    '''Takes in an image bytes and blurs it'''
     image = cv2.imdecode(np.frombuffer(imageBytes, np.uint8), cv2.IMREAD_COLOR)
-    # Apply a heavy blur to the image
-    blurredImage = cv2.GaussianBlur(image, (51, 51), 0)
+    blurredImage = cv2.GaussianBlur(image, (51, 51), 0) # apply a heavy blur to the image
     
     height, width = blurredImage.shape[:2]
     croppedImage = blurredImage[:, :300]
     
-    # Encode the image to a BytesIO object
-    _, buffer = cv2.imencode('.jpg', croppedImage)
+    _, buffer = cv2.imencode('.jpg', croppedImage) # encode the image to a BytesIO object
     imageIO = BytesIO(buffer)
-    
     return imageIO
 
 def notesToFreq(notes):
-    '''converts a set of notes (as ints from C2) to frequencies'''
+    '''Converts a set of notes (as ints from C2) to frequencies'''
     freqs = []
     C2 = 65.41
     ratio = 1.05946309436
@@ -512,89 +519,88 @@ def notesToFreq(notes):
         freqs.append(noteFreq)
     return freqs
 
-def playNotes(notes, duration=1, waves=0, volume=0.2, sample_rate=44100):
-    try: # needed try catch because sound keeps randomly crashing
-        frequencies = notesToFreq(notes)
-        freqOfFreqs = {}
-        for freq in frequencies:
-            freqOfFreqs[freq] = 1 if not (freq in freqOfFreqs) else (1 + freqOfFreqs[freq])
+def toSound(array_1d: np.ndarray) -> pygame.mixer.Sound:
+    '''Convert a 1-D int16 numpy array into a 2-D array matching mixer channels, then wrap into a Sound.'''
+    freq, fmt, nchan = pygame.mixer.get_init()
+    if nchan == 1:
+        arr2d = array_1d.reshape(-1, 1)
+    else:
+        # duplicate mono into both LR for stereo
+        arr2d = np.column_stack([array_1d] * nchan)
+    return pygame.sndarray.make_sound(arr2d)
+
+def playNotes(notes, duration=1, waves=0, volume=0.2, sample_rate=SAMPLE_RATE):
+    '''Single set of notes playback, does not keep track of phase.'''
+    global play_obj
+    try:
+        freqs = notesToFreq(notes)
+        counts = {}
+        for f in freqs:
+            counts[f] = counts.get(f, 0) + 1
+
         t = np.linspace(0, duration, int(sample_rate * duration), False)
-        
         wave = np.zeros_like(t)
-        for freq, mag in freqOfFreqs.items():
+
+        for freq, mag in counts.items():
             if waves == 0:
-                wave = np.sign(np.sin(2 * np.pi * freq * t)) * mag
+                part = np.sign(np.sin(2 * np.pi * freq * t)) * mag
             elif waves == 1:
-                wave = (2 / np.pi) * np.arcsin(np.sin(2 * np.pi * freq * t)) * mag
+                part = (2 / np.pi) * np.arcsin(np.sin(2 * np.pi * freq * t)) * mag
             else:
-                wave = 2 * (t * freq - np.floor(0.5 + t * freq)) * mag
-        
-        wave = wave / np.max(np.abs(wave)) - (0.6 * wave / (np.max(np.abs(wave)) ** 2))
+                part = 2 * (t * freq - np.floor(0.5 + t * freq)) * mag
+            wave += part
+
+        # normalize + volume
+        wave = wave/np.max(np.abs(wave)) - (0.6*wave/(np.max(np.abs(wave))**2))
         wave *= volume * globalVolume
+
         audio = (wave * 32767).astype(np.int16)
-        
-        play_obj = sa.play_buffer(audio, 1, 2, sample_rate)
+        sound = toSound(audio)
+        play_obj = sound.play()
     except Exception as e:
         print(f"NoteError: {e}")
 
-def assembleNotes(notes, phases, duration=1, volume=0.2, sample_rate=44100):
-    frequencies = notesToFreq([note[0] for note in notes])
-    colorSet = [note[2] for note in notes]
-    freqOfFreqs = {}
-    for freq in frequencies:
-        freqOfFreqs[freq] = 1 if not (freq in freqOfFreqs) else (1 + freqOfFreqs[freq])
+def assembleNotes(notes, phases, duration=1, volume=0.2, sample_rate=SAMPLE_RATE):
+    '''Compound notes playback, tracks phase to keep continuous notes'''
+    freqs = notesToFreq([n[0] for n in notes])
+    colors = [n[2] for n in notes]
+
+    counts = {}
+    for f in freqs:
+        counts[f] = counts.get(f, 0) + 1
+
     t = np.linspace(0, duration, int(sample_rate * duration), False)
-
     newPhases = {}
-    
     wave = np.zeros_like(t)
-    visitedFreqs = set()
-    for index, freq in enumerate(frequencies):
-        if not freq in visitedFreqs:
-            phase = phases.get(freq, 0.0) # default phase 0 if new
-            color = colorSet[index]
-            if notes[index][1]:
-                phase += pi
+    seen = set()
 
-            if waveMap[color] == 0:
-                waveform = np.sign(np.sin(2 * np.pi * freq * t + phase)) * freqOfFreqs[freq]
-            elif waveMap[color] == 1:
-                waveform = (2 / np.pi) * np.arcsin(np.sin(2 * np.pi * freq * t + phase)) * freqOfFreqs[freq]
-            else:
-                waveform = 2 * (t * freq + (phase / 2 / pi) - np.floor(0.5 + t * freq + (phase / 2 / pi))) * freqOfFreqs[freq]
-            
-            visitedFreqs.add(freq)
-            # Update phase after this tile
-            phaseIncrement = 2 * np.pi * freq * duration
-            newPhase = (phase + phaseIncrement) % (2 * np.pi)
+    for idx, freq in enumerate(freqs):
+        if freq in seen: continue
+        phase = phases.get(freq, 0.0)
+        if notes[idx][1]:
+            phase += pi
 
-            wave += waveform
-            newPhases[freq] = newPhase
-    
-    #wave = wave / np.max(np.abs(wave))
-    wave = wave / np.max(np.abs(wave)) - (0.6 * wave / ((np.max(np.abs(wave)) ** 2) if (np.max(np.abs(wave)) ** 2)!=0 else 999999))
+        typ = waveMap[colors[idx]]
+        if typ == 0: # square wave
+            part = np.sign(np.sin(2 * np.pi * freq * t + phase)) * counts[freq]
+        elif typ == 1: # triangle wave
+            part = (2 / np.pi) * np.arcsin(np.sin(2 * np.pi * freq * t + phase)) * counts[freq]
+        else: # sawtooth wave
+            part = 2 * (t * freq + (phase / (2 * pi)) - np.floor(0.5 + t * freq + (phase / (2 * pi)))) * counts[freq]
+
+        wave += part
+        seen.add(freq)
+        newPhases[freq] = (phase + 2 * np.pi * freq * duration) % (2 * np.pi) # increments phase to keep it continuous
+
+    # normalize + volume
+    wave = wave / np.max(np.abs(wave)) - (0.6 * wave / (np.max(np.abs(wave)) ** 2))
     wave *= volume * globalVolume
-    audio = (wave * 32767).astype(np.int16)
 
+    audio = (wave * 32767).astype(np.int16)
     return audio, newPhases
 
-def playNoise(duration=0.08, volume=0.3, sample_rate=44100):
-    try: # needed try catch because sound keeps randomly crashing
-        t = np.linspace(0, duration, int(sample_rate * duration), False)
-        
-        wave = np.zeros_like(t)
-        wave += np.random.random(t.shape) * 2 - 1
-        
-        wave = wave / np.max(np.abs(wave)) - (0.6 * wave / (np.max(np.abs(wave)) ** 2))
-        wave *= volume * globalVolume
-        audio = (wave * 32767).astype(np.int16)
-        
-        play_obj = sa.play_buffer(audio, 1, 2, sample_rate)
-        #play_obj.wait_done()
-    except Exception as e:
-        print(e)
-
 def stamp(text, style, x, y, luminance, justification = "left"):
+    '''Function to draw text to the screen abstracted, makes text drawing easy.'''
     text = style.render(text, True, (round(luminance*255), round(luminance*255), round(luminance*255)))
     if justification == "left":
         textRect = (x, y, text.get_rect()[2], text.get_rect()[3])
@@ -605,21 +611,24 @@ def stamp(text, style, x, y, luminance, justification = "left"):
     screen.blit(text, textRect)
 
 def mouseFunction(rect):
-    '''function that returns (2 things) whether or not the mouse is in the bounding box, as well as a color.'''
+    '''Function that returns (2 things) whether or not the mouse is in the bounding box, as well as a color.'''
     isInside = rect[0] < pygame.mouse.get_pos()[0] < rect[0] + rect[2] and rect[1] < pygame.mouse.get_pos()[1] < rect[1] + rect[3]
     return isInside, ((20, 20, 20) if isInside and pygame.mouse.get_pressed()[0] else ((30, 30, 30) if isInside else (35, 35, 35)))
 
 def reevaluateLeads():
+    '''Recalculates which notes are considered lead notes.'''
     for note in noteMap.items():
         if colorName == note[1].color:
             if not ((note[0][0], note[0][1] - 1, colorName) in noteMap):
                 noteMap[note[0]].lead = True
 
 def unselectTextBoxes():
+    '''Loops through all text boxes and unselects them.'''
     for tb in globalTextBoxes:
         tb.selected = False
 
 def sameNoteMaps(noteMap1, noteMap2):
+    '''Compares two notemaps by value (not reference), used for change history (Ctrl+Z)'''
     try:
         longerNoteMap = noteMap1 if len(noteMap1.items()) >= len(noteMap2.items()) else noteMap2
         shorterNoteMap = noteMap1 if longerNoteMap == noteMap2 else noteMap2
@@ -642,28 +651,22 @@ noteMapVersionTracker = []
 noteMapFutureVersionTracker = []
 
 while running:
-    saveFrame += 1
-    if saveFrame == 1200:
+    saveFrame += 60 * (1 / fps)
+    if saveFrame > 1200: # Saves every 
         saveFrame = 0
         myPath = open(workingFile if workingFile != "" else "inner/assets/workingfile.mgrid", "wb")
         dumpToFile(myPath, workingFile if workingFile != "" else "inner/assets/workingfile.mgrid")
         myPath.close()
-    
+    # checks if new changes have been made, if so adds them to the version history for Ctrl+Z
     ctrlZTime += 1
     if ctrlZTime > 60:
         if not pygame.mouse.get_pressed()[0]:
-            #try:
-                #print(f"Top:{sameNoteMaps(noteMapVersionTracker[-1], noteMap)}")
-            #except:
-                #None
             if noteMapVersionTracker == [] or not any(sameNoteMaps(noteMapVersionTracker[-i], noteMap) for i in range(1, len(noteMapVersionTracker) + 1)):
                 noteMapVersionTracker.append(copy.deepcopy(noteMap))
-                #print(len(noteMapVersionTracker))
                 noteMapFutureVersionTracker = []
             if len(noteMapVersionTracker) > 32:
                 noteMapVersionTracker.pop(0)
             ctrlZTime = 0
-    #print(len(noteMapVersionTracker))
     screen.fill((0, 0, 0))
     transparentScreen.fill((0, 0, 0, 0))
 
@@ -732,7 +735,6 @@ while running:
                         mouseCellStart = (touchedKey, touchedTime, colorName)
                         mouseTask = True
                     else:
-                        #print(timeOffset, keyOffset)
                         try:
                             mouseCellStart
                         except NameError:
@@ -750,7 +752,7 @@ while running:
                                             numSelected = True
                                             duplicatedNoteMap[note[0]] = copy.deepcopy(note[1]) # adds the selected notemap to the duplicated notemap until alt is let go
                                     if mouseTask and numSelected and dist(pygame.mouse.get_pos(), mouseHoldStart) > 10:
-                                        #print("dragging")
+                                        ### Dragging
                                         (timeOffset, keyOffset) = (int((pygame.mouse.get_pos()[d] - mouseHoldStart[d]) / 
                                                                     (((width-leftColumn)/viewScaleX),(-innerHeight/viewScaleY))[d])
                                                                     for d in range(2) )
@@ -785,7 +787,7 @@ while running:
                                         if note[1].selected:
                                             numSelected = True
                                     if mouseTask and numSelected and dist(pygame.mouse.get_pos(), mouseHoldStart) > 10:
-                                        #print("dragging")
+                                        ### Dragging
                                         (timeOffset, keyOffset) = (int((pygame.mouse.get_pos()[d] - mouseHoldStart[d]) / 
                                                                     (((width-leftColumn)/viewScaleX),(-innerHeight/viewScaleY))[d])
                                                                     for d in range(2) )
@@ -814,15 +816,15 @@ while running:
                                             reevaluateLeads()
                                         if oldKeyOffset != keyOffset and consistentKey != -1 and consistentKey != 0:
                                             playNotes([addQ[0][0][0]], duration=0.07, waves=waveMap[colorName])
-                            
                 mouseWOTask = False
                 mouseTask = True
+
     thisNote.fill((0, 0, 0, 0))
     otherNotes.fill((0, 0, 0, 0))
+    ### Renders noteMap to screen, based on color or "all" color
     for note in noteMap.items():
         if note[1].key > viewRow - viewScaleY and note[1].key < viewRow + 1:
             if note[1].time > viewColumn and note[1].time < viewColumn + viewScaleX + 1:
-                #print(f"Note Key : {note[1].key}, viewRow : {viewRow}, Note Time : {note[1].time}, viewColumn : {viewColumn}, viewScaleX : {viewScaleX}, viewScaleY : {viewScaleY}")
                 if colorName == 'all':
                     note[1].draw(screen, viewRow, viewColumn, noteMap)
                 else:
@@ -831,6 +833,7 @@ while running:
                     else:
                         note[1].draw(otherNotes, viewRow, viewColumn, noteMap)
     
+    # always renders current color on top of gray ones
     screen.blit(otherNotes, otherNotes.get_rect())
     screen.blit(thisNote, thisNote.get_rect())
      
@@ -867,6 +870,7 @@ while running:
             playNotes([floor(viewRow - row + 1)], duration=0.25, waves=waveMap[colorName])
 
     def renderScrollBar():
+        '''Function to draw the bottom scroll bar on the screen for navigating horizontally.'''
         global viewColumn
         scrollBarHeight = 15
         scrollBarColor = (100, 100, 100)
@@ -896,6 +900,7 @@ while running:
                                                   scrollBarHeight), 1, 3)
 
     def renderToolBar():
+        '''Renders the top toolbar, and all of the elements inside of it.'''
         global accidentals, mouseTask, playing, head, brushType, key, keyIndex, mode, modeIntervals, lastPlayTime, timeInterval, ticksPerTile, tempo
         pygame.draw.rect(screen, (43, 43, 43), (0, 0, width, toolbarHeight))
         pygame.draw.line(screen, (0, 0, 0), (0, toolbarHeight), (width, toolbarHeight))
@@ -924,7 +929,7 @@ while running:
         accidentalsButton.x = 120
         if accidentalsButton.mouseClicked():
             keyIndex = (NOTES_SHARP if accidentals == "sharps" else NOTES_FLAT).index(key)
-            key = (NOTES_FLAT if accidentals == "sharps" else NOTES_SHARP)[keyIndex] # swaps the style of the 
+            key = (NOTES_FLAT if accidentals == "sharps" else NOTES_SHARP)[keyIndex]
             accidentals = ("sharps" if accidentals == "flats" else "flats")
             mouseTask = True
         accidentalsButton.draw(accidentals)
@@ -1045,12 +1050,11 @@ while running:
     renderToolBar()
             
     tick += 1 - (tick == tickInterval - 1) * tickInterval
-
     if tick == tickInterval - 1:
         None
 
     def selectConnected(key, time):
-        '''function to take in a key and time and select all connected notes, and return whether a note exists at that key and time'''
+        '''Function to take in a key and time and select all connected notes, and return whether a note exists at that key and time'''
         noteExists = False
         deviation = 0
         while (key, time + deviation, colorName) in noteMap:
@@ -1070,7 +1074,7 @@ while running:
         return noteExists
 
     if not pygame.mouse.get_pressed()[0] and not mouseWOTask:
-        #print("Unclicked")
+        ### Unclicked
         pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
         if head:
             head = False
@@ -1081,7 +1085,7 @@ while running:
             None
         else:
             if (mouseHoldStart != pygame.mouse.get_pos()) and brushType == "select":
-                #print("Drag Selected")
+                ### Drag Selected
                 for note in noteMap.items():
                     if inBounds(mouseHoldStart, pygame.mouse.get_pos(), note[1].SScoords) and note[1].color == colorName:
                         note[1].selected = True
@@ -1095,13 +1099,12 @@ while running:
             
             # selected from mouse selection, opposite of dragging, only happens once mouse is lifted.
             noteExists = selectConnected(touchedKey, touchedTime)
-
             if noteExists:
                 playNotes([touchedKey], duration=0.25, waves=waveMap[colorName])
             mouseTask = True
         mouseWOTask = True
 
-    if worldMessage != "":
+    if worldMessage != "": # Renders the world message if it isn't an empty string
         worldMessageRender = stamp(worldMessage, SUBSCRIPT1, width/2, 8, 0.5, "center")
 
     dRow *= 0.9
@@ -1123,6 +1126,7 @@ while running:
             innerHeight = height - toolbarHeight
 
         elif event.type == pygame.KEYDOWN:
+            ### Typing in textbox
             if any(textBox.selected for textBox in globalTextBoxes):
                 selectedTextBoxes = [filter(lambda x : x.selected == True, globalTextBoxes)][0]
                 pressedKeys = [pygame.key.get_pressed()[possKey] for possKey in [pygame.K_0, pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7, pygame.K_8, pygame.K_9, pygame.K_BACKSPACE, pygame.K_RETURN]]
@@ -1135,19 +1139,19 @@ while running:
                     for textBox in selectedTextBoxes:
                         if True in pressedKeys:
                             textBox.text = textBox.text + str(pressedKeys.index(True))
-            elif event.key == pygame.K_UP:
+            elif event.key == pygame.K_UP: # Scroll up
                 dRow += 0.16
-            elif event.key == pygame.K_DOWN:
+            elif event.key == pygame.K_DOWN: # Scroll down
                 dRow -= 0.16
-            elif event.key == pygame.K_RIGHT:
+            elif event.key == pygame.K_RIGHT: # Scrub right
                 dCol += 0.16
-            elif event.key == pygame.K_LEFT:
+            elif event.key == pygame.K_LEFT: # Scrub left
                 dCol -= 0.16
-            elif event.key == pygame.K_LCTRL:
+            elif event.key == pygame.K_LCTRL: # Switch to eraser momentarily
                 brushType = "eraser"
-            elif event.key == pygame.K_LSHIFT:
+            elif event.key == pygame.K_LSHIFT: # Switch to select permanently
                 brushType = "select"
-            elif event.key == pygame.K_SPACE:
+            elif event.key == pygame.K_SPACE: # Play / pause
                 playing = not playing
                 if playing:
                     playHead.play()
@@ -1155,7 +1159,7 @@ while running:
                 else:
                     play_obj.stop()
                 playHead.tick = playHead.home
-            elif event.key == pygame.K_BACKSPACE or event.key == pygame.K_DELETE:
+            elif event.key == pygame.K_BACKSPACE or event.key == pygame.K_DELETE: # Delete selected note
                 delQ = []
                 for index, note in noteMap.items():
                     if note.selected:
@@ -1185,53 +1189,51 @@ while running:
                     saveFrame = 0
             elif event.key == pygame.K_z:
                 if pygame.key.get_pressed()[pygame.K_LCTRL]:
-                    if pygame.key.get_pressed()[pygame.K_LSHIFT]:
+                    if pygame.key.get_pressed()[pygame.K_LSHIFT]: # user wishes to redo (Ctrl+Shift+Z)
                         try:
                             noteMapVersionTracker.append(copy.deepcopy(noteMapFutureVersionTracker.pop()))
                         except Exception as e:
                             print("Cannot redo further")
                         if len(noteMapFutureVersionTracker) > 0:
                             noteMap = copy.deepcopy(noteMapFutureVersionTracker[-1])
-                    else:
+                    else: # user wishes to undo (Ctrl+Z)
                         try:
                             noteMapFutureVersionTracker.append(copy.deepcopy(noteMapVersionTracker.pop()))
                         except Exception as e:
                             print("Cannot undo further")
                         if len(noteMapVersionTracker) > 0:
                             noteMap = copy.deepcopy(noteMapVersionTracker[-1])
-                        #print(f"Bottom:{sameNoteMaps(noteMapVersionTracker[-1], noteMap)}")
                         
         elif event.type == pygame.KEYUP:
-            if event.key == pygame.K_LCTRL:
+            if event.key == pygame.K_LCTRL: # Switches away from eraser when Ctrl is let go
                 brushType = "brush"
                 for note in noteMap.items():
                     note[1].selected = False
-            if event.key == pygame.K_LALT:
+            if event.key == pygame.K_LALT: # Duplicates selection
                 for note in duplicatedNoteMap.items():
                     noteMap[note[0]] = copy.deepcopy(note[1])
                 duplicatedNoteMap.clear()
         elif event.type == pygame.MOUSEWHEEL:
-            if event.y > 0:
+            if event.y > 0: # Scroll up
                 dRow += 0.06
-            if event.y < 0:
+            if event.y < 0: # Scroll down
                 dRow -= 0.06
-            if event.x > 0:
+            if event.x > 0: # Scrub right
                 dCol += 0.06
-            if event.x < 0:
+            if event.x < 0: # Scrub left
                 dCol -= 0.06
-    viewRow = max(min(viewRow + dRow, noteRange + 0.01), viewScaleY - 0.01)
-    viewColumn = max(min(viewColumn + dCol, (noteCount - viewScaleX)), 0.01)
+    viewRow = max(min(viewRow + dRow, noteRange + 0.01), viewScaleY - 0.01) # prevents overscroll
+    viewColumn = max(min(viewColumn + dCol, (noteCount - viewScaleX)), 0.01) # prevents overscrub
 
     oldKeyOffset = keyOffset
     drawSelectBox = False
 
-    screen.blit(transparentScreen, transparentScreen.get_rect())
+    screen.blit(transparentScreen, transparentScreen.get_rect()) # duplicated components to drag
 
     if not pygame.mouse.get_pressed()[0]:
         mouseTask = False
     clock.tick(fps)
     pygame.display.flip()  # Update the display
-
 
 if workingFile == "": # file dialog to show up if the user has unsaved changes (they have not attached the workspace to a file)
     filename = asksaveasfile(initialfile = 'Untitled.mgrid', mode='wb',defaultextension=".mgrid", filetypes=[("Musical Composition Grid File","*.mgrid")])
