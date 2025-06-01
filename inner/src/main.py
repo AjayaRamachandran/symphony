@@ -1,4 +1,5 @@
 ###### IMPORT ######
+
 import pygame
 from io import BytesIO
 import numpy as np
@@ -11,7 +12,7 @@ import time
 # import json
 import sys
 import dill as pkl
-from tkinter.filedialog import asksaveasfile, asksaveasfilename
+from tkinter.filedialog import asksaveasfile #, asksaveasfilename
 
 ### Handling Arguments
 titleText = 'My Track 1'
@@ -27,13 +28,14 @@ else:
     workingFile = ""
 
 ###### PYGAME INITIALIZE ######
+
 pygame.init()
 SAMPLE_RATE = 44100
 pygame.mixer.init(frequency=SAMPLE_RATE, size=-16, channels=2)  # initialize pygame mixer at module import
 play_obj = None # global to hold the last Channel/Sound so it doesn't get garbage-collected
 
-width, height = (1100, 600)
-minWidth, minHeight = (1100, 600)
+width, height = (1100, 592)
+minWidth, minHeight = (1100, 592)
 screen = pygame.display.set_mode((width, height), pygame.RESIZABLE, pygame.NOFRAME)
 transparentScreen = pygame.Surface((width, height), pygame.SRCALPHA)
 otherNotes = pygame.Surface((width, height), pygame.SRCALPHA)
@@ -53,6 +55,7 @@ SUBSCRIPT1 = pygame.font.Font("inner/InterVariable.ttf", 11)
 bytes_io = BytesIO()
 
 ###### ASSETS ######
+
 playImage = pygame.image.load("inner/assets/play.png")
 pauseImage = pygame.image.load("inner/assets/pause.png")
 headImage = pygame.image.load("inner/assets/head.png")
@@ -70,6 +73,7 @@ upChevronImage = pygame.image.load("inner/assets/up.png")
 downChevronImage = pygame.image.load("inner/assets/down.png")
 
 ###### VARIABLES INITIALIZE ######
+
 page = "Editor"
 noteMap = {}
 
@@ -115,10 +119,16 @@ playing = False
 brushType = "brush"
 worldMessage = ""
 
+toolbarHeight = 80
+leftColumn = 60
+innerHeight = height - toolbarHeight
+globalVolume = 0.3
+
 viewRow = 50.01
 viewColumn = 0.01
-viewScaleY = 16
-viewScaleX = 32
+print(innerHeight)
+viewScaleY = innerHeight // 32 # old value = 16
+viewScaleX = (width - leftColumn) // 32 # old value = 32
 dRow = 0
 dCol = 0
 timeInterval = 4
@@ -127,10 +137,6 @@ notes = []
 duplicatedNoteMap = {}
 currentDraggingKey = 0
 initialDraggingTime = 0
-
-toolbarHeight = 80
-innerHeight = height - toolbarHeight
-globalVolume = 0.3
 
 mouseTask = False
 mouseDownTime = time.time()
@@ -191,6 +197,7 @@ class Button():
         self.textSize = textSize
         self.colorCycle = colorCycle
         self.color = colorCycle[0] if colorCycle != None else color
+        self.colorIndex = 0
 
     def mouseClicked(self):
         '''Method to return whether the button has been clicked'''
@@ -201,6 +208,7 @@ class Button():
 
         if self.colorCycle != None:
             pygame.draw.rect(screen, self.color, (self.x, toolbarHeight/2 - self.height/2, self.width, self.height), border_radius=3)
+            stamp(str(self.colorIndex + 1), self.textSize, self.x + self.width/2, self.y, 0.1, "center")
         else:
             pygame.draw.rect(screen, mouseFunction((self.x, toolbarHeight/2 - self.height/2, self.width, self.height))[1], (self.x, toolbarHeight/2 - self.height/2, self.width, self.height), border_radius=3)
         pygame.draw.rect(screen, (0, 0, 0), (self.x, toolbarHeight/2 - self.height/2, self.width, self.height), 1, 3)
@@ -214,11 +222,18 @@ class Button():
             if type(itemToDraw) == pygame.Surface:
                 screen.blit(itemToDraw, (self.x + self.width/2 - 14, self.y - 14))
                 pygame.draw.rect(screen, (0, 0, 0), (self.x, toolbarHeight/2 - self.height/2, self.width, self.height), 1, 3)
+                stamp(str(self.colorIndex + 1), self.textSize, self.x + self.width/2, self.y, 0.1, "center")
+
+    def setColor(self, index):
+        '''Sets to given color'''
+        self.color = justColors[index]
+        self.colorIndex = index
 
     def nextColor(self):
         '''Switches to next color (color switcher)'''
         nextIndex = (justColors.index(self.color) + 1) % (len(colors.items()))
         self.color = justColors[nextIndex]
+        self.colorIndex = (self.colorIndex + 1) % 7
 
     def getColorName(self):
         '''Returns the color in string form of the Button (used for color switching)'''
@@ -563,11 +578,12 @@ def playNotes(notes, duration=1, waves=0, volume=0.2, sample_rate=SAMPLE_RATE):
 def assembleNotes(notes, phases, duration=1, volume=0.2, sample_rate=SAMPLE_RATE):
     '''Compound notes playback, tracks phase to keep continuous notes'''
     freqs = notesToFreq([n[0] for n in notes])
-    colors = [n[2] for n in notes]
+    inColors = [n[2] for n in notes]
 
     counts = {}
-    for f in freqs:
-        counts[f] = counts.get(f, 0) + 1
+    for idx, f in enumerate(freqs):
+        typ = waveMap[inColors[idx]]
+        counts[(f, typ)] = counts.get((f, typ), 0) + 1
 
     t = np.linspace(0, duration, int(sample_rate * duration), False)
     newPhases = {}
@@ -575,21 +591,21 @@ def assembleNotes(notes, phases, duration=1, volume=0.2, sample_rate=SAMPLE_RATE
     seen = set()
 
     for idx, freq in enumerate(freqs):
-        if freq in seen: continue
+        typ = waveMap[inColors[idx]]
+        if (freq, typ) in seen: continue
         phase = phases.get(freq, 0.0)
         if notes[idx][1]:
             phase += pi
 
-        typ = waveMap[colors[idx]]
         if typ == 0: # square wave
-            part = np.sign(np.sin(2 * np.pi * freq * t + phase)) * counts[freq]
+            part = np.sign(np.sin(2 * np.pi * freq * t + phase)) * counts[(freq, typ)]
         elif typ == 1: # triangle wave
-            part = (2 / np.pi) * np.arcsin(np.sin(2 * np.pi * freq * t + phase)) * counts[freq]
+            part = (2 / np.pi) * np.arcsin(np.sin(2 * np.pi * freq * t + phase)) * counts[(freq, typ)]
         else: # sawtooth wave
-            part = 2 * (t * freq + (phase / (2 * pi)) - np.floor(0.5 + t * freq + (phase / (2 * pi)))) * counts[freq]
+            part = 2 * (t * freq + (phase / (2 * pi)) - np.floor(0.5 + t * freq + (phase / (2 * pi)))) * counts[(freq, typ)]
 
         wave += part
-        seen.add(freq)
+        seen.add((freq, typ))
         newPhases[freq] = (phase + 2 * np.pi * freq * duration) % (2 * np.pi) # increments phase to keep it continuous
 
     # normalize + volume
@@ -652,7 +668,7 @@ noteMapFutureVersionTracker = []
 
 while running:
     saveFrame += 60 * (1 / fps)
-    if saveFrame > 1200: # Saves every 
+    if saveFrame > 1200: # Saves every 20 seconds
         saveFrame = 0
         myPath = open(workingFile if workingFile != "" else "inner/assets/workingfile.mgrid", "wb")
         dumpToFile(myPath, workingFile if workingFile != "" else "inner/assets/workingfile.mgrid")
@@ -669,8 +685,6 @@ while running:
             ctrlZTime = 0
     screen.fill((0, 0, 0))
     transparentScreen.fill((0, 0, 0, 0))
-
-    leftColumn = 60
 
     colorName = colorButton.getColorName()
 
@@ -751,7 +765,8 @@ while running:
                                         if note[1].selected:
                                             numSelected = True
                                             duplicatedNoteMap[note[0]] = copy.deepcopy(note[1]) # adds the selected notemap to the duplicated notemap until alt is let go
-                                    if mouseTask and numSelected and dist(pygame.mouse.get_pos(), mouseHoldStart) > 10:
+                                            duplicatedNoteMap[note[0]].color = colorName
+                                    if mouseTask and numSelected:# and dist(pygame.mouse.get_pos(), mouseHoldStart) > 10:
                                         ### Dragging
                                         (timeOffset, keyOffset) = (int((pygame.mouse.get_pos()[d] - mouseHoldStart[d]) / 
                                                                     (((width-leftColumn)/viewScaleX),(-innerHeight/viewScaleY))[d])
@@ -956,7 +971,8 @@ while running:
         if waveButton.mouseClicked():
             waveMap[colorName] = (waveMap[colorName] + 1) % len(waveTypes)
             mouseTask = True
-        waveButton.draw(waveImages[waveMap[colorName]])
+        if colorName != 'all': # doesn't render the wave type for 'all' since it is irrelevant
+            waveButton.draw(waveImages[waveMap[colorName]])
 
         ### KEY BUTTON
         keyButton.x = width - 260
@@ -1121,8 +1137,8 @@ while running:
             thisNote = pygame.Surface((width, height), pygame.SRCALPHA)
             otherNotes = pygame.Surface((width, height), pygame.SRCALPHA)
 
-            viewScaleX = (width - leftColumn) / ((1100 - leftColumn)/32) # keeps the box consistent width even when the window is resized
-            viewScaleY = (height - toolbarHeight) / ((600 - toolbarHeight)/16) # keeps the box consistent height even when the window is resized
+            viewScaleX = (width - leftColumn) / ((1084 - leftColumn)/32) # keeps the box consistent width even when the window is resized
+            viewScaleY = (height - toolbarHeight) / ((592 - toolbarHeight)/16) # keeps the box consistent height even when the window is resized
             innerHeight = height - toolbarHeight
 
         elif event.type == pygame.KEYDOWN:
@@ -1139,6 +1155,21 @@ while running:
                     for textBox in selectedTextBoxes:
                         if True in pressedKeys:
                             textBox.text = textBox.text + str(pressedKeys.index(True))
+            elif any(pygame.key.get_pressed()[possKey] for possKey in [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7]):
+                colorButton.setColor([pygame.key.get_pressed()[possKey] for possKey in [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7]].index(True))
+                if pygame.key.get_pressed()[pygame.K_LALT]:
+                    delQ = []
+                    addQ = []
+                    for note in duplicatedNoteMap.items():
+                        newNote = copy.deepcopy(note[1])
+                        newNote.color = colorButton.color
+                        delQ.append((note[0]))
+                        addQ.append(((note[0][0], note[0][1], colorButton.color), newNote))
+                    for d in delQ:
+                        del duplicatedNoteMap[d]
+                    for a in addQ:
+                        duplicatedNoteMap[a[0]] = a[1]
+
             elif event.key == pygame.K_UP: # Scroll up
                 dRow += 0.16
             elif event.key == pygame.K_DOWN: # Scroll down

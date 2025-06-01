@@ -5,16 +5,17 @@
   margin: 0 auto;
   justify-content: center;
   width: 100%;
+  display: flex;
 }
 
 :root {
   font-family: Inter, sans-serif;
+  font-size: 0.7em;
   line-height: auto;
   font-weight: 400;
 
-  color-scheme: light dark;
   color: rgba(33, 33, 33, 0.87);
-  background-color: #ffffff;
+  background-color: #222222;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -41,15 +42,15 @@ h1 {
 }
 
 button {
+  background-color: #222222;
   border: 1px solid transparent;
   font-size: 1em;
   font-family: inherit;
   cursor: pointer;
-  transition: box-shadow 0.25s, transform 0.25s, background-color 0.25s;
+  transition: filter 0.2s, background-color 0.2s;
 }
 button:hover {
-  transform: translateY(-3px);
-  box-shadow: 0px 5px 15px #00000055;
+  filter: brightness(1.2);
 }
 
 Link {
@@ -59,7 +60,7 @@ Link {
 
 .renderbox {
   display: flex;
-  flex-direction: column;
+  /*flex-direction: column;*/
   margin: 50px auto;
   width: 800px;
   height: 700px;

@@ -1,26 +1,44 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 
 let mainWindow;
 
-app.on('ready', () => {
+app.whenReady().then(() => {
   mainWindow = new BrowserWindow({
-    width: 800,
+    width: 1000,
     height: 600,
+    minWidth: 500,
+    minHeight: 600,
     frame: false,
     webPreferences: {
-      nodeIntegration: true,
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false, // best for security
     },
   });
 
-  // During development, load Vite's dev server URL
   mainWindow.loadURL('http://localhost:5173');
-  
-  mainWindow.on('closed', () => (mainWindow = null));
+  // mainWindow.webContents.openDevTools();
+
+// Respond to frontend button events
+  ipcMain.on('minimize', () => mainWindow.minimize());
+  ipcMain.on('maximize', () => {
+    if (mainWindow.isMaximized()) {
+      mainWindow.unmaximize();
+    } else {
+      mainWindow.maximize();
+    }
+  });
+  ipcMain.on('close', () => mainWindow.close());
+
+  mainWindow.on('maximize', () => {
+    mainWindow.webContents.send('window-state', true);
+  });
+
+  mainWindow.on('unmaximize', () => {
+    mainWindow.webContents.send('window-state', false);
+  });
 });
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
+  if (process.platform !== 'darwin') app.quit();
 });

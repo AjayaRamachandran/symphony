@@ -1,5 +1,5 @@
 {
-    "name": "flo",
+    "name": "symphony",
     "private": true,
     "version": "0.0.0",
     "scripts": {
@@ -8,11 +8,13 @@
         "preview": "vite preview",
         "start": "vite",
         "electron": "electron ./main.js",
-        "dev": "concurrently \"vite\" \"electron ./main.js\""
+        "dev": "concurrently -k \"vite\" \"electron ./main.js\"",
+        "vite": "vite"
     },
     "dependencies": {
         "@fortawesome/free-solid-svg-icons": "^6.6.0",
         "@fortawesome/react-fontawesome": "^0.2.2",
+        "lucide-react": "^0.511.0",
         "react": "^18.3.1",
         "react-bootstrap": "^2.10.5",
         "react-dom": "^18.3.1",
@@ -30,6 +32,7 @@
         "eslint-plugin-react": "^7.35.0",
         "eslint-plugin-react-hooks": "^5.1.0-rc.0",
         "eslint-plugin-react-refresh": "^0.4.9",
+        "execa": "^9.6.0",
         "globals": "^15.9.0",
         "vite": "^5.4.11"
     }

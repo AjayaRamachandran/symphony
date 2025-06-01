@@ -1,0 +1,31 @@
+.titlebar {
+  -webkit-app-region: drag;
+  height: 30px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #222222;
+  color: #bbbbbb;
+  padding: 0px 0px 0px 8px;
+}
+.window-controls {
+  display: flex;
+  height: 100%;
+  -webkit-app-region: no-drag; /* make sure the container isn't draggable */
+}
+
+.window-controls button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px; /* reasonable fixed width */
+  height: 100%; /* fill vertical space */
+  cursor: pointer;
+  color: white;
+  font-size: 1.1em;
+}
+
+.x-button:hover {
+  background-color: #cf493a;
+}
