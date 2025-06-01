@@ -63,3 +63,12 @@ DONE
 
 8d. PHASE CORRECTION WHEN LAYERING, as well as a wave type is associated with each color to make better music, and playback singles out voice parts unless in universal view
 DONE
+
+9. Duplicate notes into new color channels
+DONE
+
+9a. Phase matching for duplicate notes in different color channels
+NOT DONE
+
+9b. Proper layer ordering in universal view
+DONE

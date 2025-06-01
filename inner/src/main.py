@@ -40,6 +40,13 @@ screen = pygame.display.set_mode((width, height), pygame.RESIZABLE, pygame.NOFRA
 transparentScreen = pygame.Surface((width, height), pygame.SRCALPHA)
 otherNotes = pygame.Surface((width, height), pygame.SRCALPHA)
 thisNote = pygame.Surface((width, height), pygame.SRCALPHA)
+scrOrange = pygame.Surface((width, height), pygame.SRCALPHA)
+scrPurple = pygame.Surface((width, height), pygame.SRCALPHA)
+scrCyan = pygame.Surface((width, height), pygame.SRCALPHA)
+scrLime = pygame.Surface((width, height), pygame.SRCALPHA)
+scrBlue = pygame.Surface((width, height), pygame.SRCALPHA)
+scrPink = pygame.Surface((width, height), pygame.SRCALPHA)
+scrList = [scrOrange, scrPurple, scrCyan, scrLime, scrBlue, scrPink]
 pygame.display.set_caption(f"{titleText} - MIDI Grid v1.0 Beta")
 pygame.display.set_icon(pygame.image.load("inner/assets/icon.png"))
 clock = pygame.time.Clock()
@@ -102,6 +109,15 @@ colors = {
     "blue" : (61, 80, 156),
     "pink" : (168, 49, 94),
     "all" : (255, 255, 255)
+}
+colorsInd = {
+    "orange" : 0,
+    "purple" : 1,
+    "cyan" : 2,
+    "lime" : 3,
+    "blue" : 4,
+    "pink" : 5,
+    "all" : 6
 }
 colorsList = colors.items()
 justColors = [n[1] for n in colorsList]
@@ -836,21 +852,31 @@ while running:
 
     thisNote.fill((0, 0, 0, 0))
     otherNotes.fill((0, 0, 0, 0))
+    scrUsed = set()
     ### Renders noteMap to screen, based on color or "all" color
     for note in noteMap.items():
         if note[1].key > viewRow - viewScaleY and note[1].key < viewRow + 1:
             if note[1].time > viewColumn and note[1].time < viewColumn + viewScaleX + 1:
                 if colorName == 'all':
-                    note[1].draw(screen, viewRow, viewColumn, noteMap)
+                    if not (note[1].color in scrUsed):
+                        scrUsed.add(scrList[colorsInd[note[1].color]])
+                    #note[1].draw(screen, viewRow, viewColumn, noteMap)
+                    note[1].draw(scrList[colorsInd[note[1].color]], viewRow, viewColumn, noteMap)
                 else:
                     if note[1].color == colorName:
                         note[1].draw(thisNote, viewRow, viewColumn, noteMap)
                     else:
                         note[1].draw(otherNotes, viewRow, viewColumn, noteMap)
     
-    # always renders current color on top of gray ones
-    screen.blit(otherNotes, otherNotes.get_rect())
-    screen.blit(thisNote, thisNote.get_rect())
+    if colorName == 'all':
+        # render notes in order of stack
+        for scr in scrList:
+            if scr in scrUsed:
+                screen.blit(scr, scr.get_rect())
+    else:
+        # always renders current color on top of gray ones
+        screen.blit(otherNotes, otherNotes.get_rect())
+        screen.blit(thisNote, thisNote.get_rect())
      
     for note in duplicatedNoteMap.items():
         if note[1].key > viewRow - viewScaleY and note[1].key < viewRow + 1:
