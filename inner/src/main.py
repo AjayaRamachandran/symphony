@@ -142,9 +142,9 @@ globalVolume = 0.3
 
 viewRow = 50.01
 viewColumn = 0.01
-print(innerHeight)
+#print(innerHeight)
+viewScaleX = (width - leftColumn) / 32 # old value = 32
 viewScaleY = innerHeight // 32 # old value = 16
-viewScaleX = (width - leftColumn) // 32 # old value = 32
 dRow = 0
 dCol = 0
 timeInterval = 4
@@ -362,7 +362,7 @@ class Note():
                          (headerX - 1, headerY - 1), (headerX - 1, headerY + innerHeight/viewScaleY - 1), 2)
                 pygame.draw.line(screen, outlineColor, # bottom edge
                          (headerX - 1, headerY + innerHeight/viewScaleY - 1), (headerX + (width - leftColumn)/viewScaleX + 1, headerY + innerHeight/viewScaleY - 1), 2)
-                if not (self.key, self.time + 1) in noteMap:
+                if not (self.key, self.time + 1, self.color) in noteMap:
                     pygame.draw.line(screen, outlineColor, # right edge
                             (headerX + (width - leftColumn)/viewScaleX, headerY + 1), (headerX + (width - leftColumn)/viewScaleX, headerY + innerHeight/viewScaleY - 1), 2)
         else:
@@ -372,7 +372,7 @@ class Note():
                         (headerX - 1, headerY - 1), (headerX + (width - leftColumn)/viewScaleX - 1, headerY - 1), 1)
             pygame.draw.line(screen, black, # bottom edge
                         (headerX - 1, headerY + floor(innerHeight/viewScaleY)), (headerX + (width - leftColumn)/viewScaleX - 1, headerY + floor(innerHeight/viewScaleY)), 1)
-            if (self.key, self.time + 1) in noteMap and noteMap[(self.key, self.time + 1)].lead == False:
+            if (self.key, self.time + 1, self.color) in noteMap and noteMap[(self.key, self.time + 1, self.color)].lead == False:
                 if self.selected:
                     pygame.draw.line(screen, outlineColor, # top edge
                             (headerX - 1, headerY - 1), (headerX + (width - leftColumn)/viewScaleX - 1, headerY - 1), 2)
@@ -604,14 +604,21 @@ def assembleNotes(notes, phases, duration=1, volume=0.2, sample_rate=SAMPLE_RATE
     t = np.linspace(0, duration, int(sample_rate * duration), False)
     newPhases = {}
     wave = np.zeros_like(t)
-    seen = set()
+    #seen = set()
+
+    phasesOfFreqs = {}
 
     for idx, freq in enumerate(freqs):
         typ = waveMap[inColors[idx]]
-        if (freq, typ) in seen: continue
         phase = phases.get(freq, 0.0)
         if notes[idx][1]:
             phase += pi
+        if freq in phasesOfFreqs:
+            phase = phasesOfFreqs[freq]
+        else:
+            phasesOfFreqs[freq] = phase
+        #if (freq, typ) in seen:
+            #continue
 
         if typ == 0: # square wave
             part = np.sign(np.sin(2 * np.pi * freq * t + phase)) * counts[(freq, typ)]
@@ -621,7 +628,7 @@ def assembleNotes(notes, phases, duration=1, volume=0.2, sample_rate=SAMPLE_RATE
             part = 2 * (t * freq + (phase / (2 * pi)) - np.floor(0.5 + t * freq + (phase / (2 * pi)))) * counts[(freq, typ)]
 
         wave += part
-        seen.add((freq, typ))
+        #seen.add((freq, typ))
         newPhases[freq] = (phase + 2 * np.pi * freq * duration) % (2 * np.pi) # increments phase to keep it continuous
 
     # normalize + volume
@@ -850,8 +857,16 @@ while running:
                 mouseWOTask = False
                 mouseTask = True
 
+    scrOrange.fill((0, 0, 0, 0))
+    scrPurple.fill((0, 0, 0, 0))
+    scrLime.fill((0, 0, 0, 0))
+    scrCyan.fill((0, 0, 0, 0))
+    scrBlue.fill((0, 0, 0, 0))
+    scrPink.fill((0, 0, 0, 0))
+
     thisNote.fill((0, 0, 0, 0))
     otherNotes.fill((0, 0, 0, 0))
+    
     scrUsed = set()
     ### Renders noteMap to screen, based on color or "all" color
     for note in noteMap.items():
@@ -1163,8 +1178,17 @@ while running:
             thisNote = pygame.Surface((width, height), pygame.SRCALPHA)
             otherNotes = pygame.Surface((width, height), pygame.SRCALPHA)
 
-            viewScaleX = (width - leftColumn) / ((1084 - leftColumn)/32) # keeps the box consistent width even when the window is resized
-            viewScaleY = (height - toolbarHeight) / ((592 - toolbarHeight)/16) # keeps the box consistent height even when the window is resized
+            scrOrange = pygame.Surface((width, height), pygame.SRCALPHA)
+            scrPurple = pygame.Surface((width, height), pygame.SRCALPHA)
+            scrCyan = pygame.Surface((width, height), pygame.SRCALPHA)
+            scrLime = pygame.Surface((width, height), pygame.SRCALPHA)
+            scrBlue = pygame.Surface((width, height), pygame.SRCALPHA)
+            scrPink = pygame.Surface((width, height), pygame.SRCALPHA)
+
+            scrList = [scrOrange, scrPurple, scrCyan, scrLime, scrBlue, scrPink]
+
+            viewScaleX = (width - leftColumn) / ((1100 - leftColumn) // 32) # keeps the box consistent width even when the window is resized
+            viewScaleY = (height - toolbarHeight) / ((592 - toolbarHeight) / 16) # keeps the box consistent height even when the window is resized
             innerHeight = height - toolbarHeight
 
         elif event.type == pygame.KEYDOWN:
@@ -1260,7 +1284,25 @@ while running:
                             print("Cannot undo further")
                         if len(noteMapVersionTracker) > 0:
                             noteMap = copy.deepcopy(noteMapVersionTracker[-1])
-                        
+            elif event.key == pygame.K_PERIOD:
+                addQ = []
+                for note in noteMap.items():
+                    if note[1].selected:
+                        if not ((note[1].key, note[1].time + 1, note[1].color) in noteMap) or noteMap[(note[1].key, note[1].time + 1, note[1].color)].lead:
+                            el = Note(note[1].key, note[1].time + 1, False, note[1].color)
+                            el.selected = True
+                            addQ.append(((note[1].key, note[1].time + 1, note[1].color), el))
+                for a in addQ:
+                    noteMap[a[0]] = a[1]
+                    selectConnected(a[0][0], a[0][1])
+            elif event.key == pygame.K_COMMA:
+                delQ = []
+                for note in noteMap.items():
+                    if note[1].selected:
+                        if not ((note[1].key, note[1].time + 1, note[1].color) in noteMap) or noteMap[(note[1].key, note[1].time + 1, note[1].color)].lead:
+                            delQ.append(note[0])
+                for d in delQ:
+                    del noteMap[d]
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_LCTRL: # Switches away from eraser when Ctrl is let go
                 brushType = "brush"

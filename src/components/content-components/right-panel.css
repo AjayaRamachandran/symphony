@@ -1,0 +1,13 @@
+.big-title {
+  font-size: 3.5em;
+  font-weight: 700;
+  margin-top: 7px;
+}
+
+.field-label {
+  font-size: 1.2em;
+  font-weight: 700;
+  margin-top: 27px;
+  margin-bottom: 5px;
+  /* margin-left: 3px; */
+}

@@ -1,11 +1,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&display=swap');
 @import url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css");
 
 #root {
-  margin: 0 auto;
   justify-content: center;
   width: 100%;
-  display: flex;
+  height: 100%;
 }
 
 :root {
@@ -14,7 +14,7 @@
   line-height: auto;
   font-weight: 400;
 
-  color: rgba(33, 33, 33, 0.87);
+  color: #222222;
   background-color: #222222;
 
   font-synthesis: none;
@@ -23,17 +23,30 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+[textStyle="display"] {
+  font-family: Instrument Sans, sans-serif;
+  color: #D9D9D9;
+}
+
 a {
   font-weight: 500;
   text-decoration: inherit;
   color: inherit;
 }
 
+html {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+}
+
 body {
   margin: 0;
+  height: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
+  outline: 1px white solid;
 }
 
 h1 {
@@ -51,28 +64,4 @@ button {
 }
 button:hover {
   filter: brightness(1.2);
-}
-
-Link {
-  padding: 0;
-  margin: 0;
-}
-
-.renderbox {
-  display: flex;
-  /*flex-direction: column;*/
-  margin: 50px auto;
-  width: 800px;
-  height: 700px;
-  border: 1px solid #cccccc;
-  border-radius: 15px;
-  box-shadow: 0 15px 35px #00000033;
-  box-sizing: border-box;
-  overflow: hidden;
-}
-@media (max-width: 1000px) {
-  .renderbox {
-    width: 400px;
-    height: 700px;
-  }
 }

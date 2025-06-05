@@ -1,14 +1,15 @@
 .titlebar {
   -webkit-app-region: drag;
   height: 30px;
-  width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
   background: #222222;
   color: #bbbbbb;
   padding: 0px 0px 0px 8px;
+
 }
+
 .window-controls {
   display: flex;
   height: 100%;
@@ -29,3 +30,41 @@
 .x-button:hover {
   background-color: #cf493a;
 }
+
+.full-page {
+  display: flex;
+  height: 100%;
+  justify-content: left;
+  flex-direction: column;
+  /* outline: 1px white solid; */
+}
+
+.content {
+  display: flex;
+  height: 100%;
+  justify-content: space-between;
+  flex-direction: row;
+  /* outline: 1px white solid; */
+}
+
+.content-panel-container {
+  margin: 3px 10px 10px 10px;
+  width: 240px;
+  border-radius: 7px;
+  border: 1px #3C3C3C solid;
+  color: #bbbbbb;
+  background-color: #2A2A2A;
+  padding: 15px;
+  /* outline: 1px white solid; */
+}
+
+.content-panel-sub-container {
+  flex: 1;
+  border-radius: 7px;
+  border: 1px #3C3C3C solid;
+  color: #bbbbbb;
+  background-color: #252525;
+  padding: 15px;
+  /* outline: 1px white solid; */
+}
+

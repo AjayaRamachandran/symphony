@@ -1,0 +1,15 @@
+.med-title {
+  font-size: 2em;
+  font-weight: 600;
+  margin-top: 7px;
+}
+
+.section-title {
+  font-size: 1em;
+  font-weight: 700;
+  margin-top: 27px;
+  margin-bottom: 5px;
+  margin-left: 3px;
+  letter-spacing: 0.1em;
+  color: #606060;
+}

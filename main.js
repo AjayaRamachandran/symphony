@@ -5,10 +5,10 @@ let mainWindow;
 
 app.whenReady().then(() => {
   mainWindow = new BrowserWindow({
-    width: 1000,
-    height: 600,
-    minWidth: 500,
-    minHeight: 600,
+    width: 1200,
+    height: 800,
+    minWidth: 700,
+    minHeight: 800,
     frame: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),

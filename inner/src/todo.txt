@@ -68,7 +68,7 @@ DONE
 DONE
 
 9a. Phase matching for duplicate notes in different color channels
-NOT DONE
+DONE
 
 9b. Proper layer ordering in universal view
 DONE
