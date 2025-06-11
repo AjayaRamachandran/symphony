@@ -1,0 +1,32 @@
+[
+  {
+    "type" : "mgrid",
+    "name": "Epic Arrangement Final Final 4.mgrid",
+    "fileLocation" : "C:/Code/"
+  },
+  {
+    "type" : "mgrid",
+    "name": "Old.mgrid",
+    "fileLocation" : "C:/Code/"
+  },
+  {
+    "type" : "mgrid",
+    "name": "Super Ancient File.mgrid",
+    "fileLocation" : "C:/Code/"
+  },
+  {
+    "type" : "mp3",
+    "name": "Exported not great version 2.mp3",
+    "fileLocation" : "C:/Code/"
+  },
+  {
+    "type" : "mp3",
+    "name": "Cool Lofi Mix.mp3",
+    "fileLocation" : "C:/Code/"
+  },
+  {
+    "type" : "mgrid",
+    "name": "Bad arrangement DELETE-SOON.mgrid",
+    "fileLocation" : "C:/Code/"
+  }
+]

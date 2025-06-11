@@ -1,7 +1,8 @@
-.med-title {
-  font-size: 2em;
-  font-weight: 600;
-  margin-top: 7px;
+.big-title {
+  font-size: 3.5em;
+  font-weight: 700;
+  margin-top: 12px;
+  margin-left: 3px;
 }
 
 .section-title {

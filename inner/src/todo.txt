@@ -1,15 +1,14 @@
 1. the ability to delete notes, and have the lead beat of a note automatically shift to the next beat over (the lead is the first beat of the note, a different color because it represents starting a new note playing)
 DONE
 
-2. the ability to select notes and move them around, and drag the tail end to extend or shrink them
-DRAGGING IS DONE, EXTENDING IS NOT DONE
+2. the ability to select notes and move them around
+DONE
 
+2a. the ability to drag the tail end of notes to extend or shrink them
 -- we are not doing extending anymore because it quite literally caused a project halt and that's no good for productivity, we don't want that to happen again.
-
 -- halfway solution might be to add an "extender/shrinker" brush that appends or removes from existing notes with a click.
-
 -- a better halfway solution might be a keyboard shortcut to extend or retract all selected notes (ex: A to ret. D to extend)
-NOT DONE
+DONE
 
 3. the functionality to actually play the notes and hear them
 DONE
@@ -30,9 +29,8 @@ DONE
 DONE
 
 4b. The ability to duplicate a section using alt+drag and a ghosted version follows the mouse until you let go
+method: a second hashmap with all the notes that have been duplicated, and the offset, use the same method as drag but when the mouse has been let go, add the second hashmap to the first -- for drawing it, get partial opacity using a second surface
 DONE
-
-  method: a second hashmap with all the notes that have been duplicated, and the offset, use the same method as drag but when the mouse has been let go, add the second hashmap to the first -- for drawing it, get partial opacity using a second surface
 
 5. the ability to load a .mgrid file as a load argument and the program will also autosave every 20 seconds.
 DONE

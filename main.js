@@ -17,7 +17,7 @@ app.whenReady().then(() => {
   });
 
   mainWindow.loadURL('http://localhost:5173');
-  // mainWindow.webContents.openDevTools();
+  mainWindow.webContents.openDevTools();
 
 // Respond to frontend button events
   ipcMain.on('minimize', () => mainWindow.minimize());

@@ -47,6 +47,8 @@ body {
   justify-content: center;
   align-items: center;
   outline: 1px white solid;
+  cursor: default;
+  user-select: none;
 }
 
 h1 {
@@ -55,12 +57,17 @@ h1 {
 }
 
 button {
-  background-color: #222222;
-  border: 1px solid transparent;
+  background-color: inherit;
+  color: inherit;
+  border: 0px solid transparent;
   font-size: 1em;
   font-family: inherit;
   cursor: pointer;
+  padding: 0;
   transition: filter 0.2s, background-color 0.2s;
+}
+[topBarButtons="true"] {
+  background-color: #222222;
 }
 button:hover {
   filter: brightness(1.2);

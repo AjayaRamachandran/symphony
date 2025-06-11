@@ -1,0 +1,34 @@
+.directory {
+  flex: 1;
+  border-radius: 7px;
+  border: 1px #3C3C3C solid;
+  color: #bbbbbb;
+  background-color: #252525;
+  padding: 10px 15px 20px 15px;
+}
+
+.directory-large {
+  color: #898989;
+  font-size: 1.35em;
+  font-weight: 300;
+  margin: 9px 3px 5px 3px;
+
+  justify-content: space-between;
+  display: flex;
+}
+
+.directory-medium {
+  flex: 1;
+  padding: 4px 3px 4px 12px;
+  color: #d9d9d9;
+  background-color: #252525;
+  border-radius: 4px;
+  font-size: 1.2em;
+
+  display: flex;
+  flex-direction: row;
+  }
+  .directory-medium:hover {
+    filter: brightness(1.2);
+    cursor: pointer;
+  }
