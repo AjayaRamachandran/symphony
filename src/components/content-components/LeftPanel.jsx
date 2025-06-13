@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Directory from './left-panel-components/Directory';
+import RecentlyViewed from './left-panel-components/RecentlyViewed';
 
 import "./left-panel.css";
 
@@ -18,7 +19,7 @@ function LeftPanel() {
         <div className='section-title'>
           RECENTLY VIEWED
         </div>
-        <Directory />
+        <RecentlyViewed />
       </div>
     </>
   );

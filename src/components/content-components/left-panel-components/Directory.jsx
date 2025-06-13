@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FolderClosed, Plus } from 'lucide-react';
-import config from '@/assets/directory.json';
+import directory from '@/assets/directory.json';
 
 import './directory.css'
 
@@ -20,9 +20,9 @@ function Directory() {
             
           </div>
 
-          {config[section]?.map((element, elementIndex) => (
+          {directory[section]?.map((element, elementIndex) => (
             <div className="directory-medium" key={elementIndex}>
-              <FolderClosed size={16} strokeWidth={1.5} color='#606060'/>
+              <FolderClosed style={{flexShrink: 0}} size={16} strokeWidth={1.5} color='#606060'/>
               <div style={{marginLeft: '6px'}}>
                 {element}
               </div>
