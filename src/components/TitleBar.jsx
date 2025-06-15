@@ -14,10 +14,10 @@ function TitleBar() {
       <div className="titlebar">
         <div>Project Manager - Symphony v1.0 Beta</div>
         <div className="window-controls">
-          <button className="bi bi-dash-lg" topBarButtons='true'
+          <button className="bi bi-dash-lg" topbar-buttons='true'
             onClick={() => window.electronAPI.minimize()}>
           </button>
-          <button topBarButtons='true'
+          <button topbar-buttons='true'
             onClick={() => window.electronAPI.maximize()}>
           {
             isMaximized ?
@@ -25,7 +25,7 @@ function TitleBar() {
             : <Square size={11} />
           }
           </button>
-          <button className="bi bi-x-lg x-button" topBarButtons='true'
+          <button className="bi bi-x-lg x-button" topbar-buttons='true'
             onClick={() => window.electronAPI.close()}>
           </button>
         </div>

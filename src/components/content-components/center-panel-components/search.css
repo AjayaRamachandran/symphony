@@ -1,0 +1,26 @@
+.search-field {
+  display: block;
+  width: calc(min(100%, 100vw - 590px));
+  box-sizing: border-box;
+
+  font: inherit;
+  border-radius: 7px;
+  border: 1px #767676 solid;
+  color: #d9d9d9;
+  background-color: #3c3c3c;
+  padding: 7px 9px;
+
+  overflow: hidden;
+  resize: none;
+  outline: none;
+  text-overflow: ellipsis;
+  box-shadow: none;
+  cursor: text;
+
+  transition: border-color 0.4s, box-shadow 0.4s;
+}
+
+.search-field:focus {
+  border-color: #c56ec9;
+  box-shadow: 0px 0px 50px #c56ec922;
+}

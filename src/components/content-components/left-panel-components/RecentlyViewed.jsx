@@ -3,6 +3,7 @@ import { Music, ChartNoAxesGantt } from 'lucide-react';
 import recentlyViewed from '@/assets/recentlyViewed.json';
 
 import './recently-viewed.css'
+import Tooltip from '@/components/Tooltip';
 
 function RecentlyViewed() {
   const fileTypes = {
@@ -17,14 +18,16 @@ function RecentlyViewed() {
         const Icon = fileTypes[item.type];
 
         return (
-          <div className="recently-viewed-medium" key={recentIndex}>
+          <button className="recently-viewed-medium tooltip" key={recentIndex}>
             {Icon && (
-              <Icon style={{ flexShrink: 0 }} size={16} strokeWidth={1.5} color="#606060" />
+              <Icon style={{ flexShrink: 0 }} size={16} strokeWidth={1.5}
+              color-type ={item.type == 'mp3' ? "accent-color" : "icon-color"}/>
             )}
             <div className="truncated-text" style={{ marginLeft: '6px' }}>
               {item.name}
             </div>
-          </div>
+            <Tooltip text={item.name} />
+          </button>
         );
       })}
     </div>

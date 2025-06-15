@@ -1,0 +1,48 @@
+.toolbar-container {
+  width: calc(min(100%, 100vw - 590px));
+  margin-top: 10px;
+  box-sizing: border-box;
+  border-radius: 7px;
+  border: 1px #3C3C3C solid;
+  color: #bbbbbb;
+  background-color: #2A2A2A;
+  display: flex;
+  flex-direction: row;
+  justify-content: left;
+  height: 80px;
+  padding: 15px 20px 0px calc(max(20px, (100vw - 1225px) / 2));
+  overflow-x: scroll;
+  overflow-y: hidden;
+}
+
+
+.toolbar-section {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.8em;
+  font-weight: 700;
+  align-items: center;
+  justify-content: center;
+  margin-top: 4px;
+  /* outline: 1px solid white; */
+  letter-spacing: 0.1em;
+  color: #606060;
+}
+
+.toolbar-subsection {
+  display: flex;
+  justify-content: center;
+  flex-direction: row;
+  color: #bbbbbb;
+}
+
+.icon-button {
+  border-radius: 5px;
+  width: 30px;
+  height: 30px;
+  margin: 5px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #2A2A2A;
+}

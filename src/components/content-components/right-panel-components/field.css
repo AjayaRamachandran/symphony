@@ -1,0 +1,44 @@
+.field {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+
+  font: inherit;
+  border-radius: 7px;
+  border: 1px #3C3C3C solid;
+  color: #c2c2c2;
+  background-color: #252525;
+  font-size: 1.3em;
+  letter-spacing: 0.01em;
+  padding: 7px;
+
+  overflow: hidden;
+  resize: none;
+  outline: none;
+  text-overflow: ellipsis;
+  box-shadow: none;
+  cursor: text;
+
+  transition: border-color 0.4s, box-shadow 0.4s;
+}
+
+.field:focus {
+  border-color: #c56ec9;
+  box-shadow: 0px 0px 50px #c56ec922;
+}
+
+.call-to-action {
+  border: 2px solid #ea7b36;
+  font-size: 1.4em;
+  font-weight: 600;
+  padding: 5px;
+  justify-content: space-between;
+
+  width: 100%;
+  align-items: center;
+  display: flex;
+  flex-direction: row;
+  box-sizing: border-box;
+  border-radius: 5px;
+  background: linear-gradient(90deg, #2a2a2a 0%, #2a2a2a 50%, #74482c 100%);
+}

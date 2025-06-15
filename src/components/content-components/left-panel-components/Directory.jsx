@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { FolderClosed, Plus } from 'lucide-react';
 import directory from '@/assets/directory.json';
 
+import Tooltip from '@/components/Tooltip';
+
 import './directory.css'
 
 function Directory() {
@@ -14,9 +16,15 @@ function Directory() {
 
           <div className="directory-large">
             {section}
-            <button>
-              <Plus size={18} strokeWidth={1.5} />
-            </button>
+            {section != 'Symphony Auto-Save' ? (
+              <button className='tooltip'>
+                <Tooltip text="New Folder"/>
+                <Plus size={16} strokeWidth={1.5} />
+              </button>
+            ) : (
+              <></>
+            )}
+
             
           </div>
 

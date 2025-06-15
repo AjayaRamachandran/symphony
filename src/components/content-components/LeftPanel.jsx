@@ -9,7 +9,7 @@ function LeftPanel() {
   return (
     <>
       <div className="content-panel-container">
-        <div className='big-title' textStyle='display'>
+        <div className='big-title' text-style='display'>
           Home
         </div>
         <div className='section-title'>

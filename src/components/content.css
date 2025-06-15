@@ -55,6 +55,41 @@
   color: #bbbbbb;
   background-color: #2A2A2A;
   padding: 15px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
   /* outline: 1px white solid; */
+}
+
+.content-nopanel-container {
+  width: calc(min(100%, 100vw - 590px));
+  border-radius: 7px;
+  color: #bbbbbb;
+  padding: 3px;
+  display: flex;
+  flex-direction: column;
+  /* border: 1px white solid; */
+}
+
+.tooltip-text {
+  visibility: hidden;
+  background-color: #333;
+  color: #fff;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  position: absolute;
+  bottom: 125%; /* position above the icon */
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+  z-index: 1;
+}
+
+.tooltip:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1;
 }
 

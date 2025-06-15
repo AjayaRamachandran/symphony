@@ -23,9 +23,17 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-[textStyle="display"] {
+[text-style="display"] {
   font-family: Instrument Sans, sans-serif;
   color: #D9D9D9;
+}
+
+[color-type="accent-color"] {
+  color: #c56ec9;
+}
+
+[color-type="icon-color"] {
+  color: #606060;
 }
 
 a {
@@ -66,9 +74,45 @@ button {
   padding: 0;
   transition: filter 0.2s, background-color 0.2s;
 }
-[topBarButtons="true"] {
+[topbar-buttons="true"] {
   background-color: #222222;
 }
 button:hover {
   filter: brightness(1.2);
 }
+button:focus {
+  outline: none;
+}
+span {
+  margin: 0;
+}
+input {
+  margin: 0;
+}
+hr {
+  border: 2px solid #3c3c3c;
+  margin: 0px 10px;
+  border-radius: 999px;
+}
+.hr {
+  width: 4px;
+  display: block;
+  background: #3c3c3c;
+  margin: 4px 8px;
+  border-radius: 999px;
+}
+
+.scrollable::-webkit-scrollbar {
+  width: 8px;
+}
+.scrollable::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollable::-webkit-scrollbar-thumb {
+  background-color: #ffffff22;
+  border-radius: 10px;
+  border: 5px solid #2a2a2a; /* match background to create spacing */
+  }
+  .scrollable::-webkit-scrollbar-thumb :hover {
+    filter: brightness(1.2);
+  }
