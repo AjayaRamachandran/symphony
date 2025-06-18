@@ -1,14 +1,14 @@
 .search-field {
-  display: block;
+  display: flex;
   width: calc(min(100%, 100vw - 590px));
   box-sizing: border-box;
 
   font: inherit;
-  border-radius: 7px;
+  border-radius: 999px;
   border: 1px #767676 solid;
   color: #d9d9d9;
   background-color: #3c3c3c;
-  padding: 7px 9px;
+  padding: 4px 9px 7px 9px;
 
   overflow: hidden;
   resize: none;
@@ -16,6 +16,8 @@
   text-overflow: ellipsis;
   box-shadow: none;
   cursor: text;
+
+  white-space: nowrap;
 
   transition: border-color 0.4s, box-shadow 0.4s;
 }

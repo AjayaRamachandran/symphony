@@ -72,7 +72,7 @@ button {
   font-family: inherit;
   cursor: pointer;
   padding: 0;
-  transition: filter 0.2s, background-color 0.2s;
+  transition: background-color 0.2s;
 }
 [topbar-buttons="true"] {
   background-color: #222222;

@@ -5,7 +5,7 @@ let mainWindow;
 
 app.whenReady().then(() => {
   mainWindow = new BrowserWindow({
-    width: 1200,
+    width: 1265,
     height: 800,
     minWidth: 700,
     minHeight: 800,

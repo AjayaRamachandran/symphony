@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Copy, Scissors, Clipboard, CopyPlus, Users, KeyRound, Tag, FolderOpen, Trash2, FileAudio2, Grid2x2, List, Rows2 } from 'lucide-react';
+import { Copy, Scissors, Clipboard, CopyPlus, Users, KeyRound, Tag, FolderOpen, Trash2, FileAudio2, LayoutGrid, List, Rows2 } from 'lucide-react';
 
 import mscz from '@/assets/mscz-icon.svg';
 import Tooltip from '@/components/Tooltip';
@@ -43,7 +43,7 @@ function Toolbar() {
         <div className='toolbar-section'>
           VIEW
           <div className='toolbar-subsection'>
-            <button className='icon-button tooltip'><Tooltip text="Grid"/><Grid2x2 size={18}/></button>
+            <button className='icon-button tooltip'><Tooltip text="Grid"/><LayoutGrid size={18}/></button>
             <button className='icon-button tooltip'><Tooltip text="List"/><List size={18}/></button>
             <button className='icon-button tooltip'><Tooltip text="Content"/><Rows2 size={18}/></button>
           </div>

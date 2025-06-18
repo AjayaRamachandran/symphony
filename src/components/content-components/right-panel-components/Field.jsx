@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Search } from 'lucide-react';
 
 import './field.css'
 
@@ -8,7 +9,9 @@ const Field = ({ initialValue = '',
                   whiteSpace = 'auto',
                   defaultText = '',
                   className = 'field',
-                  lightDark = ['#606060', '#c2c2c2']}) => {
+                  lightDark = ['#606060', '#c2c2c2'],
+                  width = 'auto',
+                  searchField = false}) => {
 
   const [value, setValue] = useState(initialValue);
   const [editing, setEditing] = useState(false);
@@ -44,15 +47,17 @@ const Field = ({ initialValue = '',
 
       onKeyDown={handleKeyDown}
       className={className}
-      style={{ height: height, fontSize: fontSize, whiteSpace: whiteSpace, color: value == '' ? lightDark[0] : lightDark[1] }}
+      style={{ height: height, fontSize: fontSize, whiteSpace: whiteSpace, paddingTop: '7px', width: width, color: value == '' ? lightDark[0] : lightDark[1] }}
     />
   ) : (
     <span
       onClick={() => setEditing(true)}
       className={className}
-      style={{ height: height, fontSize: fontSize, whiteSpace: whiteSpace, color: value == '' ? lightDark[0] : lightDark[1] }}
+      style={{ height: height, fontSize: fontSize, whiteSpace: whiteSpace, width: width, color: value == '' ? lightDark[0] : lightDark[1] }}
     >
-      {value || defaultText}
+      {searchField ? (<Search size={15} style={{marginRight: '5px', marginTop: '3px', flexShrink: 0}} />) : ''}
+      {searchField ? (<div style={{marginTop: '3px'}}>{value || defaultText}</div>) : (value || defaultText)}
+      
     </span>
   );
 };

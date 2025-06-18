@@ -34,6 +34,7 @@ function RightPanel() {
         <button
           className='call-to-action'
           text-style='display'
+          style={{transition: 'filter 0.2s'}}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}>
           <div>Open in Editor</div>

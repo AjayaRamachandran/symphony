@@ -26,6 +26,8 @@
   font-size: 1.2em;
 
   display: flex;
+  width: 100%;
+  box-sizing: border-box;
   flex-direction: row;
   }
   .directory-medium:hover {
