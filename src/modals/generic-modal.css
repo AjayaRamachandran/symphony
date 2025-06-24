@@ -46,6 +46,27 @@
   letter-spacing: 0.01em;
 }
 
+.modal-file-explorer-button {
+  display: flex;
+  width: 320px;
+  box-sizing: border-box;
+
+  font: inherit;
+  border-radius: 7px;
+  border: 1px #3C3C3C solid;
+  color: #c2c2c2;
+  background-color: #252525;
+  font-size: 0.8em;
+  letter-spacing: 0.01em;
+  padding: 7px;
+
+  outline: none;
+  text-overflow: ellipsis;
+  box-shadow: none;
+  cursor: pointer;
+  text-align: left;
+}
+
 .close-button {
   position: absolute;
   top: 1rem;

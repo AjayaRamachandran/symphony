@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 
 let mainWindow;
@@ -19,7 +19,7 @@ app.whenReady().then(() => {
   mainWindow.loadURL('http://localhost:5173');
   //mainWindow.webContents.openDevTools();
 
-// Respond to frontend button events
+  // Respond to frontend window control events
   ipcMain.on('minimize', () => mainWindow.minimize());
   ipcMain.on('maximize', () => {
     if (mainWindow.isMaximized()) {
@@ -36,6 +36,18 @@ app.whenReady().then(() => {
 
   mainWindow.on('unmaximize', () => {
     mainWindow.webContents.send('window-state', false);
+  });
+
+  ipcMain.handle('dialog:openDirectory', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openDirectory']
+    });
+
+    if (result.canceled || result.filePaths.length === 0) {
+      return null;
+    } else {
+      return result.filePaths[0];
+    }
   });
 });
 

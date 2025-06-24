@@ -10,7 +10,7 @@ const Field = ({ initialValue = '',
                   defaultText = '',
                   className = 'field',
                   lightDark = ['#606060', '#c2c2c2'],
-                  width = 'auto',
+                  width = '100%',
                   searchField = false}) => {
 
   const [value, setValue] = useState(initialValue);
@@ -50,15 +50,15 @@ const Field = ({ initialValue = '',
       style={{ height: height, fontSize: fontSize, whiteSpace: whiteSpace, paddingTop: '7px', width: width, color: value == '' ? lightDark[0] : lightDark[1] }}
     />
   ) : (
-    <span
+    <div
       onClick={() => setEditing(true)}
       className={className}
       style={{ height: height, fontSize: fontSize, whiteSpace: whiteSpace, width: width, color: value == '' ? lightDark[0] : lightDark[1] }}
     >
-      {searchField ? (<Search size={15} style={{marginRight: '5px', marginTop: '3px', flexShrink: 0}} />) : ''}
-      {searchField ? (<div style={{marginTop: '3px'}}>{value || defaultText}</div>) : (value || defaultText)}
+      {searchField ? (<Search size={15} style={{marginRight: '5px', flexShrink: 0}} />) : ''}
+      {searchField ? (value || defaultText) : (value || defaultText)}
       
-    </span>
+    </div>
   );
 };
 
