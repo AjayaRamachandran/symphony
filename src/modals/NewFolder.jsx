@@ -16,6 +16,7 @@ const options = [
 
 function NewFolder() {
   const [sourceLocation, setSourceLocation] = useState('');
+  const [destination, setDestination] = useState('');
 
   const openFolderDialog = async () => {
     console.log('Button clicked');
@@ -26,8 +27,13 @@ function NewFolder() {
     }
   };
 
-  const handleSelect = (option) => {
-    console.log('Selected:', option.label);
+  const handleSelect = (selected) => {
+    setDestination(selected)
+    alert('Selected:', selected);
+  };
+
+  const addDirectory = () => {
+    alert('button clicked');
   };
 
   return (
@@ -58,6 +64,7 @@ function NewFolder() {
       </div>
       <div className='modal-body' style={{ marginTop: '2em' }}>Destination</div>
       <Dropdown options={options} onSelect={handleSelect} />
+      <button className={(sourceLocation == '' || destination == '') ? 'call-to-action-2 locked' : 'call-to-action-2'} text-style='display' onClick={(sourceLocation == '') ? null : addDirectory}>Add</button>
     </>
   );
 }

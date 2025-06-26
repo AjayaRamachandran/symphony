@@ -7,7 +7,7 @@ const Dropdown = ({ options, onSelect, placeholder = 'Select an option' }) => {
   const [selected, setSelected] = useState(null);
   const dropdownRef = useRef(null);
 
-  const handleSelect = (option) => {
+  const handleOnSelect = (option) => {
     setSelected(option);
     setOpen(false);
     onSelect && onSelect(option);
@@ -36,7 +36,7 @@ const Dropdown = ({ options, onSelect, placeholder = 'Select an option' }) => {
             <li
               key={i}
               className="dropdown-item"
-              onClick={() => handleSelect(opt)}
+              onClick={() => handleOnSelect(opt)}
             >
               {opt.icon && <span className="icon">{<opt.icon size={16} />}</span>}
               <span>{opt.label}</span>
