@@ -2,10 +2,19 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import './dropdown.css/';
 
-const Dropdown = ({ options, onSelect, placeholder = 'Select an option' }) => {
+const Dropdown = ({ options, onSelect, value, placeholder = 'Select an option' }) => {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(null);
   const dropdownRef = useRef(null);
+
+  // Sync selected with value prop
+  useEffect(() => {
+    if (value) {
+      setSelected(value);
+    } else {
+      setSelected(null);
+    }
+  }, [value]);
 
   const handleOnSelect = (option) => {
     setSelected(option);

@@ -1,0 +1,18 @@
+.files {
+  padding: 30px 0px;
+}
+
+.file-select-box {
+  margin: 20px 10px;
+  padding: 15px;
+  display: flex;
+  background-color: #222222;
+  flex-direction: column;
+  width: fit-content;
+  border-radius: 7px;
+  min-height: fit-content;
+  height: 140px;
+  font-size: 1.2em;
+  text-align: center;
+  gap: 10px;
+}

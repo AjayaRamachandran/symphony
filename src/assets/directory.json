@@ -1,17 +1,26 @@
 {
-  "Projects" :
-    [
-      "Arrangement 1",
-      "Test Folder",
-      "Latest Project"
-    ],
-  "Exports" :
-    [
-      "Good exports",
-      "Trash"
-    ],
-  "Symphony Auto-Save" :
-    [
-      "Auto-Save"
-    ]
+  "Projects": [
+    {
+      "Arrangement 1": "C:\\Users\\aramachandran\\Documents\\Code\\symphony\\test-directory\\Projects\\Arrangement 1"
+    },
+    {
+      "Test Folder": "C:\\Users\\aramachandran\\Documents\\Code\\symphony\\test-directory\\Projects\\Test Folder"
+    },
+    {
+      "Latest Project": "C:\\Users\\aramachandran\\Documents\\Code\\symphony\\test-directory\\Projects\\Latest Project"
+    }
+  ],
+  "Exports": [
+    {
+      "Good exports": "C:\\Users\\aramachandran\\Documents\\Code\\symphony\\test-directory\\Exports\\Good Exports"
+    },
+    {
+      "Trash": "C:\\Users\\aramachandran\\Documents\\Code\\symphony\\test-directory\\Exports\\Trash"
+    }
+  ],
+  "Symphony Auto-Save": [
+    {
+      "Auto-Save": "C:/Users/aramachandran/Documents/Code/symphony/test-directory/Symphony Auto-Save/Auto-Save"
+    }
+  ]
 }

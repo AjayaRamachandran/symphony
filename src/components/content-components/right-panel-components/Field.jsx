@@ -3,19 +3,32 @@ import { Search } from 'lucide-react';
 
 import './field.css'
 
-const Field = ({ initialValue = '',
-                  height = '33px',
-                  fontSize = '1.3em' ,
-                  whiteSpace = 'auto',
-                  defaultText = '',
-                  className = 'field',
-                  lightDark = ['#606060', '#c2c2c2'],
-                  width = '100%',
-                  searchField = false}) => {
-
-  const [value, setValue] = useState(initialValue);
+const Field = ({
+  value: controlledValue,
+  onChange,
+  initialValue = '',
+  height = '33px',
+  fontSize = '1.3em' ,
+  whiteSpace = 'auto',
+  defaultText = '',
+  className = 'field',
+  lightDark = ['#606060', '#c2c2c2'],
+  width = '100%',
+  searchField = false}) => {
+  
+  const isControlled = controlledValue !== undefined && onChange !== undefined;
+  const [uncontrolledValue, setUncontrolledValue] = useState(initialValue);
   const [editing, setEditing] = useState(false);
   const textareaRef = useRef(null);
+
+  const value = isControlled ? controlledValue : uncontrolledValue;
+  const handleChange = (e) => {
+    if (isControlled) {
+      onChange(e);
+    } else {
+      setUncontrolledValue(e.target.value);
+    }
+  };
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
@@ -23,7 +36,7 @@ const Field = ({ initialValue = '',
     }
     if (e.key === 'Tab') {
       e.preventDefault(); // prevent default tab
-      nextRef.current?.focus(); // manually focus next element
+      // nextRef.current?.focus(); // manually focus next element (not defined)
     }
   };
 
@@ -42,7 +55,7 @@ const Field = ({ initialValue = '',
       type="text"
       value={value}
       autoFocus
-      onChange={(e) => setValue(e.target.value)}
+      onChange={handleChange}
       onBlur={() => {setTimeout(() => setEditing(false), 300);}}
 
       onKeyDown={handleKeyDown}

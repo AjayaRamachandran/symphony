@@ -1,5 +1,7 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
+const fs = require('fs');
+const directoryPath = path.join(__dirname, 'src', 'assets', 'directory.json');
 
 let mainWindow;
 
@@ -36,6 +38,32 @@ app.whenReady().then(() => {
 
   mainWindow.on('unmaximize', () => {
     mainWindow.webContents.send('window-state', false);
+  });
+
+  ipcMain.on('toggle-devtools', () => {
+    if (mainWindow.webContents.isDevToolsOpened()) {
+      mainWindow.webContents.closeDevTools();
+    } else {
+      mainWindow.webContents.openDevTools();
+    }
+  });
+
+  ipcMain.handle('save-directory', async (event, { destination, projectName, sourceLocation }) => {
+    try {
+      // Read current directory.json
+      const data = fs.readFileSync(directoryPath, 'utf-8');
+      const directory = JSON.parse(data);
+
+      // Add new entry
+      if (!directory[destination]) directory[destination] = [];
+      directory[destination].push({ [projectName]: sourceLocation });
+
+      // Write back to file
+      fs.writeFileSync(directoryPath, JSON.stringify(directory, null, 2), 'utf-8');
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
   });
 
   ipcMain.handle('dialog:openDirectory', async () => {
