@@ -47,7 +47,7 @@ scrLime = pygame.Surface((width, height), pygame.SRCALPHA)
 scrBlue = pygame.Surface((width, height), pygame.SRCALPHA)
 scrPink = pygame.Surface((width, height), pygame.SRCALPHA)
 scrList = [scrOrange, scrPurple, scrCyan, scrLime, scrBlue, scrPink]
-pygame.display.set_caption(f"{titleText} - MIDI Grid v1.0 Beta")
+pygame.display.set_caption(f"{titleText} - Symphony v1.0 Beta")
 pygame.display.set_icon(pygame.image.load("inner/assets/icon.png"))
 clock = pygame.time.Clock()
 fps = 60
