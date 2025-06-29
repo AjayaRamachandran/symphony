@@ -1,5 +1,17 @@
 .files {
-  padding: 30px 0px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, 120px);
+  gap: 25px;
+  padding: 15px 50px 30px 0px;
+  overflow-y: auto;
+  height: 100%;
+  min-height: 0;
+  min-width: 200px;
+  overflow-x: hidden;
+  flex: 1 1 0;
+  box-sizing: border-box;
+  grid-auto-rows: 140px;
+  background-color: #222222;
 }
 
 .file-select-box {
@@ -8,11 +20,48 @@
   display: flex;
   background-color: #222222;
   flex-direction: column;
-  width: fit-content;
+  width: 140px;
   border-radius: 7px;
   min-height: fit-content;
   height: 140px;
   font-size: 1.2em;
   text-align: center;
+  align-items: center;
+  font-weight: 500;
   gap: 10px;
+}
+.file-select-box.new {
+  color: #737373;
+}
+.file-select-box.highlighted {
+  filter: brightness(1.2);
+  outline: 1px solid #2d699b;
+}
+
+.empty-box {
+  padding: 60px 15px;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border-radius: 7px;
+  box-sizing: border-box;
+  min-height: fit-content;
+  height: 0px;
+  font-size: 1.4em;
+  text-align: center;
+  align-items: center;
+  gap: 10px;
+  color: #606060;
+}
+
+.rounded-rect-icon {
+  border: 2px solid #606060;
+  border-radius: 10px;
+  width: 96px;
+  height: 62px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 8px;
+  margin-top: 2px;
 }

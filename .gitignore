@@ -1,2 +1,3 @@
 node_modules
-.\src\assets\directory
+src/assets/directory.json
+src/assets/recentlyViewed.json

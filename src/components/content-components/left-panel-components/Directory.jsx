@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { FolderClosed, Plus } from 'lucide-react';
-import directory from '@/assets/directory.json';
 
 import Tooltip from '@/components/Tooltip';
 import GenericModal from '@/modals/GenericModal';
 import NewFolder from '@/modals/NewFolder';
+import AddAutoSave from '@/modals/AddAutoSave';
 
 import { useDirectory } from "@/contexts/DirectoryContext";
 
@@ -15,8 +15,26 @@ function Directory() {
   //const [isModalOpen, setModalOpen] = useState(false);
   const { globalDirectory, setGlobalDirectory } = useDirectory();
   const [openSection, setOpenSection] = useState(null);
+  const [directory, setDirectory] = useState(null);
+  const [showAddAutoSave, setShowAddAutoSave] = useState(false);
+  const [reload, setReload] = useState(0);
 
   //console.log(Array.from(directory['Projects']))
+
+  useEffect(() => {
+    window.electronAPI.getDirectory().then(dir => {
+      setDirectory(dir);
+
+      const autoSaveArr = dir?.['Symphony Auto-Save'];
+      const hasAutoSaveMapping = Array.isArray(autoSaveArr) && autoSaveArr.some(obj => obj['Auto-Save']);
+      if (!hasAutoSaveMapping) {
+        setShowAddAutoSave(true);
+      }
+    });
+  }, [reload]);
+
+  // Expose a function to reload directory.json
+  const reloadDirectory = () => setReload(r => r + 1);
 
   const toTuples = arr => arr.map(obj => {
     const key = Object.keys(obj)[0];
@@ -26,7 +44,10 @@ function Directory() {
   const callSetGlobalDirectory = (directory) => {
     console.log('Set global directory to ' + directory)
     setGlobalDirectory(directory)
+    
   };
+
+  if (!directory) return <div>Loading...</div>;
 
   return (
     <div className="directory">
@@ -42,7 +63,7 @@ function Directory() {
                   <Plus size={16} strokeWidth={1.5} />
                 </button>
                 <GenericModal isOpen={openSection === section} onClose={() => setOpenSection(null)}>
-                  <NewFolder defaultDestProp={section} onClose={() => setOpenSection(null)}/>
+                  <NewFolder defaultDestProp={section} onClose={() => { setOpenSection(null); reloadDirectory(); }}/>
                 </GenericModal>
               </>
             ) : (
@@ -61,6 +82,9 @@ function Directory() {
 
         </React.Fragment>
       ))}
+      <GenericModal isOpen={showAddAutoSave} onClose={() => setShowAddAutoSave(false)} showXButton={false}>
+        <AddAutoSave onClose={() => { setShowAddAutoSave(false); reloadDirectory(); }} />
+      </GenericModal>
     </div>
   );
 }

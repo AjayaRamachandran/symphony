@@ -8,20 +8,37 @@ import copy
 import cv2
 from math import *
 import time
-# import os
+from os import environ
 # import json
 import sys
 import dill as pkl
 from tkinter.filedialog import asksaveasfile #, asksaveasfilename
 
 ### Handling Arguments
+'''
+SET ARGUMENTS:
+"main.py" "instantiate" "filename" "folder" : does not start pygame, simply creates the file in the provided folder and exits
+"main.py" "open" "filename" "folder" : starts program, opening file and establishing autosave bridge
+
+"main.py" "filename" : opens file with autosave bridge
+"main.py" : starts program without autosave (NOT RECOMMENDED)
+'''
+def cleanse(string):
+    stringCopy = string
+    for l in range(len(stringCopy)):
+        if not stringCopy[l] in 'abcdefghijklmnopqrstuvwxyzABCEDFGHIJKLMNOPQRSTUVWXYZ1234567890-_+(). ':
+            stringCopy = stringCopy[:l] + '_' + stringCopy[l+1:]
+    return stringCopy
+
 titleText = 'My Track 1'
-if len(sys.argv) > 3:
-    print("Usage: midi_editor.exe <file.mgrid>")
+process = ''
+if len(sys.argv) > 4:
+    print("Wrong usage: Too many arguments!")
     sys.exit(1)
-if len(sys.argv) == 3:
-    workingFile = sys.argv[1]
-    titleText = sys.argv[2]
+if len(sys.argv) == 4:
+    process = sys.argv[1]
+    workingFile = sys.argv[3] + '/' + cleanse(sys.argv[2])
+    titleText = sys.argv[2][:-9]
 elif len(sys.argv) == 2:
     workingFile = sys.argv[1]
 else:
@@ -29,14 +46,18 @@ else:
 
 ###### PYGAME INITIALIZE ######
 
-pygame.init()
-SAMPLE_RATE = 44100
-pygame.mixer.init(frequency=SAMPLE_RATE, size=-16, channels=2)  # initialize pygame mixer at module import
-play_obj = None # global to hold the last Channel/Sound so it doesn't get garbage-collected
-
 width, height = (1100, 592)
 minWidth, minHeight = (1100, 592)
+
+if process == 'instantiate':
+    environ["SDL_VIDEODRIVER"] = "dummy"
+
+pygame.init()
 screen = pygame.display.set_mode((width, height), pygame.RESIZABLE, pygame.NOFRAME)
+
+play_obj = None # global to hold the last Channel/Sound so it doesn't get garbage-collected
+SAMPLE_RATE = 44100
+pygame.mixer.init(frequency=SAMPLE_RATE, size=-16, channels=2)  # initialize pygame mixer at module import
 transparentScreen = pygame.Surface((width, height), pygame.SRCALPHA)
 otherNotes = pygame.Surface((width, height), pygame.SRCALPHA)
 thisNote = pygame.Surface((width, height), pygame.SRCALPHA)
@@ -457,7 +478,8 @@ def toProgramState(state : ProgramState):
 
     return ProgramState(state.ticksPerTile, newNoteMap, stateMkey, statemode, stateWaves)
 
-if workingFile == "": # if the workingfile is not provided, initialize a new program state
+
+if workingFile == "" or process == 'instantiate': # if the workingfile is not provided or we are creating a new file, initialize a new program state
     ps = ProgramState(10, noteMap, "Eb", "Lydian", waveMap)
 else:
     ps = toProgramState(pkl.load(open(workingFile, "rb")))
@@ -522,7 +544,11 @@ def dumpToFile(file, directory):
     ps.updateAttributes(noteMap, ticksPerTile, key, mode, waveMap)
     pkl.dump(ps, file, -1)
 
-    worldMessage = (f"Last Saved {readableTime} to " + directory) if directory != "inner/assets/workingfile.mgrid" else "You have unsaved changes - Please save to a file on your PC."
+    worldMessage = (f"Last Saved {readableTime} to " + directory) if directory != "inner/assets/workingfile.symphony" else "You have unsaved changes - Please save to a file on your PC."
+
+if process == 'instantiate':
+    dumpToFile(open(workingFile, 'wb'), workingFile)
+    sys.exit()
 
 def inBounds(coords1, coords2, point) -> bool:
     '''Returns whether a point is within the bounds of two other points. order is arbitrary.'''
@@ -693,8 +719,8 @@ while running:
     saveFrame += 60 * (1 / fps)
     if saveFrame > 1200: # Saves every 20 seconds
         saveFrame = 0
-        myPath = open(workingFile if workingFile != "" else "inner/assets/workingfile.mgrid", "wb")
-        dumpToFile(myPath, workingFile if workingFile != "" else "inner/assets/workingfile.mgrid")
+        myPath = open(workingFile if workingFile != "" else "inner/assets/workingfile.symphony", "wb")
+        dumpToFile(myPath, workingFile if workingFile != "" else "inner/assets/workingfile.symphony")
         myPath.close()
     # checks if new changes have been made, if so adds them to the version history for Ctrl+Z
     ctrlZTime += 1
@@ -1250,20 +1276,20 @@ while running:
             elif event.key == pygame.K_s:
                 if pygame.key.get_pressed()[pygame.K_LCTRL]: # if the user presses Ctrl+S (to save)
                     if workingFile == "": # file dialog to show up if the user's workspace is not attached to a file
-                        filename = asksaveasfile(initialfile = 'Untitled.mgrid', mode='wb',defaultextension=".mgrid", filetypes=[("Musical Composition Grid File","*.mgrid")])
+                        filename = asksaveasfile(initialfile = 'Untitled.symphony', mode='wb',defaultextension=".symphony", filetypes=[("Symphony Musical Composition","*.symphony")])
                         if filename != None:
                             filestring = filename.name
-                            myPath = open("inner/assets/workingfile.mgrid", "wb")
+                            myPath = open("inner/assets/workingfile.symphony", "wb")
                             dumpToFile(myPath, directory=filestring)
-                            myPath = open("inner/assets/workingfile.mgrid", "rb")
+                            myPath = open("inner/assets/workingfile.symphony", "rb")
 
                             pathBytes = bytearray(myPath.read())
                             filename.write(pathBytes)
                             filename.close()
                             workingFile = filestring
                         else:
-                            myPath = open("inner/assets/workingfile.mgrid", "wb")
-                            dumpToFile(myPath, "inner/assets/workingfile.mgrid")
+                            myPath = open("inner/assets/workingfile.symphony", "wb")
+                            dumpToFile(myPath, "inner/assets/workingfile.symphony")
                     else: # save to workspace file
                         myPath = open(workingFile, "wb")
                         dumpToFile(myPath, workingFile)
@@ -1335,12 +1361,12 @@ while running:
     pygame.display.flip()  # Update the display
 
 if workingFile == "": # file dialog to show up if the user has unsaved changes (they have not attached the workspace to a file)
-    filename = asksaveasfile(initialfile = 'Untitled.mgrid', mode='wb',defaultextension=".mgrid", filetypes=[("Musical Composition Grid File","*.mgrid")])
+    filename = asksaveasfile(initialfile = 'Untitled.symphony', mode='wb',defaultextension=".symphony", filetypes=[("Symphony Musical Composition","*.symphony")])
     if filename != None:
-        myPath = open("inner/assets/workingfile.mgrid", "wb")
+        myPath = open("inner/assets/workingfile.symphony", "wb")
 
-        dumpToFile(myPath, directory="inner/assets/workingfile.mgrid")
-        myPath = open("inner/assets/workingfile.mgrid", "rb")
+        dumpToFile(myPath, directory="inner/assets/workingfile.symphony")
+        myPath = open("inner/assets/workingfile.symphony", "rb")
 
         pathBytes = bytearray(myPath.read())
         filename.write(pathBytes)
