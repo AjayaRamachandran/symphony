@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Music, ChartNoAxesGantt } from 'lucide-react';
-import recentlyViewed from '@/assets/recentlyViewed.json';
+import recentlyViewed from '@/assets/recently-viewed.json';
 
 import './recently-viewed.css'
 import Tooltip from '@/components/Tooltip';
 
 function RecentlyViewed() {
   const fileTypes = {
-    'mgrid' : ChartNoAxesGantt,
+    'symphony' : ChartNoAxesGantt,
     'mp3' : Music,
   };
 

@@ -8,8 +8,15 @@ import './toolbar.css'
 import { useDirectory } from '@/contexts/DirectoryContext';
 
 function Toolbar() {
-  const { viewType, setViewType } = useDirectory();
+  const { viewType, setViewType, clipboardFile, setClipboardFile, clipboardCut, setClipboardCut } = useDirectory();
   const iconSize = 20
+
+  // Helper to call global operator functions
+  const callOp = (op) => {
+    if (window.symphonyOps && typeof window.symphonyOps[op] === 'function') {
+      window.symphonyOps[op]();
+    }
+  };
 
   return (
     <>
@@ -17,17 +24,17 @@ function Toolbar() {
         <div className='toolbar-section'>
           EDIT
           <div className='toolbar-subsection'>
-            <button className='icon-button tooltip'><Tooltip text="Copy"/><Copy size={iconSize}/></button>
-            <button className='icon-button tooltip'><Tooltip text="Cut"/><Scissors size={iconSize}/></button>
-            <button className='icon-button tooltip'><Tooltip text="Paste"/><Clipboard size={iconSize}/></button>
-            <button className='icon-button tooltip'><Tooltip text="Duplicate"/><CopyPlus size={iconSize}/></button>
+            <button className={'icon-button tooltip'} onClick={() => callOp('handleCopy')}><Tooltip text="Copy"/><Copy size={iconSize}/></button>
+            <button className={'icon-button tooltip'} onClick={() => callOp('handleCut')}><Tooltip text="Cut"/><Scissors size={iconSize}/></button>
+            <button className={'icon-button tooltip' + (!clipboardFile ? ' grayed' : '')} onClick={() => callOp('handlePaste')}><Tooltip text="Paste"/><Clipboard size={iconSize}/></button>
+            <button className={'icon-button tooltip'} onClick={() => callOp('handleDuplicate')}><Tooltip text="Duplicate"/><CopyPlus size={iconSize}/></button>
           </div>
         </div>
         <hr />
         <div className='toolbar-section'>
           SHARE / EXPORT
           <div className='toolbar-subsection'>
-            <button className='icon-button tooltip'><Tooltip text="Collaborate"/><Users size={iconSize}/></button>
+            <button className='icon-button tooltip grayed'><Tooltip text="Collaborate"/><Users size={iconSize}/></button>
             <button className='icon-button tooltip'><Tooltip text="Export to MuseScore"/><img src={mscz} color="#606060" alt="mscz icon" width={iconSize} height={iconSize} /></button>
             <button className='icon-button tooltip'><Tooltip text="Export to Audio"/><FileAudio2 size={iconSize}/></button>
           </div>
@@ -39,7 +46,7 @@ function Toolbar() {
             <button className='icon-button tooltip'><Tooltip text="Password Protect this File"/><KeyRound size={iconSize}/></button>
             <button className='icon-button tooltip'><Tooltip text="Tag this File"/><Tag size={iconSize}/></button>
             <button className='icon-button tooltip'><Tooltip text="Open File Location"/><FolderOpen size={iconSize}/></button>
-            <button className='icon-button tooltip'><Tooltip text="Delete"/><Trash2 size={iconSize} color='#E46767'/></button>
+            <button className='icon-button tooltip' onClick={() => callOp('handleDelete')}><Tooltip text="Delete"/><Trash2 size={iconSize} color='#E46767'/></button>
           </div>
         </div>
         <hr />

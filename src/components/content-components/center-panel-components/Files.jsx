@@ -20,21 +20,21 @@ function Files() {
 
   return (
     <>
-        {symphonyFiles == 'not a valid dir' ? <div className='empty-box'>No Folder Selected</div> : <></>}
-        {symphonyFiles == 'no files' ? (
-          <></>
-        ) : (
-          <>
-            <div className='files scrollable dark-bg' onClick={e => { e.stopPropagation(); setSelectedFile(name); }}>
-              {symphonyFiles == 'not a valid dir' ? <></> : <><NewFile />
-                {
-                  symphonyFiles.map((fileName, idx) => (
-                  <File key={idx} name={fileName} />))
-                }</>
-              }
-            </div>
-          </>
-        )}
+      {symphonyFiles == 'not a valid dir' ? <div className='empty-box'>No Folder Selected</div> : <></>}
+      {symphonyFiles == 'no files' ? (
+        <></>
+      ) : (
+        <>
+          <div className='files scrollable dark-bg' onClick={e => { e.stopPropagation(); setSelectedFile(name); }}>
+            {symphonyFiles == 'not a valid dir' ? <></> : <><NewFile />
+              {
+                symphonyFiles.map((fileName, idx) => (
+                <File key={idx} name={fileName} />))
+              }</>
+            }
+          </div>
+        </>
+      )}
     </>
   );
 }

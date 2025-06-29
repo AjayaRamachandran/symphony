@@ -13,3 +13,10 @@
   color: #898989;
   /* margin-left: 3px; */
 }
+
+.faded {
+  font-size: 14px;
+  font-weight: 500;
+  margin-top: 15px;
+  color: #737373;
+}

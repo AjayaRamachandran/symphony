@@ -14,12 +14,14 @@ const Field = ({
   className = 'field',
   lightDark = ['#606060', '#c2c2c2'],
   width = '100%',
-  searchField = false}) => {
-  
+  searchField = false,
+  singleLine = false // new prop
+}) => {
   const isControlled = controlledValue !== undefined && onChange !== undefined;
   const [uncontrolledValue, setUncontrolledValue] = useState(initialValue);
   const [editing, setEditing] = useState(false);
   const textareaRef = useRef(null);
+  const inputRef = useRef(null);
 
   const value = isControlled ? controlledValue : uncontrolledValue;
   const handleChange = (e) => {
@@ -41,36 +43,77 @@ const Field = ({
   };
 
   useEffect(() => {
-    if (editing && textareaRef.current) {
-      // Move cursor to end
-      const el = textareaRef.current;
-      el.focus();
-      el.setSelectionRange(el.value.length, el.value.length);
+    if (editing) {
+      if (singleLine && inputRef.current) {
+        const el = inputRef.current;
+        el.focus();
+        el.setSelectionRange(el.value.length, el.value.length);
+      } else if (!singleLine && textareaRef.current) {
+        const el = textareaRef.current;
+        el.focus();
+        el.setSelectionRange(el.value.length, el.value.length);
+      }
     }
-  }, [editing]);
+  }, [editing, singleLine]);
 
-  return editing ? (
-    <textarea
-      ref={textareaRef}
-      type="text"
-      value={value}
-      autoFocus
-      onChange={handleChange}
-      onBlur={() => {setTimeout(() => setEditing(false), 300);}}
+  if (editing) {
+    if (singleLine) {
+      return (
+        <input
+          ref={inputRef}
+          type="text"
+          value={value}
+          autoFocus
+          onChange={handleChange}
+          onBlur={() => {setTimeout(() => setEditing(false), 300);}}
+          onKeyDown={handleKeyDown}
+          className={className + '-span scrollable dark-bg'}
+          style={{ height, fontSize, whiteSpace: 'nowrap', width, color: value === '' ? lightDark[0] : lightDark[1], overflowX: 'auto' }}
+        />
+      );
+    } else {
+      return (
+        <textarea
+          ref={textareaRef}
+          type="text"
+          value={value}
+          autoFocus
+          onChange={handleChange}
+          onBlur={() => {setTimeout(() => setEditing(false), 300);}}
+          onKeyDown={handleKeyDown}
+          className={className + '-span scrollable dark-bg'}
+          style={{ height, fontSize, whiteSpace, paddingTop: '7px', width, color: value === '' ? lightDark[0] : lightDark[1], overflow: 'auto' }}
+        />
+      );
+    }
+  }
 
-      onKeyDown={handleKeyDown}
-      className={className}
-      style={{ height: height, fontSize: fontSize, whiteSpace: whiteSpace, paddingTop: '7px', width: width, color: value == '' ? lightDark[0] : lightDark[1] }}
-    />
-  ) : (
+  return (
     <div
-      onClick={() => setEditing(true)}
-      className={className}
-      style={{ height: height, fontSize: fontSize, whiteSpace: whiteSpace, width: width, color: value == '' ? lightDark[0] : lightDark[1] }}
+      onClick={() => { if (!editing) setEditing(true); }}
+      className={className + ' scrollable dark-bg'}
+      style={{
+        height,
+        fontSize,
+        whiteSpace: singleLine ? 'nowrap' : 'pre-wrap',
+        width,
+        color: value === '' ? lightDark[0] : lightDark[1],
+        overflowX: singleLine ? 'hidden' : 'auto',
+        overflowY: singleLine ? 'hidden' : 'auto',
+        cursor: 'text',
+        display: 'flex',
+      }}
+      tabIndex={0}
     >
       {searchField ? (<Search size={15} style={{marginRight: '5px', flexShrink: 0}} />) : ''}
-      {searchField ? (value || defaultText) : (value || defaultText)}
-      
+      <span className="scrollable dark-bg" style={{
+        overflowX: singleLine ? 'hidden' : 'auto',
+        overflowY: singleLine ? 'hidden' : 'auto',
+        whiteSpace: singleLine ? 'nowrap' : 'pre-wrap',
+        wordBreak: singleLine ? 'normal' : 'break-word',
+        padding: !searchField ? '7px' : '0px',
+        flex: 1
+      }}>{searchField ? (value || defaultText) : (value || defaultText)}</span>
     </div>
   );
 };

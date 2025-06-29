@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
 const directoryPath = path.join(__dirname, 'src', 'assets', 'directory.json');
+const RECENTLY_VIEWED_PATH = path.join(__dirname, 'src', 'assets', 'recently-viewed.json');
 
 let mainWindow;
 
@@ -75,6 +76,23 @@ app.whenReady().then(() => {
     }
   });
 
+  ipcMain.handle('copy-file', async (event, src, dest) => {
+    return new Promise((resolve, reject) => {
+      fs.copyFile(src, dest, (err) => {
+        if (err) reject(err);
+        else resolve('success');
+      });
+    });
+  });
+
+  ipcMain.handle('file-exists', async (event, filePath) => {
+    try {
+      return fs.existsSync(filePath);
+    } catch (err) {
+      return false;
+    }
+  });
+
   ipcMain.handle('dialog:openDirectory', async () => {
     const result = await dialog.showOpenDialog(mainWindow, {
       properties: ['openDirectory']
@@ -108,6 +126,33 @@ app.whenReady().then(() => {
 
   ipcMain.handle('run-python-script', async (event, argsArray) => {
     console.log('Instantiating new .symphony file...');
+    // Add to recently viewed
+    if (argsArray[0] === 'open') {
+      try {
+        let recent = [];
+        if (fs.existsSync(RECENTLY_VIEWED_PATH)) {
+          recent = JSON.parse(fs.readFileSync(RECENTLY_VIEWED_PATH, 'utf-8'));
+        }
+        // Compose new entry
+        const fileName = argsArray[1] || '';
+        const fileType = path.extname(fileName).replace('.', '').toLowerCase();
+        const entry = {
+          type: fileType,
+          name: fileName,
+          fileLocation: argsArray[2] || ''
+        };
+        // Remove any existing entry with same name and location
+        recent = recent.filter(r => !(r.name === entry.name && r.fileLocation === entry.fileLocation));
+        // Add to top
+        recent.unshift(entry);
+        // Limit to 20 entries
+        if (recent.length > 20) recent = recent.slice(0, 20);
+        fs.writeFileSync(RECENTLY_VIEWED_PATH, JSON.stringify(recent, null, 2), 'utf-8');
+      } catch (e) {
+        console.error('Failed to update recently viewed:', e);
+      }
+    }
+    
     return new Promise((resolve, reject) => {
       const scriptPath = path.join(__dirname, 'inner', 'src', 'main.py'); // Adjust if needed
       const pythonProcess = spawn('python', [scriptPath, ...argsArray]);
@@ -163,6 +208,15 @@ app.whenReady().then(() => {
     try {
       const metaPath = filePath.replace(/\.symphony$/, '.json');
       fs.writeFileSync(metaPath, JSON.stringify(metadata, null, 2), 'utf-8');
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('delete-file', async (event, filePath) => {
+    try {
+      fs.unlinkSync(filePath);
       return { success: true };
     } catch (err) {
       return { success: false, error: err.message };

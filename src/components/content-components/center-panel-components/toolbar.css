@@ -48,6 +48,10 @@
   padding: 5px;
 }
 
+.icon-button.grayed {
+  color: #454545;
+}
+
 .icon-button.chosen-view {
   filter: brightness(1.3);
 }

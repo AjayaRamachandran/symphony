@@ -7,6 +7,8 @@ export function DirectoryProvider({ children }) {
   const [globalUpdateTimestamp, setGlobalUpdateTimestamp] = useState(Date.now());
   const [selectedFile, setSelectedFile] = useState(null);
   const [viewType, setViewType] = useState('grid');
+  const [clipboardFile, setClipboardFile] = useState(null);
+  const [clipboardCut, setClipboardCut] = useState(false);
 
   return (
     <DirectoryContext.Provider value={{
@@ -17,7 +19,11 @@ export function DirectoryProvider({ children }) {
       selectedFile,
       setSelectedFile,
       viewType,
-      setViewType
+      setViewType,
+      clipboardFile,
+      setClipboardFile,
+      clipboardCut,
+      setClipboardCut
     }}>
       {children}
     </DirectoryContext.Provider>

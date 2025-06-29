@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
+import path from 'path-browserify';
 
 import fileIcon from '@/assets/file-icon.svg';
 import { useDirectory } from '@/contexts/DirectoryContext';
@@ -7,7 +8,7 @@ import { useDirectory } from '@/contexts/DirectoryContext';
 import "./file.css";
 
 function File({name}) {
-  const { globalDirectory, setGlobalDirectory, selectedFile, setSelectedFile } = useDirectory();
+  const { globalDirectory, setGlobalDirectory, selectedFile, setSelectedFile, clipboardFile, clipboardCut } = useDirectory();
   const [ fileName, setFileName ] = useState(name);
 
   const runPython2 = async (title) => {
@@ -26,6 +27,7 @@ function File({name}) {
   return (
     <>
       <button className={'file-select-box' + ((selectedFile === fileName) ? ' highlighted' : '')}
+              style={{opacity: (clipboardFile && path.basename(clipboardFile) === fileName && clipboardCut)? 0.6 : 1}}
               onClick={e => { e.stopPropagation(); setSelectedFile(fileName); console.log(fileName); }}
               onDoubleClick={() => runPython2(selectedFile)}>
         <img src={fileIcon} color="#606060" alt="mscz icon" width={110} />
