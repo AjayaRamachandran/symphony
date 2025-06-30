@@ -17,4 +17,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   copyFile: (src, dest) => ipcRenderer.invoke('copy-file', src, dest),
   fileExists: (filePath) => ipcRenderer.invoke('file-exists', filePath),
   deleteFile: (filePath) => ipcRenderer.invoke('delete-file', filePath),
+  getRecentlyViewed: () => ipcRenderer.invoke('get-recently-viewed'),
 });

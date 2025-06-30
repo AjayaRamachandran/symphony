@@ -222,6 +222,18 @@ app.whenReady().then(() => {
       return { success: false, error: err.message };
     }
   });
+
+  ipcMain.handle('get-recently-viewed', async () => {
+    try {
+      if (!fs.existsSync(RECENTLY_VIEWED_PATH)) {
+        fs.writeFileSync(RECENTLY_VIEWED_PATH, '[]', 'utf-8');
+      }
+      const data = fs.readFileSync(RECENTLY_VIEWED_PATH, 'utf-8');
+      return JSON.parse(data);
+    } catch (err) {
+      return [];
+    }
+  });
 });
 
 app.on('window-all-closed', () => {
