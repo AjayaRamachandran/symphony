@@ -18,4 +18,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   fileExists: (filePath) => ipcRenderer.invoke('file-exists', filePath),
   deleteFile: (filePath) => ipcRenderer.invoke('delete-file', filePath),
   getRecentlyViewed: () => ipcRenderer.invoke('get-recently-viewed'),
+  openFileLocation: (filePath) => ipcRenderer.invoke('open-file-location', filePath),
+  removeDirectory: (section, dirName) => ipcRenderer.invoke('remove-directory', section, dirName),
 });

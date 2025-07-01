@@ -236,12 +236,18 @@ class Button():
         self.color = colorCycle[0] if colorCycle != None else color
         self.colorIndex = 0
 
+    def mouseBounds(self):
+        '''Returns whether the mouse is in the bounds of the textbox'''
+        return mouseFunction((self.x, toolbarHeight/2 - 14, self.width, self.height))[0]
+
     def mouseClicked(self):
         '''Method to return whether the button has been clicked'''
         return mouseFunction((self.x, toolbarHeight/2 - 14, self.width, self.height))[0] and pygame.mouse.get_pressed()[0] and not mouseTask
     
     def draw(self, itemToDraw = None):
         '''Method to draw a button.'''
+        if self.mouseBounds():
+            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
 
         if self.colorCycle != None:
             pygame.draw.rect(screen, self.color, (self.x, toolbarHeight/2 - self.height/2, self.width, self.height), border_radius=3)
@@ -993,6 +999,7 @@ while running:
         ### TRACK TITLE BAR
         pygame.draw.rect(screen, (0, 0, 0), (width/2 - 80, toolbarHeight/2 - 14, 160, 28), 1, 3)
         stamp(titleText, SUBHEADING1, width/2, 40, 0.4, "center")
+        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
 
         ### PLAY/PAUSE BUTTON
         playPauseButton.x = 33
@@ -1079,7 +1086,6 @@ while running:
         if timeSigUpButton.mouseClicked():
             timeInterval += 1
             mouseTask = True
-
         timeSigTextBox.x = width - 425
         if timeSigTextBox.mouseBounds():
             pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_IBEAM)
@@ -1109,8 +1115,6 @@ while running:
         tempoTextBox.x = 320
         if tempoTextBox.mouseBounds():
             pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_IBEAM)
-        else:
-            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
         if tempoTextBox.mouseClicked():
             if not pygame.key.get_pressed()[pygame.K_LSHIFT]:
                 unselectTextBoxes()

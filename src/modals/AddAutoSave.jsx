@@ -64,7 +64,7 @@ function AddAutoSave({onClose}) {
         ) : ''}
       </div>
       <div style={{display: 'flex', justifyContent: 'space-between'}}>
-        <div className='modal-whisper'>You can change this at any time in User Settings.</div>
+        <div className='modal-whisper'>You can change this at any time.</div>
         <button className={(sourceLocation == '' || destination == '' || projectName == '') ? 'call-to-action-2 locked' : 'call-to-action-2'} text-style='display' onClick={(sourceLocation == '' || destination == '' || projectName == '') ? null : addDirectory}>Done</button>
       </div>
     </>

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { FolderClosed, Plus } from 'lucide-react';
+import { FolderClosed, Plus, X } from 'lucide-react';
 
 import Tooltip from '@/components/Tooltip';
 import GenericModal from '@/modals/GenericModal';
 import NewFolder from '@/modals/NewFolder';
 import AddAutoSave from '@/modals/AddAutoSave';
+import DeleteConfirmationModal from '@/modals/DeleteConfirmationModal';
 
 import { useDirectory } from "@/contexts/DirectoryContext";
 
@@ -18,6 +19,8 @@ function Directory() {
   const [directory, setDirectory] = useState(null);
   const [showAddAutoSave, setShowAddAutoSave] = useState(false);
   const [reload, setReload] = useState(0);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState(null); // [section, dirName]
 
   //console.log(Array.from(directory['Projects']))
 
@@ -33,7 +36,6 @@ function Directory() {
     });
   }, [reload]);
 
-  // Expose a function to reload directory.json
   const reloadDirectory = () => setReload(r => r + 1);
 
   const toTuples = arr => arr.map(obj => {
@@ -45,6 +47,17 @@ function Directory() {
     console.log('Set global directory to ' + directory)
     setGlobalDirectory(directory)
     
+  };
+
+  const removeDirectory = () => {
+    if (pendingDelete) {
+      const [section, dirName] = pendingDelete;
+      window.electronAPI.removeDirectory(section, dirName).then(() => {
+        setShowDeleteConfirm(false);
+        setPendingDelete(null);
+        reloadDirectory();
+      });
+    }
   };
 
   if (!directory) return <div>Loading...</div>;
@@ -72,18 +85,26 @@ function Directory() {
           </div>
   
           {toTuples(directory[section]).map((elementPair, elementPairIndex) => (
-            <button className="directory-medium" style={elementPair[1] == globalDirectory ? {filter: 'brightness(1.2)'} : {}} key={elementPairIndex} onClick={() => callSetGlobalDirectory(elementPair[1])}>
+            <div className="directory-medium" style={elementPair[1] == globalDirectory ? {filter: 'brightness(1.2)'} : {}} key={elementPairIndex} onClick={() => callSetGlobalDirectory(elementPair[1])}>
               <FolderClosed style={{flexShrink: 0}} size={16} strokeWidth={1.5} color='#606060'/>
-              <div style={{marginLeft: '6px'}}>
-                {elementPair[0]}
+              <div style={{display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignContent: 'center', width: '100%'}}>
+                <span style={{marginLeft: '6px'}}>
+                  {elementPair[0]}
+                </span>
+                <span style={{display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '3px'}} onClick={e => { e.stopPropagation(); setPendingDelete([section, elementPair[0]]); setShowDeleteConfirm(true); }}>
+                  <X className='del-dir-button' size={14}></X>
+                </span>
               </div>
-            </button>
+            </div>
           ))}
 
         </React.Fragment>
       ))}
       <GenericModal isOpen={showAddAutoSave} onClose={() => setShowAddAutoSave(false)} showXButton={false}>
         <AddAutoSave onClose={() => { setShowAddAutoSave(false); reloadDirectory(); }} />
+      </GenericModal>
+      <GenericModal isOpen={showDeleteConfirm} onClose={() => { setShowDeleteConfirm(false); setPendingDelete(null); }}>
+        <DeleteConfirmationModal onComplete={() => { setShowDeleteConfirm(false); removeDirectory(); }} action={'Remove'} modifier={'folder'} />
       </GenericModal>
     </div>
   );

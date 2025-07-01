@@ -77,6 +77,7 @@ function App() {
       if (e.key === 'F12') {
         window.electronAPI.toggleDevTools();
       }
+      if (e.key === 'Backspace' || e.key === 'Delete') await handleDelete();
       if (e.ctrlKey && e.key.toLowerCase() === 'c') handleCopy();
       if (e.ctrlKey && e.key.toLowerCase() === 'x') handleCut();
       if (e.ctrlKey && e.key.toLowerCase() === 'v') await handlePaste();
@@ -84,7 +85,7 @@ function App() {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [handleCopy, handleCut, handlePaste, handleDuplicate]);
+  }, [handleCopy, handleCut, handlePaste, handleDuplicate, handleDelete]);
 
   // Attach operator functions to window for Toolbar access
   window.symphonyOps = {

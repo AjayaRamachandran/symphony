@@ -1,16 +1,39 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { X } from 'lucide-react'
 
 import './generic-modal.css';
 
 function GenericModal({ isOpen, onClose, children, showXButton = true }) {
-  if (!isOpen) return null; // Don't render if modal is closed
+  const overlayRef = useRef(null);
+  const modalRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const overlay = overlayRef.current;
+    const modal = modalRef.current;
+    if (overlay) {
+      overlay.style.transition = 'backdrop-filter 0.4s cubic-bezier(0.4,0,0.2,1), background 0.4s cubic-bezier(0.4,0,0.2,1)';
+      overlay.style.backdropFilter = 'blur(0px)';
+      overlay.style.background = 'rgba(0,0,0,0)';
+
+      modal.style.transition = 'opacity 0.4s, transform 0.3s';
+      modal.style.opacity = '0';
+      modal.style.transform = 'scale(0.9)';
+      setTimeout(() => {
+        overlay.style.backdropFilter = 'blur(4px)';
+        overlay.style.background = 'rgba(0,0,0,0.35)';
+        modal.style.opacity = '1';
+        modal.style.transform = 'scale(1)';
+      }, 1);
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-container" onClick={e => e.stopPropagation()}>
+    <div className="modal-overlay" ref={overlayRef} onClick={onClose}>
+      <div className="modal-container" ref={modalRef} onClick={e => e.stopPropagation()}>
         {showXButton ? <button className="close-button" onClick={onClose}><X size={16} strokeWidth={2.5}/></button> : null}
-        {/* <button className="close-button" onClick={onClose}><X size={16} strokeWidth={2.5}/></button> */}
         <div className="modal-content">
           {children}
         </div>

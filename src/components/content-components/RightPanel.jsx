@@ -94,10 +94,11 @@ function RightPanel() {
           />
 
           <div className='field-label'>File Location</div>
-          <button className='field scrollable dark-bg' style={{whiteSpace: 'nowrap', textOverflow: 'unset' , overflowX: 'scroll', padding: '7px 7px 2px 7px', fontSize: '13px', cursor: 'pointer'}}>
-            <Tooltip text={globalDirectory + '\\' + selectedFile} />
-            {globalDirectory + '\\' + selectedFile}
-          </button>
+          <div className='field scrollable dark-bg' style={{whiteSpace: 'nowrap', textOverflow: 'unset',
+            overflowX: 'scroll', padding: '7px 7px 2px 7px', fontSize: '13px', cursor: 'pointer', fontStyle: 'italic'}}>
+            <Tooltip text={globalDirectory.replace(/\\/g, '/') + '/' + selectedFile} />
+            {globalDirectory.replace(/\\/g, '/') + '/' + selectedFile}
+          </div>
           </>) : (<><div className='faded'>Select a file to view its details.</div></>) }
         </div>
 
@@ -108,7 +109,8 @@ function RightPanel() {
             style={{ transition: 'filter 0.2s, border 0.4s, background 0.4s' }}
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
-            onClick={selectedFile ? (() => runPython2(selectedFile)) : (() => document.body.style.cursor = 'default')}>
+            onClick={selectedFile ? () => runPython2(selectedFile) : undefined}
+          >
             <Tooltip text={selectedFile ? 'Open this Symphony in the dedicated editor.' : 'Select a Symphony to open it in the editor.'}/>
             <div>Open in Editor</div>
             <PencilRuler size={16} strokeWidth={2.5} />

@@ -234,6 +234,29 @@ app.whenReady().then(() => {
       return [];
     }
   });
+
+  ipcMain.handle('open-file-location', async (event, filePath) => {
+    const folder = path.dirname(filePath);
+    // Windows: explorer, Mac: open, Linux: xdg-open
+    const command = process.platform === 'win32' ? 'explorer' : process.platform === 'darwin' ? 'open' : 'xdg-open';
+    const arg = process.platform === 'win32' ? folder.replace(/\//g, '\\') : folder;
+    require('child_process').spawn(command, [arg], { detached: true });
+    return true;
+  });
+
+  ipcMain.handle('remove-directory', async (event, section, dirName) => {
+    try {
+      if (!fs.existsSync(directoryPath)) return { success: false, error: 'directory.json not found' };
+      const data = fs.readFileSync(directoryPath, 'utf-8');
+      const directory = JSON.parse(data);
+      if (!directory[section]) return { success: false, error: 'Section not found' };
+      directory[section] = directory[section].filter(obj => Object.keys(obj)[0] !== dirName);
+      fs.writeFileSync(directoryPath, JSON.stringify(directory, null, 2), 'utf-8');
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  });
 });
 
 app.on('window-all-closed', () => {

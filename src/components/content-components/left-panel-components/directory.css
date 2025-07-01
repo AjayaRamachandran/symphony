@@ -34,3 +34,13 @@
     filter: brightness(1.2);
     cursor: pointer;
   }
+
+  .directory-medium .del-dir-button {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .directory-medium:hover .del-dir-button {
+    opacity: 1;
+    pointer-events: auto;
+  }

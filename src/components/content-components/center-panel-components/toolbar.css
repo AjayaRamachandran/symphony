@@ -48,8 +48,8 @@
   padding: 5px;
 }
 
-.icon-button.grayed {
-  color: #454545;
+.icon-button.grayed > * {
+  opacity: 40%;
 }
 
 .icon-button.chosen-view {
