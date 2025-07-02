@@ -8,8 +8,9 @@ import { useDirectory } from '@/contexts/DirectoryContext';
 import "./file.css";
 
 function File({name}) {
-  const { globalDirectory, setGlobalDirectory, selectedFile, setSelectedFile, clipboardFile, clipboardCut, setGlobalUpdateTimestamp, viewType } = useDirectory();
+  const { globalDirectory, selectedFile, setSelectedFile, clipboardFile, clipboardCut, setGlobalUpdateTimestamp, viewType, tempFileName } = useDirectory();
   const [ fileName, setFileName ] = useState(name);
+  const [ displayName, setDisplayName ] = useState(fileName);
 
   const runPython2 = async (title) => {
     console.log(title);
@@ -22,6 +23,14 @@ function File({name}) {
     setFileName(name);
     //console.log(symphonyFiles);
   }, [selectedFile, name]);
+
+  useEffect(() => {
+    setDisplayName((selectedFile === name && tempFileName) ? tempFileName + '.symphony' : fileName);
+    //console.log(symphonyFiles);
+  }, [name, tempFileName, fileName]);
+
+  // Use tempFileName if this file is selected
+  //const displayName = (selectedFile === name && tempFileName) ? tempFileName + '.symphony' : fileName;
 
   return (
     <>
@@ -44,7 +53,7 @@ function File({name}) {
             whiteSpace: 'normal',
           }}
         >
-          {fileName}
+          {displayName}
         </span>
         {viewType==='grid'? undefined : viewType==='content'?
         (<><span style={{opacity: 0.5, fontSize: '0.8em', marginTop: '7px'}}>SYMPHONY file</span></>) :

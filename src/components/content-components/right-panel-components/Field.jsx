@@ -1,11 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Search } from 'lucide-react';
+import { useDirectory } from '@/contexts/DirectoryContext';
 
 import './field.css'
 
 const Field = ({
   value: controlledValue,
   onChange,
+  onBlur, // <-- accept onBlur from parent
   initialValue = '',
   height = '33px',
   fontSize = '1.3em' ,
@@ -22,6 +24,7 @@ const Field = ({
   const [editing, setEditing] = useState(false);
   const textareaRef = useRef(null);
   const inputRef = useRef(null);
+  const { setIsFieldSelected } = useDirectory();
 
   const value = isControlled ? controlledValue : uncontrolledValue;
   const handleChange = (e) => {
@@ -34,6 +37,7 @@ const Field = ({
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
+      if (onBlur) onBlur(e); // manually trigger blur logic
       setEditing(false);
     }
     if (e.key === 'Tab') {
@@ -65,8 +69,13 @@ const Field = ({
           value={value}
           autoFocus
           onChange={handleChange}
-          onBlur={() => {setTimeout(() => setEditing(false), 300);}}
+          onBlur={e => {
+            setIsFieldSelected(false);
+            setTimeout(() => setEditing(false), 300);
+            if (onBlur) onBlur(e); // call parent onBlur
+          }}
           onKeyDown={handleKeyDown}
+          onFocus={() => {setIsFieldSelected(true); console.log('focused')}}
           className={className + '-span scrollable dark-bg'}
           style={{ height, fontSize, whiteSpace: 'nowrap', width, color: value === '' ? lightDark[0] : lightDark[1], overflowX: 'auto' }}
         />
@@ -79,8 +88,13 @@ const Field = ({
           value={value}
           autoFocus
           onChange={handleChange}
-          onBlur={() => {setTimeout(() => setEditing(false), 300);}}
+          onBlur={e => {
+            setIsFieldSelected(false);
+            setTimeout(() => setEditing(false), 300);
+            if (onBlur) onBlur(e); // call parent onBlur
+          }}
           onKeyDown={handleKeyDown}
+          onFocus={() => {setIsFieldSelected(true); console.log('focused')}}
           className={className + '-span scrollable dark-bg'}
           style={{ height, fontSize, whiteSpace, paddingTop: '7px', width, color: value === '' ? lightDark[0] : lightDark[1], overflow: 'auto' }}
         />
@@ -103,6 +117,7 @@ const Field = ({
         cursor: 'text',
         display: 'flex',
       }}
+      onFocus={() => {setIsFieldSelected(true); console.log('focused')}}
       tabIndex={0}
     >
       {searchField ? (<Search size={15} style={{marginRight: '5px', flexShrink: 0}} />) : ''}
@@ -113,7 +128,9 @@ const Field = ({
         wordBreak: singleLine ? 'normal' : 'break-word',
         padding: !searchField ? '7px' : '0px',
         flex: 1
-      }}>{searchField ? (value || defaultText) : (value || defaultText)}</span>
+      }}
+      onFocus={() => {setIsFieldSelected(true); console.log('focused')}}
+      >{searchField ? (value || defaultText) : (value || defaultText)}</span>
     </div>
   );
 };

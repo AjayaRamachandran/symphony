@@ -16,7 +16,7 @@ function GenericModal({ isOpen, onClose, children, showXButton = true }) {
       overlay.style.backdropFilter = 'blur(0px)';
       overlay.style.background = 'rgba(0,0,0,0)';
 
-      modal.style.transition = 'opacity 0.4s, transform 0.3s';
+      modal.style.transition = 'opacity 0.2s, transform 0.4s cubic-bezier(0.4,1.4,0.4,1)';
       modal.style.opacity = '0';
       modal.style.transform = 'scale(0.9)';
       setTimeout(() => {

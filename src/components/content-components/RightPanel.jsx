@@ -7,18 +7,21 @@ import Tooltip from '@/components/Tooltip';
 
 import "./right-panel.css";
 import { useDirectory } from '@/contexts/DirectoryContext';
+import NewFile from './center-panel-components/files-components/NewFile';
 
 function RightPanel() {
   const [hovered, setHovered] = useState(false);
   const [fileName, setFileName] = useState('');
   const [metadata, setMetadata] = useState({});
   const {
-    selectedFile, setSelectedFile, setGlobalUpdateTimestamp, globalDirectory, setGlobalDirectory
+    selectedFile, setSelectedFile, setGlobalUpdateTimestamp, globalDirectory, setGlobalDirectory,
+    tempFileName, setTempFileName
   } = useDirectory();
 
   // Load metadata when file changes
   useEffect(() => {
     setFileName(selectedFile ? selectedFile.slice(0, -9) : '');
+    setTempFileName(selectedFile ? selectedFile.slice(0, -9) : '');
     if (selectedFile && globalDirectory) {
       window.electronAPI.getMetadata(globalDirectory + '/' + selectedFile)
         .then(meta => setMetadata(meta || {}));
@@ -36,12 +39,19 @@ function RightPanel() {
   };
 
   const updateTitle = (newName) => {
-    window.electronAPI.renameFile((globalDirectory + '/' + selectedFile), newName)
+    console.log(selectedFile);
+    console.log(globalDirectory);
+    console.log(newName);
+
+    window.electronAPI.renameFile((globalDirectory + '\\' + selectedFile), newName)
       .then(result => {
         if (result.success) {
           setSelectedFile(newName + '.symphony');
           setGlobalUpdateTimestamp(Date.now());
+          console.log(`RightPanel.jsx::updateTitle() - newName: ${newName}`);
         } else {
+          setSelectedFile(newName + '.symphony');
+          setGlobalUpdateTimestamp(Date.now());
           console.error(result.error);
         }
       });
@@ -55,6 +65,16 @@ function RightPanel() {
     window.electronAPI.setMetadata(globalDirectory + '/' + selectedFile, newMeta);
   };
 
+  // Only update tempFileName on change, and update actual file on blur
+  const handleTitleChange = (e) => {
+    setTempFileName(e.target.value);
+  };
+  const handleTitleBlur = (e) => {
+    if (tempFileName !== fileName) {
+      updateTitle(tempFileName);
+    }
+  };
+
   return (
     <div className="content-panel-container">
       <>
@@ -63,9 +83,10 @@ function RightPanel() {
           {selectedFile ? (<>
           <div className='field-label'>Title</div>
           <Field
-            value={fileName}
+            value={tempFileName}
             height='33px'
-            onChange={e => updateTitle(e.target.value)}
+            onChange={handleTitleChange}
+            onBlur={handleTitleBlur}
             singleLine={true}
           />
 

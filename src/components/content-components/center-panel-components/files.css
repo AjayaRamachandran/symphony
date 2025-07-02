@@ -1,8 +1,8 @@
 .files {
   display: grid;
   grid-template-columns: repeat(auto-fit, 120px);
-  gap: 25px;
-  padding: 15px 50px 30px 0px;
+  gap: 15px 25px;
+  padding: 45px 50px 30px 0px;
   overflow-y: auto;
   height: 100%;
   min-height: 0;
@@ -10,7 +10,7 @@
   overflow-x: hidden;
   flex: 1 1 0;
   box-sizing: border-box;
-  grid-auto-rows: 140px;
+  grid-auto-rows: min-content;
   background-color: #222222;
 }
 
@@ -46,7 +46,7 @@
 }
 
 .file-select-box {
-  margin: 20px 10px;
+  margin: 0px 10px;
   padding: 15px;
   display: flex;
   background-color: #222222;

@@ -9,6 +9,8 @@ export function DirectoryProvider({ children }) {
   const [viewType, setViewType] = useState('grid');
   const [clipboardFile, setClipboardFile] = useState(null);
   const [clipboardCut, setClipboardCut] = useState(false);
+  const [isFieldSelected, setIsFieldSelected] = useState(false); // Add field selection state
+  const [tempFileName, setTempFileName] = useState(""); // Add temp file name for editing
 
   return (
     <DirectoryContext.Provider value={{
@@ -23,7 +25,11 @@ export function DirectoryProvider({ children }) {
       clipboardFile,
       setClipboardFile,
       clipboardCut,
-      setClipboardCut
+      setClipboardCut,
+      isFieldSelected,
+      setIsFieldSelected,
+      tempFileName,
+      setTempFileName
     }}>
       {children}
     </DirectoryContext.Provider>

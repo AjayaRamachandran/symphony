@@ -1,17 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { Copy, Scissors, Clipboard, CopyPlus, Users, KeyRound, Tag, FolderOpen, Trash2, FileAudio2, LayoutGrid, List, Rows2 } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Copy, Scissors, Clipboard, CopyPlus, Users, Info, Star, FolderOpen, Trash2, FileAudio2, LayoutGrid, List, Rows2 } from 'lucide-react';
 
 import mscz from '@/assets/mscz-icon.svg';
 import Tooltip from '@/components/Tooltip';
 import GenericModal from '@/modals/GenericModal';
 import DeleteConfirmationModal from '@/modals/DeleteConfirmationModal';
+import ShowInfoModal from '@/modals/ShowInfoModal';
 
 import './toolbar.css'
 import { useDirectory } from '@/contexts/DirectoryContext';
 
 function Toolbar() {
-  const { viewType, setViewType, clipboardFile, setClipboardFile, clipboardCut, setClipboardCut, selectedFile, globalDirectory } = useDirectory();
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)  
+  const { viewType, setViewType, clipboardFile, setClipboardFile, clipboardCut, setClipboardCut, selectedFile, globalDirectory, setGlobalUpdateTimestamp, isFieldSelected } = useDirectory();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
   const iconSize = 20
 
   // Helper to call global operator functions
@@ -26,6 +28,23 @@ function Toolbar() {
       window.electronAPI.openFileLocation(globalDirectory + '/' + selectedFile);
     }
   }
+
+  const handleDelete = useCallback(async () => {
+    console.log(isFieldSelected);
+    if ((selectedFile && globalDirectory)) {
+      const filePath = path.join(globalDirectory, selectedFile);
+      await window.electronAPI.deleteFile(filePath);
+      setGlobalUpdateTimestamp(Date.now());
+    }
+  }, [selectedFile, globalDirectory, setGlobalUpdateTimestamp, isFieldSelected]);
+
+  useEffect(() => {
+    const handler = async (e) => {
+      if ((e.key === 'Backspace' || e.key === 'Delete')) {if (!isFieldSelected) setShowDeleteConfirm(true); console.log(isFieldSelected)}
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+    }, [handleDelete]);
 
   return (
     <>
@@ -52,8 +71,8 @@ function Toolbar() {
         <div className='toolbar-section'>
           FILE
           <div className='toolbar-subsection'>
-            <button className={'icon-button tooltip' + (!selectedFile ? ' grayed' : '')}><Tooltip text="Password Protect this File"/><KeyRound size={iconSize}/></button>
-            <button className={'icon-button tooltip' + (!selectedFile ? ' grayed' : '')}><Tooltip text="Tag this File"/><Tag size={iconSize}/></button>
+            <button className={'icon-button tooltip' + (!selectedFile ? ' grayed' : '')} onClick={() => setShowInfo(true)}><Tooltip text="See Properties"/><Info size={iconSize}/></button>
+            <button className={'icon-button tooltip' + (!selectedFile ? ' grayed' : '')}><Tooltip text="Star File"/><Star size={iconSize}/></button>
             <button className={'icon-button tooltip' + (!selectedFile ? ' grayed' : '')} onClick={openFileLocation}><Tooltip text="Open File Location"/><FolderOpen size={iconSize}/></button>
             <button className={'icon-button tooltip' + (!selectedFile ? ' grayed' : '')} onClick={() => setShowDeleteConfirm(true)}><Tooltip text="Delete"/><Trash2 size={iconSize} color='#E46767'/></button>
           </div>
@@ -79,6 +98,9 @@ function Toolbar() {
       </div>
       <GenericModal isOpen={showDeleteConfirm} onClose={() => { setShowDeleteConfirm(false) }}>
         <DeleteConfirmationModal onComplete={() => { setShowDeleteConfirm(false); callOp('handleDelete') }} action={'Delete'} modifier={'Symphony'} />
+      </GenericModal>
+      <GenericModal isOpen={showInfo} onClose={() => { setShowInfo(false) }}>
+        <ShowInfoModal filePath={selectedFile}/>
       </GenericModal>
     </>
   );

@@ -13,12 +13,16 @@ from os import environ
 import sys
 import dill as pkl
 from tkinter.filedialog import asksaveasfile #, asksaveasfilename
+import sys
+import json
+from pathlib import Path
 
 ### Handling Arguments
 '''
 SET ARGUMENTS:
 "main.py" "instantiate" "filename" "folder" : does not start pygame, simply creates the file in the provided folder and exits
 "main.py" "open" "filename" "folder" : starts program, opening file and establishing autosave bridge
+"main.py" "retrieve" "filepath" "id" : gets all information about program and puts it into the json with the id
 
 "main.py" "filename" : opens file with autosave bridge
 "main.py" : starts program without autosave (NOT RECOMMENDED)
@@ -32,13 +36,21 @@ def cleanse(string):
 
 titleText = 'My Track 1'
 process = ''
+globalUUID = 0
+print(f'Running with sysargv: {sys.argv}')
+
 if len(sys.argv) > 4:
     print("Wrong usage: Too many arguments!")
     sys.exit(1)
 if len(sys.argv) == 4:
-    process = sys.argv[1]
-    workingFile = sys.argv[3] + '/' + cleanse(sys.argv[2])
-    titleText = sys.argv[2][:-9]
+    if sys.argv[1] == 'retrieve':
+        process = sys.argv[1]
+        workingFile = sys.argv[2]
+        globalUUID = sys.argv[3]
+    else:
+      process = sys.argv[1]
+      workingFile = sys.argv[3] + '/' + cleanse(sys.argv[2])
+      titleText = sys.argv[2][:-9]
 elif len(sys.argv) == 2:
     workingFile = sys.argv[1]
 else:
@@ -489,6 +501,17 @@ if workingFile == "" or process == 'instantiate': # if the workingfile is not pr
     ps = ProgramState(10, noteMap, "Eb", "Lydian", waveMap)
 else:
     ps = toProgramState(pkl.load(open(workingFile, "rb")))
+
+if process == 'retrieve':
+    responseLoc = open('response.json', 'wb')
+    json.dump({
+               'Key' : ps.key,
+               'Mode' : ps.mode,
+               'Tempo (tpm)' : round(3600 / ps.ticksPerTile, 2),
+               'Empty?' : (ps.noteMap == {})
+               }, responseLoc)
+    responseLoc.close()
+    sys.exit()
 
 noteMap = ps.noteMap
 ticksPerTile = ps.ticksPerTile

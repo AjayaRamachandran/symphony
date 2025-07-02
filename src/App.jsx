@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from "react";
+import React, { useEffect, useCallback, useState } from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import { useDirectory } from '@/contexts/DirectoryContext';
@@ -64,20 +64,11 @@ function App() {
     }
   }, [selectedFile, globalDirectory, setGlobalUpdateTimestamp]);
 
-  const handleDelete = useCallback(async () => {
-    if (selectedFile && globalDirectory) {
-      const filePath = path.join(globalDirectory, selectedFile);
-      await window.electronAPI.deleteFile(filePath);
-      setGlobalUpdateTimestamp(Date.now());
-    }
-  }, [selectedFile, globalDirectory, setGlobalUpdateTimestamp]);
-
   useEffect(() => {
     const handler = async (e) => {
       if (e.key === 'F12') {
         window.electronAPI.toggleDevTools();
       }
-      if (e.key === 'Backspace' || e.key === 'Delete') await handleDelete();
       if (e.ctrlKey && e.key.toLowerCase() === 'c') handleCopy();
       if (e.ctrlKey && e.key.toLowerCase() === 'x') handleCut();
       if (e.ctrlKey && e.key.toLowerCase() === 'v') await handlePaste();
@@ -85,7 +76,7 @@ function App() {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [handleCopy, handleCut, handlePaste, handleDuplicate, handleDelete]);
+  }, [handleCopy, handleCut, handlePaste, handleDuplicate]);
 
   // Attach operator functions to window for Toolbar access
   window.symphonyOps = {
@@ -93,7 +84,6 @@ function App() {
     handleCut,
     handlePaste,
     handleDuplicate,
-    handleDelete
   };
 
   return (

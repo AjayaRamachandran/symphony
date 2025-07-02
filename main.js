@@ -4,6 +4,8 @@ const fs = require('fs');
 const { spawn } = require('child_process');
 const directoryPath = path.join(__dirname, 'src', 'assets', 'directory.json');
 const RECENTLY_VIEWED_PATH = path.join(__dirname, 'src', 'assets', 'recently-viewed.json');
+const RETRIEVE_INPUT_PATH = path.join(__dirname, 'inner', 'src', 'request.json');
+const RETRIEVE_OUTPUT_PATH = path.join(__dirname, 'inner', 'src', 'response.json');
 
 let mainWindow;
 
@@ -179,9 +181,22 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle('rename-file', async (event, { filePath, newName }) => {
+    const dir = path.dirname(filePath);
+    let baseName = newName;
+    let ext = path.extname(newName);
+    if (!ext) ext = '.symphony';
+    //baseName = (ext === '.symphony') ? newName.slice(0, -9) : newName;
+    console.log(`main.js::ipcMain.handle('rename-file') - baseName: ${baseName}`);
+    let candidate = baseName + ext;
+    let counter = 1;
+    const files = fs.readdirSync(dir);
+    console.log(files);
+    while (files.includes(candidate)) {
+      candidate = `${baseName} (${counter})${ext}`;
+      counter++;
+    }
     try {
-      const dir = path.dirname(filePath);
-      const newFilePath = path.join(dir, newName + '.symphony');
+      const newFilePath = path.join(dir, candidate);
       fs.renameSync(filePath, newFilePath);
       return { success: true, newFilePath };
     } catch (err) {
@@ -256,6 +271,53 @@ app.whenReady().then(() => {
     } catch (err) {
       return { success: false, error: err.message };
     }
+  });
+
+  ipcMain.handle('run-python-retrieve', async (event, filePath) => {
+    const id = crypto.randomUUID();
+
+    return new Promise((resolve, reject) => {
+      const scriptPath = path.join(__dirname, 'inner', 'src', 'main.py');
+      const pythonProcess = spawn('python', [scriptPath, 'retrieve', filePath, id]);
+
+      pythonProcess.on('close', (code) => {
+        if (code !== 0) {
+          reject({ success: false, error: `Python exited with code ${code}` });
+          return;
+        }
+
+        // Wait for file to contain matching ID
+        const maxWaitMs = 3000;
+        const intervalMs = 100;
+        let waited = 0;
+
+        const check = () => {
+          if (!fs.existsSync(RETRIEVE_OUTPUT_PATH)) {
+            waited += intervalMs;
+            if (waited >= maxWaitMs) {
+              reject({ success: false, error: 'Timeout waiting for response.json' });
+            } else {
+              setTimeout(check, intervalMs);
+            }
+            return;
+          }
+
+          const data = JSON.parse(fs.readFileSync(RETRIEVE_OUTPUT_PATH, 'utf-8'));
+          if (data.id === id) {
+            resolve(data);
+          } else {
+            waited += intervalMs;
+            if (waited >= maxWaitMs) {
+              reject({ success: false, error: 'ID mismatch or timeout' });
+            } else {
+              setTimeout(check, intervalMs);
+            }
+          }
+        };
+
+        check();
+      });
+    });
   });
 });
 
