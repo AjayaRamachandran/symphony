@@ -1,6 +1,6 @@
 <p align="center">
-  <img src="https://www.dropbox.com/scl/fi/l0q1c2el848gt3wqeyvc2/SymphonyLogo.png?rlkey=rs2kxjanpmnpw3fywwqj3vj80&st=0ba0ujkq&raw=1" width="198" height="208"><br>
-  <strong><h1 align='center'>Symphony</h1></strong><br>
+  <img src="https://www.dropbox.com/scl/fi/l0q1c2el848gt3wqeyvc2/SymphonyLogo.png?rlkey=rs2kxjanpmnpw3fywwqj3vj80&st=0ba0ujkq&raw=1" width="198" height="208">
+  <h1 align='center'><b>Symphony</b></h1>
   <p style="font-size: 16px;" align='center'>Create something amazing.</p>
 </p>
 
