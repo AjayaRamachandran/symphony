@@ -36,7 +36,7 @@ When you're ready to move on to the more technical phase, *Symphony* gives you s
 
 - **SDL2 for the Editor Interface:** This is done via Python's Pygame library, and allows us to essentially take advantage of precise, pixel-level rendering of complex elements beyond the capabilites of traditional DOM-style renders, and since we're doing it all inside of the Python main process we can handle all system functionality *under the same hood as the frontend* without needing compartmentalization *hell* with endpoints and external calls. This did mean we spent a good while reconstructing basic UI functionality from scratch, like scrolling, selecting, dragging, etc, but the end result is total program control, which is worth it when designing a tightly integrated editor and playback system.
 
-- **Pygame.Mixer for Audio:** Another just... obvious option. We initially experimented with the Simpleaudio library when starting out, but found that switching to Pygame.Mixer was a small migration effort that completely eliminated what used to sub-minute crashes from segmentation faults in the Simpleaudio library. Mixer also runs significantly faster, reducing playback latency.
+- **Pygame.Mixer for Audio:** Another just... obvious option. We initially experimented with the Simpleaudio library when starting out, but found that switching to Pygame.Mixer was a small migration effort that completely eliminated what used to be frequent, inexplicable crashes from segmentation faults in the Simpleaudio library. Mixer also runs significantly faster, reducing playback latency.
 
 ## Design Language
 
