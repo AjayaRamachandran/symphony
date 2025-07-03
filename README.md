@@ -18,9 +18,9 @@
 
 ## Overview
 
-**[Symphony](https://powerscore.vercel.app/)** is a music creation software for people of all skill levels. With a strong focus on **intuitive design**, Symphony takes away the usual learning curve that makes many creatives shy away from conventional tools. For drawing up a simple musical idea, conventional DAWs are *far too complex*, requiring lengthy project setups, and catering to high-power users, which can clutter the interface for simple experimentative sessions. *Symphony* aims to provide that space where users can **jump right in and start drafting**, keep the user experience simple yet powerful.
+**[Symphony](https://powerscore.vercel.app/)** is a music creation software for people of all skill levels. With a strong focus on **intuitive design**, Symphony takes away the usual learning curve that makes many creatives shy away from conventional tools. For drawing up a simple musical idea, conventional DAWs are *far too complex*, requiring lengthy project setups, and catering to high-power users, which can clutter the interface for simple experimentative sessions. *Symphony* aims to provide that space where users can **jump right in and start drafting**, keeping the user experience simple yet powerful.
 
-When you're ready to move to the more technical phase, *Symphony* gives you some power features like **stacking multiple sounds** or **playing with wave types**, but importantly, the app lets you ***export your projects*** into a myriad of standard music file types, ensuring you can continue your creative flow without restarting.
+When you're ready to move on to the more technical phase, *Symphony* gives you some power features like **stacking multiple sounds** or **playing with wave types**, but alternatively, the app lets you ***export your projects*** into a myriad of standard music file types, ensuring you can continue your creative flow without restarting.
 
 ## Codebase Information
 
@@ -30,7 +30,7 @@ When you're ready to move to the more technical phase, *Symphony* gives you some
 
 - **React on the Front-End:** Symphony uses a conventional React component structure for handling all the frontend logic of the Project Manager. We build with **Vite** for rapid hot-swapping, which accelerated dev time.
 
-- **Electron as the RT Environment:** Simple, and avoids the complexities of config needed for "faster" frameworks. Fast debugging with the native browser DevTools window were really useful for fast testing.
+- **Electron as the RT Environment:** Simple, and avoids the complexities of config needed for "faster" frameworks. Fast debugging with the native browser DevTools window were really useful for quick testing.
 
 - **Node for the Backend:** This is really as a sub-layer of Electron, which interfaces with Node's IPC renderer to handle file management and state logic of the Project Manager.
 
@@ -40,7 +40,7 @@ When you're ready to move to the more technical phase, *Symphony* gives you some
 
 ## Design Language
 
-Symphony has a clean, consistent UI design language we're calling Slate. It features, a dark, yet contrast-rich look with plenty of design flair, while adhering to strict principles of design.
+Symphony has a clean, consistent UI design language we're calling Slate. It features a dark, yet contrast-rich look with plenty of design flair, while adhering to strict principles of design.
 ### Typeface Choice
 
 <p align='center'>
@@ -51,7 +51,7 @@ There are **two** major fonts used across Symphony: *Instrument Sans*, and *Inte
 
 - ***Instrument Sans*** is recognizable by its slightly wide stance, smaller natural kerning, and low x-height. This makes it great for big titles, where legibility is not an issue. It also has a touch of character, with features like the tilted terminals visible in letters like the lowercase 't', without being too bold or divisive.
 
-- ***Inter*** is characterized by its simplicity, sacrificing uniqueness for legibility. It's designed to be readable at even tiny sizes, with its very high x-height and consistent minimum internal spacing to avoid clashing. As both the project manager and editor feature text at small sizes throughout, Inter was a clear choice.
+- ***Inter*** is characterized by its simplicity, sacrificing uniqueness for legibility. It's designed to be readable at even tiny sizes, with very high x-height and consistent minimum internal spacing to avoid clashing. As both the project manager and editor feature text at small sizes throughout, Inter was a clear choice.
 
 ### Button Design
 Across the system, we have buttons that accomplish different tasks, from small, single-step actions that are stateless, to heavier tasks that advance UX flow in some way, all the way up to huge actions that move the program to a completely different state. To communicate each of these three abilities, we have a design language built into the buttons.
@@ -65,13 +65,13 @@ Across the system, we have buttons that accomplish different tasks, from small, 
 - **Call-to-Action** is used in the "Open in Editor" button. This is a special button as it launches a whole separate window, and represents the program state changing. This button style is used incredibly sparingly (so far, only once) as it is very commanding of attention.
 
 ### Optical Sizing
-A common example used to explain optical sizing is the [circles and squares example.](https://bjango.com/articles/opticaladjustments/) In *Symphony* (and many other softwares) a more common optical sizing is seen: large and small text. A common misconception is that all left or right-justified text should align to the same pixel -- however, this will lead to the smallest text feeling pushed further to the edge than the larger text, since more of its details are optically closer to the edge. We must shift smaller text away from the edge to keep them feeling optically aligned.
+A common example used to explain optical sizing is the [circles and squares example.](https://bjango.com/articles/opticaladjustments/) In *Symphony* (and many other softwares) a more common optical sizing problem is seen: large and small text. A common misconception is that all left or right-justified text should align to the same pixel -- however, this will lead to the smallest text feeling pushed further to the edge than the larger text, since more of its details are optically closer to the edge. We must shift smaller text away from the edge to keep them feeling optically aligned.
 
 <p align='center'>
 <img src='https://www.dropbox.com/scl/fi/4c6ilgee4j6ma57kponbc/Optical-Spacing.jpg?rlkey=0j8wzvw9xi1o7vxm0939laugp&st=d2h90bjj&raw=1' width='90%'>
 </p>
 
-As you can see in the above example, the red line is several pixels to the right of the blue line, however the text is **optically aligned;** without the lines pointing it out, the text actually appears more natural than if they were pixel-aligned. Additionally, the image shows the effect of optical kerning as well -- the percentage of letter widths that should be proportional to the empty space increases as the text gets smaller. This keeps text feeling breathable at all sizes. In *Symphony*, this can be seen in the small letterforms in the toolbar, where wide kerning allows the text to remain readable even at < 9px.
+As you can see in the above example, the red line is several pixels to the right of the blue line, however the text is **optically aligned;** without the lines pointing it out, the text actually appears more natural than if they were pixel-aligned. Additionally, the image shows the effect of optical kerning as well -- the percentage of letter widths that is proportional to the empty space *increases* as the text gets smaller. This keeps text feeling breathable at all sizes. In *Symphony*, this can be seen in the small letterforms in the toolbar, where wide kerning allows the text to remain readable even at < 9px.
 
 ### Directing Attention
 Symphony has many *modals*. These are floating widgets that display task-sensitive information, and require the user's immediate attention. To direct the user's attention to the content of the modals, in a manner that does not clutter their view, we employ a subtle blur to everything else.
@@ -80,11 +80,11 @@ Symphony has many *modals*. These are floating widgets that display task-sensiti
 </p>
 
 ### Other Design Choices: Bold Size Effects, Intuitiveness
-A little known fact: Bold text optically looks *smaller* than thin text. The reasons for this phenomenon are not well-stated anywhere, but the primary reason is that your eyes see the size of text generally as the distance between the midpoints of parallel lines, which, when the text gets bolder without getting taller, actually *decreases*. In some modals, where simply bolding the text would make it appear slightly smaller, throwing off the visual hierarchy, we increase the size by around 1px to compensate. This effect is *incredibly subtle*, but is more noticeable when it's *not* used.
+**Little known fact:** Bold text optically looks *smaller* than thin text. The reasons for this phenomenon are multilayered, but the primary reason is that your eyes see the size of text as the distance between the **centers** of parallel curves in the letterform, which, if the text gets bolder without getting taller, actually *decreases* in length. In some modals in *Symphony*, where simply bolding the text could make it appear slightly smaller and throwing off the visual hierarchy, we increased the size by around 1px to compensate. This effect is *incredibly subtle*, but it's more noticeable when it's *not* used.
 <p align='center'>
 <img src='https://www.dropbox.com/scl/fi/yef3ytl1u5malkg98e7o7/Boldness-on-Sizing.jpg?rlkey=57c3l260eaa5wbe20kmsiydev&st=p44tungh&raw=1' width='65%'>
 </p>
-On top of our extensive button design considerations, we also need to meld practicality with design aesthetics. While text is great at describing the purpose of a button, practically, it is impossible to give text to every button on the screen. In areas like the toolbar, we use icons instead. Here, we are trading initial affordance with better space usage. But to keep users from having to guess what buttons do, we employ hover tooltips on all icon-only buttons, and for any text fields where internal text is truncated for space. This ensures that all navigational information is accessible, even if not visible at once. <br><br/>
+On top of our extensive button design considerations, we also need to work practicality into design aesthetics. While plain text is great at describing the purpose of a button, practically it is impossible to give text to every button on the screen. In areas like the toolbar, we use icons instead. Here, we are trading initial affordance with better space usage. But to keep users from having to guess what buttons do, we employ hover tooltips on all icon-only buttons, and for any text fields where internal text is truncated for space. This ensures that all navigational information is accessible, even if not visible at once. <br><br/>
 <p align='center'>
 <img src='https://www.dropbox.com/scl/fi/3a7qy0d5lhugk1kkeyujq/Intuitiveness.jpg?rlkey=4gwbovn39g86qcdbk2b2oy3fw&st=zp5tqk9h&raw=1' width='55%'>
 </p>
