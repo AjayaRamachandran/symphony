@@ -89,8 +89,6 @@ On top of our extensive button design considerations, we also need to work pract
 <img src='https://www.dropbox.com/scl/fi/3a7qy0d5lhugk1kkeyujq/Intuitiveness.jpg?rlkey=4gwbovn39g86qcdbk2b2oy3fw&st=zp5tqk9h&raw=1' width='55%'>
 </p>
 
-
-
 ## *Footnote:* Technical Challenges & Future Considerations
 
 *Symphony* is still under active development, but we can already identify some pain points in development and crutches that might hinder its widespread adoption, but these are things that we want to see crop up as they pan out, because, to be honest, I really don't know how big each one is until it's in the hands of testers. (I'm subtly urging you to download this and test it yourself \*wink wink\*)
