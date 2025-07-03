@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Copy, Scissors, Clipboard, CopyPlus, Users, Info, Star, FolderOpen, Trash2, FileAudio2, LayoutGrid, List, Rows2 } from 'lucide-react';
+import path from 'path-browserify';
 
 import mscz from '@/assets/mscz-icon.svg';
 import Tooltip from '@/components/Tooltip';
@@ -97,10 +98,10 @@ function Toolbar() {
         </div>
       </div>
       <GenericModal isOpen={showDeleteConfirm} onClose={() => { setShowDeleteConfirm(false) }}>
-        <DeleteConfirmationModal onComplete={() => { setShowDeleteConfirm(false); callOp('handleDelete') }} action={'Delete'} modifier={'Symphony'} />
+        <DeleteConfirmationModal onComplete={() => { setShowDeleteConfirm(false); handleDelete() }} action={'Delete'} modifier={'Symphony'} />
       </GenericModal>
       <GenericModal isOpen={showInfo} onClose={() => { setShowInfo(false) }}>
-        <ShowInfoModal filePath={selectedFile}/>
+        <ShowInfoModal filePath={globalDirectory + '\\' + selectedFile}/>
       </GenericModal>
     </>
   );

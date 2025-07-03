@@ -4,7 +4,6 @@ const fs = require('fs');
 const { spawn } = require('child_process');
 const directoryPath = path.join(__dirname, 'src', 'assets', 'directory.json');
 const RECENTLY_VIEWED_PATH = path.join(__dirname, 'src', 'assets', 'recently-viewed.json');
-const RETRIEVE_INPUT_PATH = path.join(__dirname, 'inner', 'src', 'request.json');
 const RETRIEVE_OUTPUT_PATH = path.join(__dirname, 'inner', 'src', 'response.json');
 
 let mainWindow;
@@ -278,6 +277,7 @@ app.whenReady().then(() => {
 
     return new Promise((resolve, reject) => {
       const scriptPath = path.join(__dirname, 'inner', 'src', 'main.py');
+      console.log(`${scriptPath}, 'retrieve', ${filePath}, ${id}`)
       const pythonProcess = spawn('python', [scriptPath, 'retrieve', filePath, id]);
 
       pythonProcess.on('close', (code) => {
@@ -287,7 +287,7 @@ app.whenReady().then(() => {
         }
 
         // Wait for file to contain matching ID
-        const maxWaitMs = 3000;
+        const maxWaitMs = 10000;
         const intervalMs = 100;
         let waited = 0;
 
@@ -301,7 +301,7 @@ app.whenReady().then(() => {
             }
             return;
           }
-
+          //console.log(RETRIEVE_OUTPUT_PATH);
           const data = JSON.parse(fs.readFileSync(RETRIEVE_OUTPUT_PATH, 'utf-8'));
           if (data.id === id) {
             resolve(data);

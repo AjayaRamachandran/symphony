@@ -61,7 +61,7 @@ else:
 width, height = (1100, 592)
 minWidth, minHeight = (1100, 592)
 
-if process == 'instantiate':
+if (process == 'instantiate') or (process == 'retrieve'):
     environ["SDL_VIDEODRIVER"] = "dummy"
 
 pygame.init()
@@ -503,12 +503,15 @@ else:
     ps = toProgramState(pkl.load(open(workingFile, "rb")))
 
 if process == 'retrieve':
-    responseLoc = open('response.json', 'wb')
-    json.dump({
-               'Key' : ps.key,
-               'Mode' : ps.mode,
-               'Tempo (tpm)' : round(3600 / ps.ticksPerTile, 2),
-               'Empty?' : (ps.noteMap == {})
+    print('DUMPING INTO RESPONSE.JSON')
+    responseLoc = open('inner/src/response.json', 'w')
+    print(ps.noteMap)
+    json.dump({ 'fileInfo' : {
+                  'Key' : ps.key,
+                  'Mode' : ps.mode,
+                  'Tempo (tpm)' : round(3600 / ps.ticksPerTile, 2),
+                  'Empty?' : (ps.noteMap == {}),
+                  }, 'id': globalUUID
                }, responseLoc)
     responseLoc.close()
     sys.exit()

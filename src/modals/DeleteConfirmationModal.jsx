@@ -1,10 +1,5 @@
 // NewFolder.js
 import React, { useState, useEffect } from 'react';
-import { Plus } from 'lucide-react';
-
-import Field from '@/components/content-components/right-panel-components/Field';
-import Dropdown from '@/components/Dropdown';
-import Tooltip from '@/components/Tooltip';
 
 //console.log('electronAPI:', window.electronAPI);
 

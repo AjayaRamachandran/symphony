@@ -53,6 +53,8 @@
   font-weight: 300;
   overflow-wrap: normal;
   display: flex;
+  flex-direction: column;
+  gap: 5px;
   margin-left: 2px;
   flex: 1;
   margin-bottom: 20px;
