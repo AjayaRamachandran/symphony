@@ -44,7 +44,7 @@ Symphony has a clean, consistent UI design language we're calling Slate. It feat
 ### Typeface Choice
 
 <p align='center'>
-<img src='https://www.dropbox.com/scl/fi/yknqytf9lqdtr0olzhvsq/Font-Choice.jpg?rlkey=1ab5jugpax1nke7ro6ng4mrgs&st=yv2yi9vz&raw=1' width='500px'>
+<img src='https://www.dropbox.com/scl/fi/yknqytf9lqdtr0olzhvsq/Font-Choice.jpg?rlkey=1ab5jugpax1nke7ro6ng4mrgs&st=yv2yi9vz&raw=1' width='70%'>
 </p>
 
 There are **two** major fonts used across Symphony: *Instrument Sans*, and *Inter*.
@@ -68,7 +68,7 @@ Across the system, we have buttons that accomplish different tasks, from small, 
 A common example used to explain optical sizing is the [circles and squares example.](https://bjango.com/articles/opticaladjustments/) In *Symphony* (and many other softwares) a more common optical sizing is seen: large and small text. A common misconception is that all left or right-justified text should align to the same pixel -- however, this will lead to the smallest text feeling pushed further to the edge than the larger text, since more of its details are optically closer to the edge. We must shift smaller text away from the edge to keep them feeling optically aligned.
 
 <p align='center'>
-<img src='https://www.dropbox.com/scl/fi/4c6ilgee4j6ma57kponbc/Optical-Spacing.jpg?rlkey=0j8wzvw9xi1o7vxm0939laugp&st=d2h90bjj&raw=1' width='500px'>
+<img src='https://www.dropbox.com/scl/fi/4c6ilgee4j6ma57kponbc/Optical-Spacing.jpg?rlkey=0j8wzvw9xi1o7vxm0939laugp&st=d2h90bjj&raw=1' width='90%'>
 </p>
 
 As you can see in the above example, the red line is several pixels to the right of the blue line, however the text is **optically aligned;** without the lines pointing it out, the text actually appears more natural than if they were pixel-aligned. Additionally, the image shows the effect of optical kerning as well -- the percentage of letter widths that should be proportional to the empty space increases as the text gets smaller. This keeps text feeling breathable at all sizes. In *Symphony*, this can be seen in the small letterforms in the toolbar, where wide kerning allows the text to remain readable even at < 9px.
@@ -76,17 +76,17 @@ As you can see in the above example, the red line is several pixels to the right
 ### Directing Attention
 Symphony has many *modals*. These are floating widgets that display task-sensitive information, and require the user's immediate attention. To direct the user's attention to the content of the modals, in a manner that does not clutter their view, we employ a subtle blur to everything else.
 <p align='center'>
-<img src='https://www.dropbox.com/scl/fi/iqx5688ge67nk7rtcjosl/Directing-Attention.jpg?rlkey=tk445ffzs6fm18znvr2yab1n8&st=1ftomejv&raw=1' width='350px'>
+<img src='https://www.dropbox.com/scl/fi/iqx5688ge67nk7rtcjosl/Directing-Attention.jpg?rlkey=tk445ffzs6fm18znvr2yab1n8&st=1ftomejv&raw=1' width='70%'>
 </p>
 
 ### Other Design Choices: Bold Size Effects, Intuitiveness
 A little known fact: Bold text optically looks *smaller* than thin text. The reasons for this phenomenon are not well-stated anywhere, but the primary reason is that your eyes see the size of text generally as the distance between the midpoints of parallel lines, which, when the text gets bolder without getting taller, actually *decreases*. In some modals, where simply bolding the text would make it appear slightly smaller, throwing off the visual hierarchy, we increase the size by around 1px to compensate. This effect is *incredibly subtle*, but is more noticeable when it's *not* used.
 <p align='center'>
-<img src='https://www.dropbox.com/scl/fi/yef3ytl1u5malkg98e7o7/Boldness-on-Sizing.jpg?rlkey=57c3l260eaa5wbe20kmsiydev&st=p44tungh&raw=1' width='400px'>
+<img src='https://www.dropbox.com/scl/fi/yef3ytl1u5malkg98e7o7/Boldness-on-Sizing.jpg?rlkey=57c3l260eaa5wbe20kmsiydev&st=p44tungh&raw=1' width='65%'>
 </p>
 On top of our extensive button design considerations, we also need to meld practicality with design aesthetics. While text is great at describing the purpose of a button, practically, it is impossible to give text to every button on the screen. In areas like the toolbar, we use icons instead. Here, we are trading initial affordance with better space usage. But to keep users from having to guess what buttons do, we employ hover tooltips on all icon-only buttons, and for any text fields where internal text is truncated for space. This ensures that all navigational information is accessible, even if not visible at once. <br><br/>
 <p align='center'>
-<img src='https://www.dropbox.com/scl/fi/3a7qy0d5lhugk1kkeyujq/Intuitiveness.jpg?rlkey=4gwbovn39g86qcdbk2b2oy3fw&st=zp5tqk9h&raw=1' width='300px'>
+<img src='https://www.dropbox.com/scl/fi/3a7qy0d5lhugk1kkeyujq/Intuitiveness.jpg?rlkey=4gwbovn39g86qcdbk2b2oy3fw&st=zp5tqk9h&raw=1' width='55%'>
 </p>
 
 
