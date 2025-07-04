@@ -4,7 +4,6 @@
   <p style="font-size: 16px;" align='center'>Create something amazing.</p>
 </p>
 
-
 <p align="center">
 <img src="https://img.shields.io/badge/React-blue?logo=React">
 <img src="https://img.shields.io/badge/Node-darkgreen?logo=Node.js">
@@ -20,7 +19,7 @@
 
 **[Symphony](https://powerscore.vercel.app/)** is a music creation software for people of all skill levels. With a strong focus on **intuitive design**, Symphony takes away the usual learning curve that makes many creatives shy away from conventional tools. For drawing up a simple musical idea, conventional DAWs are *far too complex*, requiring lengthy project setups, and catering to high-power users, which can clutter the interface for simple experimentative sessions. *Symphony* aims to provide that space where users can **jump right in and start drafting**, keeping the user experience simple yet powerful.
 
-When you're ready to move on to the more technical phase, *Symphony* gives you some power features like **stacking multiple sounds** or **playing with wave types**, but alternatively, the app lets you ***export your projects*** into a myriad of standard music file types, ensuring you can continue your creative flow without restarting.
+When you're ready to move on to the more technical phase, *Symphony* gives you power features like **stacking multiple sounds** or **playing with wave types**, but also lets you ***export your projects*** into a myriad of standard music file types (.midi, .mscz, etc), ensuring you can continue your creative flow without restarting.
 
 ## Codebase Information
 
@@ -60,11 +59,11 @@ Across the system, we have buttons that accomplish different tasks, from small, 
 <img src='https://www.dropbox.com/scl/fi/ea1aptg9w9rw3bj1yk8qs/Button-Design.jpg?rlkey=oii350uwr275ausjorw1g3dml&st=6teh57aa&raw=1' width='100%'>
 </p>
 
-- **Standard Buttons** can be seen in the toolbar or in left and right panels. They are often stateless (but not always), and don't command user attention, as if all such buttons were bold, they would be fighting for attention.
+- **Standard Buttons** can be seen in the toolbar or in left and right panels. They are often stateless (but not always), and don't command user attention, since if all such buttons were bold, they would be fighting for attention.
 - **Heavy Buttons** can be seen in modals, often reading "Next" or "Done" or "Delete". These perform big actions, including closing the modal itself, and need to distinguish themselves from the rest of the options on the modal.
 - **Call-to-Action** is used in the "Open in Editor" button. This is a special button as it launches a whole separate window, and represents the program state changing. This button style is used incredibly sparingly (so far, only once) as it is very commanding of attention.
 
-### Optical Sizing
+### Optical Spacing
 A common example used to explain optical sizing is the [circles and squares example.](https://bjango.com/articles/opticaladjustments/) In *Symphony* (and many other softwares) a more common optical sizing problem is seen: large and small text. A common misconception is that all left or right-justified text should align to the same pixel -- however, this will lead to the smallest text feeling pushed further to the edge than the larger text, since more of its details are optically closer to the edge. We must shift smaller text away from the edge to keep them feeling optically aligned.
 
 <p align='center'>
@@ -91,7 +90,7 @@ On top of our extensive button design considerations, we also need to work pract
 
 ## *Footnote:* Technical Challenges & Future Considerations
 
-*Symphony* is still under active development, but we can already identify some pain points in development and crutches that might hinder its widespread adoption, but these are things that we want to see crop up as they pan out, because, to be honest, I really don't know how big each one is until it's in the hands of testers. (I'm subtly urging you to download this and test it yourself \*wink wink\*)
+*Symphony* is still under active development, but we can already identify some pain points in development and crutches that might hinder its widespread adoption. However, these we want to see crop up post-beta-release, because, to be honest, I really don't know how big each one is until it's in the hands of testers. (I'm subtly urging you to download this and test it yourself \*wink wink\*)
 
 - **Growing codebase:** Codebase management as a solo developer is definitely a major challenge. Pieces interact with each other across the entire platform, components calling other components from wildly different places -- I do believe that with this project, it was almost a must to keep my components and styles organized. Thus, the repo, while large, is well-fragmented into digestible pieces.
 
