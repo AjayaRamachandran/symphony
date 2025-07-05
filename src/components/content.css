@@ -119,6 +119,7 @@
 .tooltip:hover .tooltip-text {
   visibility: visible;
   opacity: 1;
+  z-index: auto !important;
 }
 
 .call-to-action {
@@ -144,7 +145,7 @@
 .call-to-action-2 {
   font-size: 16px;
   font-weight: 700;
-  padding: 7px 15px;
+  padding: 7px 12px;
   margin-top: 28px;
   margin-left: auto;
   justify-content: center;
@@ -156,8 +157,9 @@
   border-radius: 7px;
   background: #bc4512;
   transition: filter 0.25s;
+  gap: 7px;
 }
-.locked {
+.call-to-action-2.locked {
   background: #606060;
   cursor: not-allowed;
 }

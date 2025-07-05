@@ -4,7 +4,9 @@
   border: 1px #3C3C3C solid;
   color: #bbbbbb;
   background-color: #252525;
-  padding: 10px 15px 5px 15px;
+  padding: 10px 10px 10px 15px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .directory-large {
@@ -26,9 +28,10 @@
   font-size: 1.2em;
 
   display: flex;
-  width: 100%;
+  width: 98%;
   box-sizing: border-box;
   flex-direction: row;
+  z-index: 10;
   }
   .directory-medium:hover {
     filter: brightness(1.2);

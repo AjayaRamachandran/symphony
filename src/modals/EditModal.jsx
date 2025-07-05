@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FolderOpen, ChartNoAxesGantt, Music, Save } from 'lucide-react';
+import { FolderOpen, ChartNoAxesGantt, Music, Save, Trash2, Check } from 'lucide-react';
 
 import Field from '@/components/content-components/right-panel-components/Field';
 import Dropdown from '@/components/Dropdown';
@@ -12,18 +12,26 @@ const options = [
   { label: 'Symphony Auto-Save', icon: Save },
 ];
 
-function NewFolder({defaultDestProp = '', onClose, onConflict}) {
+function EditModal({getParams, onClose, onRemove, onConfirm, onDeny, onRefresh}) {
   const [sourceLocation, setSourceLocation] = useState('');
   const [destination, setDestination] = useState('');
   const [projectName, setProjectName] = useState('');
   const { globalDirectory, setGlobalDirectory } = useDirectory();
+  const [ params, setParams ] = useState({});
 
   useEffect(() => {
-    if (defaultDestProp && destination === '') {
-      setDestination(defaultDestProp);
-      console.log(`defaultDestProp was set to ${defaultDestProp}`)
+    setParams(getParams());
+    const params = getParams();
+    if (params.dest && destination === '') {
+      setDestination(params.dest);
     }
-  }, [defaultDestProp]);
+    if (params.dir && sourceLocation === '') {
+      setSourceLocation(params.dir);
+    }
+    if (params.name && projectName === '') {
+      setProjectName(params.name);
+    }
+  }, []);
 
   const selectedOption = options.find(opt => opt.label === destination) || null;
 
@@ -44,22 +52,43 @@ function NewFolder({defaultDestProp = '', onClose, onConflict}) {
     //alert(`Selected: ${selected.label}`);
   };
 
-  const addDirectory = async () => {
-    const result = await window.electronAPI.saveDirectory({
-      destination,
-      projectName,
-      sourceLocation,
-    });
+  const changeFields = async () => {
+    let exists = await window.electronAPI.checkIfExists({destination, projectName, sourceLocation});
+    exists = exists.success;
+    console.log(`Exists: ${exists}`);
+    let result = {}
+    let sendRequest = {}
+    if (exists) {
+      sendRequest = {
+        destination: params.dest,
+        projectName: params.name,
+        sourceLocation: params.dir,
+      };
+    } else {
+      sendRequest = {
+        destination: destination,
+        projectName: projectName,
+        sourceLocation: sourceLocation,
+      };
+    };
+    result = await window.electronAPI.saveDirectory(sendRequest);
 
     if (result.success) {
-      console.log(`Directory added: ${[projectName, destination, sourceLocation]}`);
-      setGlobalDirectory(sourceLocation);
-      onClose();
+      console.log(`Directory added: ${JSON.stringify(sendRequest)}`);
+      setGlobalDirectory(exists ? params.dest : sourceLocation);
+
+      if (!exists) {
+        onClose();
+      } else {
+        onDeny();
+      };
+
+      onRefresh();
     } else {
       if (result.errorType === 409) {
         console.log(`Conflict: ${result.error}`);
-        onConflict();
-      } else {
+        //onConflict();
+       } else {
         alert('Error: ' + result.error);
       }
     }
@@ -67,7 +96,7 @@ function NewFolder({defaultDestProp = '', onClose, onConflict}) {
 
   return (
     <>
-      <div className='modal-title' text-style='display' style={{marginBottom : '25px'}}>Add New Folder</div>
+      <div className='modal-title' text-style='display' style={{marginBottom : '25px'}}>Edit Folder</div>
       <div className='modal-body'>System File Location</div>
       <div className='tooltip'>
         <button className='modal-file-explorer-button' onClick={openFolderDialog}>
@@ -93,9 +122,18 @@ function NewFolder({defaultDestProp = '', onClose, onConflict}) {
       <Field fontSize={'13px'} value={projectName} onChange={e => setProjectName(e.target.value)} />
       <div className='modal-body' style={{ marginTop: '2em' }}>Destination</div>
       <Dropdown options={options} onSelect={handleSelect} value={selectedOption}/>
-      <button className={(sourceLocation == '' || destination == '' || projectName == '') ? 'call-to-action-2 locked' : 'call-to-action-2'} text-style='display' onClick={(sourceLocation == '' || destination == '' || projectName == '') ? null : addDirectory}>Add</button>
+      <div style={{display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '10px'}}>
+        <button className={'call-to-action-2 red'} style={{marginLeft: 0}} text-style='display' onClick={onConfirm}>
+          <Trash2 size={16}/>Remove</button>
+        <button className={'call-to-action-2 green' + (((params.dir !== sourceLocation) || (params.dest !== destination) || (params.name !== projectName)) ? '' : ' locked')}
+         style={{marginLeft: 0}}
+          text-style='display'
+           onClick={ ((params.dir !== sourceLocation) || (params.dest !== destination) || (params.name !== projectName)) ?
+            (async () => { onRemove(); await changeFields(); }) : undefined}>
+          <Check size={16}/>Save Changes</button>
+      </div>
     </>
   );
 }
 
-export default NewFolder;
+export default EditModal;

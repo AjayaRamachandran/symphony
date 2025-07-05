@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Square, Copy } from 'lucide-react';
+import Icon from '@/assets/icon.svg';
 
 function TitleBar() {
   const [isMaximized, setIsMaximized] = useState(false);
@@ -12,7 +13,10 @@ function TitleBar() {
   return (
     <>
       <div className="titlebar">
-        <div>Project Manager - Symphony v1.0 Beta</div>
+        <div style={{display: 'flex', flexDirection: 'row', alignItems:'center', gap:'7px'}}>
+          <img src={Icon} width='16px'></img>
+          <div>Project Manager - Symphony v1.0 Beta</div>
+        </div>
         <div className="window-controls">
           <button className="bi bi-dash-lg" topbar-buttons='true'
             onClick={() => window.electronAPI.minimize()}>

@@ -10,7 +10,7 @@
   flex-direction: row;
   justify-content: left;
   height: 90px;
-  padding: 20px 20px 0px calc(max(20px, (100vw - 1460px) / 2));
+  padding: 20px 20px 0px calc(max(20px, (100vw - 1345px) / 2));
   overflow-x: scroll;
   overflow-y: hidden;
 }

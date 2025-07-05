@@ -1,13 +1,7 @@
-// NewFolder.js
 import React, { useState, useEffect } from 'react';
 import { FolderOpen } from 'lucide-react';
 
-//import Field from '@/components/content-components/right-panel-components/Field';
-//import Dropdown from '@/components/Dropdown';
 import Tooltip from '@/components/Tooltip';
-
-//console.log('electronAPI:', window.electronAPI);
-
 
 function AddAutoSave({onClose}) {
   const [sourceLocation, setSourceLocation] = useState('');

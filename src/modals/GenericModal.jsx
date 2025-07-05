@@ -24,14 +24,14 @@ function GenericModal({ isOpen, onClose, children, showXButton = true }) {
         overlay.style.background = 'rgba(0,0,0,0.35)';
         modal.style.opacity = '1';
         modal.style.transform = 'scale(1)';
-      }, 1);
+      }, 10);
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" ref={overlayRef} onClick={onClose}>
+    <div className="modal-overlay" ref={overlayRef}>
       <div className="modal-container" ref={modalRef} onClick={e => e.stopPropagation()}>
         {showXButton ? <button className="close-button" onClick={onClose}><X size={16} strokeWidth={2.5}/></button> : null}
         <div className="modal-content">

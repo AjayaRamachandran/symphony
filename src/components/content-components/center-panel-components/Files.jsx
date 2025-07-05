@@ -10,10 +10,15 @@ import File from './files-components/File';
 function Files() {
   const { globalDirectory, setGlobalDirectory, globalUpdateTimestamp, selectedFile, setSelectedFile, viewType } = useDirectory();
   const [symphonyFiles, setSymphonyFiles] = useState([]);
+  const [currentSectionType, setCurrentSectionType] = useState(null);
   
   useEffect(() => {
     window.electronAPI.getSymphonyFiles(globalDirectory).then((files) => {
       setSymphonyFiles(files);
+    });
+    window.electronAPI.getSectionForPath(globalDirectory).then((type) => {
+      setCurrentSectionType(type.section);
+      console.log(type.section);
     });
   }, [globalDirectory, globalUpdateTimestamp]);
 
@@ -24,8 +29,8 @@ function Files() {
         <></>
       ) : (
         <>
-          <div className={(viewType==='grid'? 'files' : 'files-row') + ' scrollable dark-bg'} onClick={e => { e.stopPropagation(); setSelectedFile(name); }}>
-            {symphonyFiles == 'not a valid dir' ? <></> : <><NewFile />
+          <div className={(viewType==='grid'? 'files' : 'files-row') + ' scrollable dark-bg'} onClick={e => { e.stopPropagation(); setSelectedFile(e.name); }}>
+            {symphonyFiles == 'not a valid dir' ? <></> : <>{currentSectionType === 'Projects' ? <><NewFile /></> : undefined}
               {
                 symphonyFiles.map((fileName, idx) => (
                 <File key={idx} name={fileName} />))

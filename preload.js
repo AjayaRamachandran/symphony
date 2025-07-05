@@ -20,5 +20,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getRecentlyViewed: () => ipcRenderer.invoke('get-recently-viewed'),
   openFileLocation: (filePath) => ipcRenderer.invoke('open-file-location', filePath),
   removeDirectory: (section, dirName) => ipcRenderer.invoke('remove-directory', section, dirName),
-  runPythonRetrieve: (filePath) => ipcRenderer.invoke('run-python-retrieve', filePath)
+  runPythonRetrieve: (filePath) => ipcRenderer.invoke('run-python-retrieve', filePath),
+  checkIfExists: (data) => ipcRenderer.invoke('check-if-exists', data),
+  recentlyViewedDelete: (fileName) => ipcRenderer.invoke('recently-viewed-delete', fileName),
+  getSectionForPath: (filePath) => ipcRenderer.invoke('get-section-for-path', filePath),
 });
