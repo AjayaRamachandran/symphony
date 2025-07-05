@@ -81,7 +81,7 @@ scrBlue = pygame.Surface((width, height), pygame.SRCALPHA)
 scrPink = pygame.Surface((width, height), pygame.SRCALPHA)
 scrList = [scrOrange, scrPurple, scrCyan, scrLime, scrBlue, scrPink]
 pygame.display.set_caption(f"{titleText} - Symphony v1.0 Beta")
-pygame.display.set_icon(pygame.image.load("inner/assets/icon.png"))
+pygame.display.set_icon(pygame.image.load("src/assets/icon.png"))
 clock = pygame.time.Clock()
 fps = 60
 
@@ -798,10 +798,14 @@ while running:
                         noteMap[(touchedKey, touchedTime, colorName)] = Note(touchedKey, touchedTime, True, color=colorName)
                         currentDraggingKey = touchedKey
                         initialDraggingTime = touchedTime
-                    reevaluateLeads()
+                    #reevaluateLeads()
                     mouseTask = True
                     if (not (currentDraggingKey, touchedTime, colorName) in noteMap) and touchedTime > initialDraggingTime:
                         noteMap[(currentDraggingKey, touchedTime, colorName)] = Note(currentDraggingKey, touchedTime, False, color=colorName)
+                        tempOffsetTime = touchedTime - 1
+                        while (not (tempOffsetTime, touchedTime, colorName) in noteMap) and tempOffsetTime > initialDraggingTime + 1:
+                            tempOffsetTime -= 1
+                            noteMap[(currentDraggingKey, tempOffsetTime, colorName)] = Note(currentDraggingKey, tempOffsetTime, False, color=colorName)
             
                 ## Eraser - unconditionally removes notes from the track
                 elif brushType == "eraser" and colorName != 'all':
@@ -1187,6 +1191,7 @@ while running:
         return noteExists
 
     if not pygame.mouse.get_pressed()[0] and not mouseWOTask:
+        reevaluateLeads()
         ### Unclicked
         pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
         if head:

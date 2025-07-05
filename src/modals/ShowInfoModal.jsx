@@ -51,7 +51,7 @@ function ShowInfoModal({ filePath }) {
           {Object.entries(fileInfo).map(([key, value]) => (
             <div key={key}>
               <strong style={{marginRight: '4px'}}>{key[0].toUpperCase() + key.slice(1)}:</strong>{' '}
-              {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+              {typeof value === 'object' ? JSON.stringify(value[0].toUpperCase() + value.slice(1)) : String(value)[0].toUpperCase() + String(value).slice(1)}
             </div>
           ))}
         </div>

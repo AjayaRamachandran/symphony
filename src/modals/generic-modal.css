@@ -59,6 +59,7 @@
   flex: 1;
   margin-bottom: 20px;
   width: 320px;
+  letter-spacing: 0.2px;
 }
 
 .modal-file-explorer-button {
@@ -70,7 +71,7 @@
   border-radius: 7px;
   border: 1px #3C3C3C solid;
   color: #c2c2c2;
-  background-color: #252525;
+  background-color: #222222;
   font-size: 13px;
   letter-spacing: 0.1px;
   padding: 7px;
@@ -96,4 +97,12 @@
   border: none;
   background: none;
   cursor: pointer;
+}
+
+.call-to-action-2.red {
+  background-color: #9E362F;
+}
+
+.call-to-action-2.green {
+  background-color: #5A893D;
 }

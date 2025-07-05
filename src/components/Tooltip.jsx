@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 
-function Tooltip({text = ""}) {
+function Tooltip({text = "", positionOverride=null}) {
 
   return (
     <>
-      <span className="tooltip-text">{text}</span>
+      <span className="tooltip-text" style={positionOverride? {transform: 'translate('+positionOverride[0] +', '+ positionOverride[1]+')'} : {}}>{text}</span>
     </>
   );
 }

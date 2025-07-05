@@ -1,7 +1,4 @@
-// NewFolder.js
 import React, { useState, useEffect } from 'react';
-
-//console.log('electronAPI:', window.electronAPI);
 
 function DeleteConfirmationModal({onComplete, action='Delete', modifier='Object'}) {
 

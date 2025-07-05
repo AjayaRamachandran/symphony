@@ -18,8 +18,6 @@ const phrases = [
   'Ex: My Serenade to the Stars'
 ];
 
-//console.log('electronAPI:', window.electronAPI);
-
 function NewFileModal({onClose}) {
   const [projectName, setProjectName] = useState('');
   const [defaultText, setDefaultText] = useState('');

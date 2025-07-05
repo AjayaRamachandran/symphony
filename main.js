@@ -5,6 +5,7 @@ const { spawn } = require('child_process');
 const directoryPath = path.join(__dirname, 'src', 'assets', 'directory.json');
 const RECENTLY_VIEWED_PATH = path.join(__dirname, 'src', 'assets', 'recently-viewed.json');
 const RETRIEVE_OUTPUT_PATH = path.join(__dirname, 'inner', 'src', 'response.json');
+const STARRED_PATH = path.join(__dirname, 'src', 'assets', 'starred.json');
 
 let mainWindow;
 
@@ -61,19 +62,73 @@ app.whenReady().then(() => {
 
   ipcMain.handle('save-directory', async (event, { destination, projectName, sourceLocation }) => {
     try {
-      // Read current directory.json
       const data = fs.readFileSync(directoryPath, 'utf-8');
       const directory = JSON.parse(data);
 
-      // Add new entry
-      if (!directory[destination]) directory[destination] = [];
-      directory[destination].push({ [projectName]: sourceLocation });
+      if (!directory[destination]) {
+        directory[destination] = [];
+      }
 
-      // Write back to file
+      const nameExists = directory[destination].some(entry => entry[projectName]);
+      if (nameExists) {
+        return {
+          success: false,
+          error: `Project name "${projectName}" already exists in "${destination}".`,
+          errorType: 409,
+        };
+      }
+
+      const locationExists = directory[destination].some(entry =>
+        Object.values(entry).includes(sourceLocation)
+      );
+      if (locationExists) {
+        return {
+          success: false,
+          error: `Source location "${sourceLocation}" already exists in "${destination}".`,
+          errorType: 409,
+        };
+      }
+
+      directory[destination].push({ [projectName]: sourceLocation });
       fs.writeFileSync(directoryPath, JSON.stringify(directory, null, 2), 'utf-8');
+
       return { success: true };
     } catch (err) {
-      return { success: false, error: err.message };
+      return {
+        success: false,
+        error: err.message,
+        errorType: 400
+      };
+    }
+  });
+
+  ipcMain.handle('check-if-exists', async (event, { destination, projectName, sourceLocation }) => {
+    try {
+      const data = fs.readFileSync(directoryPath, 'utf-8');
+      const directory = JSON.parse(data);
+      console.log(JSON.stringify(directory))
+
+      if (!directory[destination]) {
+        return { success: true };
+      }
+      const entries = directory[destination];
+
+      const nameCount = entries.filter(entry => entry[projectName] !== undefined).length;
+      const locationCount = entries.filter(entry =>
+        Object.values(entry).includes(sourceLocation)
+      ).length;
+
+      const isDuplicate = nameCount > 0 || locationCount > 0;
+      console.log(isDuplicate);
+
+      return {
+        success: isDuplicate,
+      };
+
+    } catch (err) {
+      return {
+        success: false
+      };
     }
   });
 
@@ -106,6 +161,31 @@ app.whenReady().then(() => {
     }
   });
 
+  // Add handler for get-section-for-path
+  ipcMain.handle('get-section-for-path', async (event, filePath) => {
+    try {
+      if (!fs.existsSync(directoryPath)) {
+        return { error: 'Directory data not found.' };
+      }
+
+      const directoryData = JSON.parse(fs.readFileSync(directoryPath, 'utf-8'));
+
+      for (const [section, entries] of Object.entries(directoryData)) {
+        for (const entry of entries) {
+          const folderPath = Object.values(entry)[0];
+          if (folderPath === filePath) {
+            return { section };
+          }
+        }
+      }
+
+      return { section: null, message: 'Path not found in any section.' };
+    } catch (err) {
+      return { error: err.message };
+    }
+  });
+
+
   // Add handler for get-directory
   ipcMain.handle('get-directory', async () => {
     try {
@@ -126,7 +206,8 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle('run-python-script', async (event, argsArray) => {
-    console.log('Instantiating new .symphony file...');
+    //console.log('Instantiating new .symphony file...');
+    console.log(JSON.stringify(argsArray));
     // Add to recently viewed
     if (argsArray[0] === 'open') {
       try {
@@ -231,6 +312,34 @@ app.whenReady().then(() => {
   ipcMain.handle('delete-file', async (event, filePath) => {
     try {
       fs.unlinkSync(filePath);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('recently-viewed-delete', async (event, fileName, fileLocation = null) => {
+    try {
+      if (!fs.existsSync(RECENTLY_VIEWED_PATH)) {
+        return { success: false, error: 'recently-viewed.json not found' };
+      }
+
+      const data = fs.readFileSync(RECENTLY_VIEWED_PATH, 'utf-8');
+      let recentlyViewed = JSON.parse(data);
+
+      const originalLength = recentlyViewed.length;
+      recentlyViewed = recentlyViewed.filter(item => {
+        if (fileLocation) {
+          return !(item.name === fileName && item.fileLocation === fileLocation);
+        }
+        return item.name !== fileName;
+      });
+
+      if (recentlyViewed.length === originalLength) {
+        return { success: false, error: 'Entry not found' };
+      }
+
+      fs.writeFileSync(RECENTLY_VIEWED_PATH, JSON.stringify(recentlyViewed, null, 2), 'utf-8');
       return { success: true };
     } catch (err) {
       return { success: false, error: err.message };

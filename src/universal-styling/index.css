@@ -136,6 +136,10 @@ hr {
   border: 5px solid #2a2a2a; /* match background to create spacing */
   }
 
+.scrollable.med-bg::-webkit-scrollbar-thumb {
+  border: 5px solid #252525; /* match background to create spacing */
+  }
+
 .scrollable.dark-bg::-webkit-scrollbar-thumb {
   border: 5px solid #222222; /* match background to create spacing */
   }
