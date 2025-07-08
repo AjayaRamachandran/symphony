@@ -66,13 +66,15 @@ function App() {
 
   useEffect(() => {
     const handler = async (e) => {
+      const isAccelKey = e.ctrlKey || e.metaKey;
+
       if (e.key === 'F12') {
         window.electronAPI.toggleDevTools();
       }
-      if (e.ctrlKey && e.key.toLowerCase() === 'c') handleCopy();
-      if (e.ctrlKey && e.key.toLowerCase() === 'x') handleCut();
-      if (e.ctrlKey && e.key.toLowerCase() === 'v') await handlePaste();
-      if (e.ctrlKey && e.key.toLowerCase() === 'd') await handleDuplicate();
+      if (isAccelKey && e.key.toLowerCase() === 'c') handleCopy();
+      if (isAccelKey && e.key.toLowerCase() === 'x') handleCut();
+      if (isAccelKey && e.key.toLowerCase() === 'v') await handlePaste();
+      if (isAccelKey && e.key.toLowerCase() === 'd') await handleDuplicate();
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);

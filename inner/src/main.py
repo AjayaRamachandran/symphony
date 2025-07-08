@@ -10,6 +10,7 @@ import cv2
 from math import *
 import time
 from os import environ, path
+#import os
 # import json
 import sys
 import dill as pkl
@@ -17,6 +18,7 @@ from tkinter.filedialog import asksaveasfile #, asksaveasfilename
 import sys
 import json
 from pathlib import Path
+from soundfile import write as sfwrite
 
 try:
     from ctypes import windll
@@ -31,6 +33,7 @@ SET ARGUMENTS:
 "main.py" "instantiate" "filename" "folder" : does not start pygame, simply creates the file in the provided folder and exits
 "main.py" "open" "filename" "folder" : starts program, opening file and establishing autosave bridge
 "main.py" "retrieve" "filepath" "id" : gets all information about program and puts it into the json with the id
+"main.py" "export" "filepath" "folder" : exports the file into the provided folder as a .wav
 
 "main.py" "filename" : opens file with autosave bridge
 "main.py" : starts program without autosave (NOT RECOMMENDED)
@@ -51,13 +54,17 @@ if len(sys.argv) > 4:
     print("Wrong usage: Too many arguments!")
     sys.exit(1)
 if len(sys.argv) == 4:
-    if sys.argv[1] == 'retrieve':
+    if sys.argv[1] == 'export':
+        process = sys.argv[1]
+        workingFile = sys.argv[2]
+        destination = sys.argv[3]
+    elif sys.argv[1] == 'retrieve':
         process = sys.argv[1]
         workingFile = sys.argv[2]
         globalUUID = sys.argv[3]
     else:
       process = sys.argv[1]
-      workingFile = sys.argv[3] + '/' + cleanse(sys.argv[2])
+      workingFile = sys.argv[3] + '/' + sys.argv[2] # used to cleanse sysargv 2, but realized this can actually cause errors
       titleText = sys.argv[2][:-9]
 elif len(sys.argv) == 2:
     workingFile = sys.argv[1]
@@ -66,7 +73,7 @@ else:
 
 ###### (PYGAME &) WINDOW INITIALIZE ######
 
-if (process == 'instantiate') or (process == 'retrieve'):
+if (process == 'instantiate') or (process == 'retrieve') or (process == 'export'):
     environ["SDL_VIDEODRIVER"] = "dummy"
 
 width, height = (1100, 592)
@@ -629,7 +636,7 @@ def notesToFreq(notes):
         freqs.append(noteFreq)
     return freqs
 
-def toSound(array_1d: np.ndarray) -> pygame.mixer.Sound:
+def toSound(array_1d: np.ndarray, returnType='Sound'):# -> pygame.mixer.Sound:
     '''Convert a 1-D int16 numpy array into a 2-D array matching mixer channels, then wrap into a Sound.'''
     freq, fmt, nchan = pygame.mixer.get_init()
     if nchan == 1:
@@ -637,7 +644,17 @@ def toSound(array_1d: np.ndarray) -> pygame.mixer.Sound:
     else:
         # duplicate mono into both LR for stereo
         arr2d = np.column_stack([array_1d] * nchan)
-    return pygame.sndarray.make_sound(arr2d)
+    return pygame.sndarray.make_sound(arr2d) if returnType == 'Sound' else arr2d
+
+def exportToWav(arr2d: np.ndarray, filename: str, sample_rate: int = 44100): # filename is actually the filepath
+    '''Take a 2-D array and write it to a WAV file using soundfile library. If file exists, appends an incrementing number to the filename.'''
+    base, ext = path.splitext(filename)
+    candidate = filename
+    counter = 1
+    while path.exists(candidate):
+        candidate = f"{base} ({counter}){ext}"
+        counter += 1
+    sfwrite(candidate, arr2d, sample_rate, subtype='PCM_16')
 
 def playNotes(notes, duration=1, waves=0, volume=0.2, sample_rate=SAMPLE_RATE):
     '''Single set of notes playback, does not keep track of phase.'''
@@ -716,6 +733,27 @@ def assembleNotes(notes, phases, duration=1, volume=0.2, sample_rate=SAMPLE_RATE
 
     audio = (wave * 32767).astype(np.int16)
     return audio, newPhases
+
+if process == 'export':
+    phases = {}
+    finalWave = np.array([], dtype=np.int16)
+
+    lastNoteTime = 0
+    for note in noteMap.items():
+        lastNoteTime = max(lastNoteTime, note[1].time)
+
+    for tempTick in range(1, lastNoteTime + 2):
+        playingNotes = [
+            (note.key, note.lead, note.color)
+            for note in noteMap.values()
+            if note.time == tempTick
+        ]
+        chunk, phases = assembleNotes(playingNotes, phases, duration=ticksPerTile/60)
+        finalWave = np.concatenate([finalWave, chunk])
+
+    arr2d = toSound(finalWave, returnType='2DArray')
+    exportToWav(arr2d, destination + '/' + path.splitext(path.basename(workingFile))[0] + '.wav', sample_rate=44100)
+    sys.exit()
 
 def stamp(text, style, x, y, luminance, justification = "left"):
     '''Function to draw text to the screen abstracted, makes text drawing easy.'''

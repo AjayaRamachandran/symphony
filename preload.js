@@ -24,4 +24,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   checkIfExists: (data) => ipcRenderer.invoke('check-if-exists', data),
   recentlyViewedDelete: (fileName) => ipcRenderer.invoke('recently-viewed-delete', fileName),
   getSectionForPath: (filePath) => ipcRenderer.invoke('get-section-for-path', filePath),
+  openNativeApp: (filePath) => ipcRenderer.invoke('open-native-app', filePath),
 });

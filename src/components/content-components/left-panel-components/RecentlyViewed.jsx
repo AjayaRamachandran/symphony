@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Music, ChartNoAxesGantt } from 'lucide-react';
+import { Music, ChartNoAxesGantt, FolderClosed } from 'lucide-react';
 
 import Tooltip from '@/components/Tooltip';
 import './recently-viewed.css';
@@ -15,6 +15,8 @@ function RecentlyViewed() {
   const fileTypes = {
     'symphony': ChartNoAxesGantt,
     'mp3': Music,
+    'wav': Music,
+    '' : FolderClosed,
   };
 
   const getItemName = () => {
@@ -29,7 +31,7 @@ function RecentlyViewed() {
 
   // Handle single and double click
   const handleClick = (item) => {
-    if (item.fileLocation) {
+    if (item.fileLocation && item.type === 'symphony') {
       setGlobalDirectory(item.fileLocation);
       setSelectedFile(item.name);
     }
@@ -37,19 +39,35 @@ function RecentlyViewed() {
 
   const handleDoubleClick = async (item) => {
     setLaunchItemName(item.name);
-    try {
-      setGlobalUpdateTimestamp(Date.now());
-        const result = await window.electronAPI.runPythonScript([
-          'open',
-          item.name,
-          item.fileLocation
-        ]);
-        console.log("Python script succeeded:", result.output);
+    if (item.type === 'symphony') {
+      try {
+        setGlobalUpdateTimestamp(Date.now());
+          const result = await window.electronAPI.runPythonScript([
+            'open',
+            item.name,
+            item.fileLocation
+          ]);
+          console.log("Python script succeeded:", result.output);
+        } catch (err) {
+          console.error("Python script failed:", err.error || err);
+          setShowFileNotExist(true);
+          recentlyViewedDelete(item);
+        }
+    } else {
+      try {
+        setGlobalUpdateTimestamp(Date.now());
+        const response = window.electronAPI.openNativeApp(item.fileLocation + '\\' + item.name);
+        if (!response.success) {
+          //console.error(response.error);
+          setShowFileNotExist(true);
+          recentlyViewedDelete(item);
+        }
       } catch (err) {
-        console.error("Python script failed:", err.error || err);
+        //console.error(err);
         setShowFileNotExist(true);
         recentlyViewedDelete(item);
       }
+    }
   };
 
   const recentlyViewedDelete = (item) => {
@@ -72,7 +90,7 @@ function RecentlyViewed() {
               >
                 {Icon && (
                   <Icon style={{ flexShrink: 0 }} size={16} strokeWidth={1.5}
-                    color-type={item.type === 'mp3' ? 'accent-color' : 'icon-color'} />
+                    color-type={item.type === 'mp3' || item.type === 'wav' ? 'accent-color' : item.type === 'symphony' ? 'accent-color-2' : 'icon-color'} />
                 )}
                 <div className="truncated-text" style={{ marginLeft: '6px' }}>
                   {item.name}

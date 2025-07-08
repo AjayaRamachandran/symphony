@@ -17,7 +17,7 @@ function LeftPanel() {
         </div>
         <Directory />
         <div className='section-title'>
-          RECENTLY VIEWED
+          RECENTLY LAUNCHED
         </div>
         <RecentlyViewed />
       </div>

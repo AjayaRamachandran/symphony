@@ -48,6 +48,9 @@ html, body, #root {
 [color-type="accent-color"] {
   color: #c56ec9;
 }
+[color-type="accent-color-2"] {
+  color: #f38665;
+}
 
 [color-type="icon-color"] {
   color: #606060;
