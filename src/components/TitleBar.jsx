@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Square, Copy } from 'lucide-react';
-import Icon from '@/assets/icon.svg';
+import Icon from '@/assets/icon-dark.svg';
 
 function TitleBar() {
   const [isMaximized, setIsMaximized] = useState(false);

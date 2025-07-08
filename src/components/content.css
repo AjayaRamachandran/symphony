@@ -156,7 +156,7 @@
   box-sizing: border-box;
   border-radius: 7px;
   background: #bc4512;
-  transition: filter 0.25s;
+  transition: filter 0.25s, background-color 0.25s;
   gap: 7px;
 }
 .call-to-action-2.locked {
