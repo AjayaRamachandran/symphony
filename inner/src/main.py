@@ -4,11 +4,12 @@ import pygame
 from io import BytesIO
 import numpy as np
 # import random
+import ctypes
 import copy
 import cv2
 from math import *
 import time
-from os import environ
+from os import environ, path
 # import json
 import sys
 import dill as pkl
@@ -16,6 +17,13 @@ from tkinter.filedialog import asksaveasfile #, asksaveasfilename
 import sys
 import json
 from pathlib import Path
+
+try:
+    from ctypes import windll
+    myappid = 'nimbial.symphony.editor.v1-0' # arbitrary string
+    windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+except ImportError:
+    pass # Not on Windows or ctypes is not available
 
 ### Handling Arguments
 '''
@@ -56,16 +64,31 @@ elif len(sys.argv) == 2:
 else:
     workingFile = ""
 
-###### PYGAME INITIALIZE ######
-
-width, height = (1100, 592)
-minWidth, minHeight = (1100, 592)
+###### (PYGAME &) WINDOW INITIALIZE ######
 
 if (process == 'instantiate') or (process == 'retrieve'):
     environ["SDL_VIDEODRIVER"] = "dummy"
 
+width, height = (1100, 592)
+minWidth, minHeight = (1100, 592)
+iconPath = 'inner/assets/icon32x32.png'
+if path.exists(iconPath):
+    gameIcon = pygame.image.load(iconPath)
+    pygame.display.set_icon(gameIcon)
+else:
+    print(f"Warning: Icon file not found at {iconPath}")
+
 pygame.init()
+pygame.display.set_caption(f"{titleText} - Symphony v1.0 Beta")
+#pygame.display.set_icon(pygame.image.load("src/assets/icon.png"))
 screen = pygame.display.set_mode((width, height), pygame.RESIZABLE, pygame.NOFRAME)
+
+if (process == 'instantiate') or (process == 'retrieve'):
+    None
+else:
+    pygame.display.flip()
+    pygame.event.pump()
+    time.sleep(0.1)
 
 play_obj = None # global to hold the last Channel/Sound so it doesn't get garbage-collected
 SAMPLE_RATE = 44100
@@ -80,8 +103,6 @@ scrLime = pygame.Surface((width, height), pygame.SRCALPHA)
 scrBlue = pygame.Surface((width, height), pygame.SRCALPHA)
 scrPink = pygame.Surface((width, height), pygame.SRCALPHA)
 scrList = [scrOrange, scrPurple, scrCyan, scrLime, scrBlue, scrPink]
-pygame.display.set_caption(f"{titleText} - Symphony v1.0 Beta")
-pygame.display.set_icon(pygame.image.load("src/assets/icon.png"))
 clock = pygame.time.Clock()
 fps = 60
 

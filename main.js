@@ -16,6 +16,7 @@ app.whenReady().then(() => {
     minWidth: 800,
     minHeight: 800,
     frame: false,
+    icon: path.join(__dirname, 'src/assets', 'icon-dark32x32.ico'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false, // best for security
