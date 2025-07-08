@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
@@ -24,7 +24,7 @@ app.whenReady().then(() => {
   });
 
   mainWindow.loadURL('http://localhost:5173');
-  mainWindow.webContents.openDevTools();
+  //mainWindow.webContents.openDevTools();
 
   // Respond to frontend window control events
   ipcMain.on('minimize', () => mainWindow.minimize());
@@ -57,8 +57,42 @@ app.whenReady().then(() => {
     let files = null
     try { files = fs.readdirSync(directoryPath); } catch(error) { return 'not a valid dir' }
     
-    const symphonyFiles = files.filter(file => path.extname(file) === '.symphony');
+    const symphonyFiles = files.filter(file => path.extname(file) === '.symphony' || path.extname(file) === '.wav');
     return symphonyFiles || 'no files';
+  });
+
+  ipcMain.handle('open-native-app', async (event, filePath) => {
+    const result = await shell.openPath(filePath);
+    if (result) {
+      console.error(`Error: "get-symphony-files" in main.js \n Unable to locate ${filePath}`);
+      return { success: false, error: result };
+    }
+    try {
+      let recent = [];
+      if (fs.existsSync(RECENTLY_VIEWED_PATH)) {
+        recent = JSON.parse(fs.readFileSync(RECENTLY_VIEWED_PATH, 'utf-8'));
+      }
+      // Compose new entry
+      const fileName = path.basename(filePath);
+      const fileType = path.extname(fileName).replace('.', '').toLowerCase();
+      const entry = {
+        type: fileType,
+        name: fileName,
+        fileLocation: path.dirname(filePath)
+      };
+      // Remove any existing entry with same name and location
+      recent = recent.filter(r => !(r.name === entry.name && r.fileLocation === entry.fileLocation));
+      // Add to top
+      recent.unshift(entry);
+      // Limit to 20 entries
+      if (recent.length > 20) recent = recent.slice(0, 20);
+      fs.writeFileSync(RECENTLY_VIEWED_PATH, JSON.stringify(recent, null, 2), 'utf-8');
+    } catch(e) {
+      //console.error('Failed to update recently viewed:', e);
+      console.log('Failed to open file:', e);
+      return { success: false, error: e.message }
+    }
+    return { success: true };
   });
 
   ipcMain.handle('save-directory', async (event, { destination, projectName, sourceLocation }) => {

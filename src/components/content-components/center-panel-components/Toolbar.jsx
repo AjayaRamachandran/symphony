@@ -7,6 +7,7 @@ import Tooltip from '@/components/Tooltip';
 import GenericModal from '@/modals/GenericModal';
 import DeleteConfirmationModal from '@/modals/DeleteConfirmationModal';
 import ShowInfoModal from '@/modals/ShowInfoModal';
+import ExportModal from '@/modals/ExportModal';
 
 import './toolbar.css'
 import { useDirectory } from '@/contexts/DirectoryContext';
@@ -15,6 +16,7 @@ function Toolbar() {
   const { viewType, setViewType, clipboardFile, setClipboardFile, clipboardCut, setClipboardCut, selectedFile, setSelectedFile, globalDirectory, setGlobalUpdateTimestamp, isFieldSelected } = useDirectory();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const iconSize = 20
 
   // Helper to call global operator functions
@@ -26,7 +28,9 @@ function Toolbar() {
 
   const openFileLocation = () => {
     if (selectedFile && globalDirectory) {
-      window.electronAPI.openFileLocation(globalDirectory + '/' + selectedFile);
+      window.electronAPI.openFileLocation(globalDirectory + '\\' + selectedFile);
+    } else if (globalDirectory) {
+      window.electronAPI.openNativeApp(globalDirectory);
     }
   }
 
@@ -66,7 +70,7 @@ function Toolbar() {
           <div className='toolbar-subsection'>
             <button className={'icon-button tooltip grayed'}><Tooltip text="Collaborate (Coming Soon)"/><Users size={iconSize}/></button>
             <button className={'icon-button tooltip grayed'}><Tooltip text="Export to MuseScore (Coming Soon)"/><img src={mscz} color={"#737373"} alt="mscz icon" width={iconSize} height={iconSize} /></button>
-            <button className={'icon-button tooltip' + (!selectedFile ? ' grayed' : '')}><Tooltip text="Export to Audio"/><FileAudio2 size={iconSize}/></button>
+            <button className={'icon-button tooltip' + (!selectedFile ? ' grayed' : '')} onClick={() => {selectedFile ? setShowExportModal(true) : undefined}}><Tooltip text="Export to Audio"/><FileAudio2 size={iconSize}/></button>
           </div>
         </div>
         <hr />
@@ -75,7 +79,7 @@ function Toolbar() {
           <div className='toolbar-subsection'>
             <button className={'icon-button tooltip' + (!selectedFile ? ' grayed' : '')} onClick={() => {selectedFile ? setShowInfo(true) : undefined}}><Tooltip text="See Properties"/><Info size={iconSize}/></button>
             <button className={'icon-button tooltip' + (!selectedFile ? ' grayed' : '')}><Tooltip text="Star File"/><Star size={iconSize}/></button>
-            <button className={'icon-button tooltip' + (!selectedFile ? ' grayed' : '')} onClick={() => {selectedFile ? openFileLocation() : undefined}}><Tooltip text="Open File Location"/><FolderOpen size={iconSize}/></button>
+            <button className={'icon-button tooltip' + (!globalDirectory ? ' grayed' : '')} onClick={() => {globalDirectory ? openFileLocation() : undefined}}><Tooltip text="Open File Location"/><FolderOpen size={iconSize}/></button>
             <button className={'icon-button tooltip' + (!selectedFile ? ' grayed' : '')} onClick={() => {selectedFile ? setShowDeleteConfirm(true) : undefined}}><Tooltip text="Delete"/><Trash2 size={iconSize} color='#E46767'/></button>
           </div>
         </div>
@@ -103,6 +107,9 @@ function Toolbar() {
       </GenericModal>
       <GenericModal isOpen={showInfo} onClose={() => { setShowInfo(false) }}>
         <ShowInfoModal filePath={globalDirectory + '\\' + selectedFile}/>
+      </GenericModal>
+      <GenericModal isOpen={showExportModal} onClose={() => { setShowExportModal(false) }}>
+        <ExportModal onClose={() => setShowExportModal(false) }/>
       </GenericModal>
     </>
   );

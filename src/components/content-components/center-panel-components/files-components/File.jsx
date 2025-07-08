@@ -3,6 +3,7 @@ import { Plus } from 'lucide-react';
 import path from 'path-browserify';
 
 import fileIcon from '@/assets/file-icon.svg';
+import wavIcon from '@/assets/wav-icon.svg';
 import { useDirectory } from '@/contexts/DirectoryContext';
 
 import "./file.css";
@@ -14,7 +15,7 @@ function File({name}) {
 
   const runPython2 = async (title) => {
     console.log(title);
-    setGlobalUpdateTimestamp(Date.now)
+    setGlobalUpdateTimestamp(Date.now);
     const result = await window.electronAPI.runPythonScript(['open', `${title}`, globalDirectory]);
     console.log(result);
   };
@@ -36,9 +37,10 @@ function File({name}) {
     <>
       <button className={'file-select-box' + (viewType==='grid'? '' : viewType==='content'? '-content' : '-list') + ((selectedFile === fileName) ? ' highlighted' : '')}
               style={{opacity: (clipboardFile && path.basename(clipboardFile) === fileName && clipboardCut)? 0.6 : 1}}
-              onClick={e => { e.stopPropagation(); setSelectedFile(fileName); console.log(fileName); }}
-              onDoubleClick={() => runPython2(selectedFile)}>
-        <img src={fileIcon} color="#606060" alt="mscz icon" width={viewType==='grid'?110 : viewType==='content'?80: 30}
+              onClick={e => { if (displayName.slice(-9) === '.symphony') e.stopPropagation(); setSelectedFile(fileName); console.log(fileName); }}
+              onDoubleClick={async () => {(displayName.slice(-9) === '.symphony') ? runPython2(selectedFile) : await window.electronAPI.openNativeApp(globalDirectory + '\\' + displayName); setGlobalUpdateTimestamp(Date.now);
+              }}>
+        <img src={displayName.slice(-9) === '.symphony' ? fileIcon : wavIcon} color="#606060" height={viewType==='grid'? 78 : viewType==='content'?55: 21}
         style={{marginTop: (viewType==='list'? '3px' : '0')}} />
         <div style={{display: 'flex', flexDirection: viewType==='content'? 'column' : 'row'}}>
         <span
@@ -56,8 +58,8 @@ function File({name}) {
           {displayName}
         </span>
         {viewType==='grid'? undefined : viewType==='content'?
-        (<><span style={{opacity: 0.5, fontSize: '0.8em', marginTop: '7px'}}>SYMPHONY file</span></>) :
-        (<><span style={{opacity: 0.5, fontSize: '1em', marginTop: '3px', width: '100%'}}>SYMPHONY file</span></>)
+        (<><span style={{opacity: 0.5, fontSize: '0.8em', marginTop: '7px'}}>{(displayName.slice(-9) === '.symphony') ? 'SYMPHONY File' : 'WAV Lossless Audio File'}</span></>) :
+        (<><span style={{opacity: 0.5, fontSize: '1em', marginTop: '3px', width: '100%'}}>{(displayName.slice(-9) === '.symphony') ? 'SYMPHONY File' : 'WAV Lossless Audio File'}</span></>)
         }
         
         </div>

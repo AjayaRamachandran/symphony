@@ -120,7 +120,7 @@ function RightPanel() {
             <Tooltip text={globalDirectory.replace(/\\/g, '/') + '/' + selectedFile} />
             {globalDirectory.replace(/\\/g, '/') + '/' + selectedFile}
           </div>
-          </>) : (<><div className='faded'>Select a file to view its details.</div></>) }
+          </>) : (<><div className='faded'>Select a Symphony to view its details.</div></>) }
         </div>
 
         <button
