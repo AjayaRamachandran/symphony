@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FolderOpen, ChartNoAxesGantt, Music, Save } from 'lucide-react';
+import path from 'path-browserify';
 
 import Field from '@/components/content-components/right-panel-components/Field';
 import Dropdown from '@/components/Dropdown';
@@ -33,8 +34,7 @@ function NewFolder({defaultDestProp = '', onClose, onConflict}) {
     console.log('Dialog result:' + result);
     if (result) {
       setSourceLocation(result);
-      const parts = result.split(/[\\/]/).filter(Boolean);
-      setProjectName(parts[parts.length - 1]);
+      setProjectName(path.basename(result.replace(/\\/g, '/')));
     }
   };
 

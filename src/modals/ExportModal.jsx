@@ -41,10 +41,10 @@ function ExportModal({onClose, onComplete}) {
     setAttr(selected.label);
   };
 
-  const finish = async (path) => {
+  const finish = async (pathToFile) => {
     document.body.style.cursor = 'wait';
     try {
-      await window.electronAPI.runPythonScript(['export', globalDirectory + '\\' + selectedFile, path]);
+      await window.electronAPI.runPythonScript(['export', path.join(globalDirectory, selectedFile), pathToFile]);
     } finally {
       document.body.style.cursor = 'default';
     }

@@ -87,10 +87,10 @@ app.whenReady().then(() => {
       // Limit to 20 entries
       if (recent.length > 20) recent = recent.slice(0, 20);
       fs.writeFileSync(RECENTLY_VIEWED_PATH, JSON.stringify(recent, null, 2), 'utf-8');
-    } catch(e) {
+    } catch (e) {
       //console.error('Failed to update recently viewed:', e);
       console.log('Failed to open file:', e);
-      return { success: false, error: e.message }
+      return { success: false, error: e }
     }
     return { success: true };
   });
@@ -208,7 +208,7 @@ app.whenReady().then(() => {
       for (const [section, entries] of Object.entries(directoryData)) {
         for (const entry of entries) {
           const folderPath = Object.values(entry)[0];
-          if (folderPath === filePath) {
+          if (folderPath.replace(/\\/g, '/') === filePath.replace(/\\/g, '/')) {
             return { section };
           }
         }
@@ -378,6 +378,62 @@ app.whenReady().then(() => {
       return { success: true };
     } catch (err) {
       return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('get-stars', async () => {
+    try {
+      if (!fs.existsSync(STARRED_PATH)) {
+        fs.writeFileSync(STARRED_PATH, '[]', 'utf-8');
+      }
+      const data = fs.readFileSync(STARRED_PATH, 'utf-8');
+      return JSON.parse(data);
+    } catch (err) {
+      return [];
+    }
+  });
+
+  ipcMain.handle('add-star', async (event, filePath) => {
+    try {
+      if (!fs.existsSync(STARRED_PATH)) {
+        fs.writeFileSync(STARRED_PATH, '[]', 'utf-8');
+      }
+      const data = fs.readFileSync(STARRED_PATH, 'utf-8');
+      const stars = JSON.parse(data);
+      const normalizeSlashes = (p) => p.replace(/\\/g, '/');
+
+      const normalizedFilePath = normalizeSlashes(filePath);
+      const normalizedStars = stars.map(p => normalizeSlashes(p));
+      // console.log(normalizedFilePath);
+      // console.log(normalizedStars);
+
+      if (!normalizedStars.includes(normalizedFilePath)) {
+        stars.push(filePath);
+        fs.writeFileSync(STARRED_PATH, JSON.stringify(stars, null, 2), 'utf-8');
+      }
+
+      return stars;
+    } catch (err) {
+      console.error('Error in add-star:', err);
+      return [];
+    }
+  });
+
+  ipcMain.handle('remove-star', async (event, filePath) => {
+    try {
+      if (!fs.existsSync(STARRED_PATH)) {
+        fs.writeFileSync(STARRED_PATH, '[]', 'utf-8');
+      }
+      const data = fs.readFileSync(STARRED_PATH, 'utf-8');
+      let stars = JSON.parse(data);
+
+      stars = stars.filter(star => star.replace(/\\/g, '/') !== filePath.replace(/\\/g, '/'));
+      fs.writeFileSync(STARRED_PATH, JSON.stringify(stars, null, 2), 'utf-8');
+
+      return stars;
+    } catch (err) {
+      console.error('Error in remove-star:', err);
+      return [];
     }
   });
 

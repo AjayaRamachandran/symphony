@@ -1,0 +1,75 @@
+.search-box {
+  display: flex;
+  flex-direction: column;
+  position: absolute;
+  top: 70px;
+  width: calc(min(100%, 100vw - 606px));
+  box-sizing: border-box;
+
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 8px;
+  border: 1px #4f4f4f solid;
+  color: #d9d9d9;
+  background-color: #303030;
+  padding: 7px 9px 7px 9px;
+  box-shadow: 0px 5px 9px #00000066;
+
+  resize: none;
+  outline: none;
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+
+  transition: border-color 0.4s, box-shadow 0.4s;
+  z-index: 300;
+}
+
+.stars {
+  display: flex;
+  flex-direction: row;
+  flex-flow: wrap;
+  word-wrap: normal;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: flex-start;
+  text-align: left;
+  background-color: #303030;
+  border: 1px solid #4f4f4f;
+  border-radius: 12px;
+  padding: 4px 8px;
+  margin-right: 4px;
+  margin-bottom: 4px;
+  cursor: pointer;
+
+  max-width: 100%;
+  white-space: normal; /* allow wrapping if needed */
+  word-break: break-word; /* wrap long words if necessary */
+}
+
+.star-icon {
+  margin-right: 4px;
+}
+
+.chip-name {
+  font-size: 12px;
+}
+
+.results-label {
+  margin: 10px 0px 0px 0px;
+  font-style: italic;
+  color: #d9d9d9;
+}
+
+.starred-label {
+  display: flex;
+  margin: 0px 0px 5px 0px;
+  font-size: 0.9em;
+  letter-spacing: 1px;
+  color: #737373;
+  justify-content: space-between;
+  align-items: center;
+}

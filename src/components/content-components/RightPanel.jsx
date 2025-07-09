@@ -23,7 +23,7 @@ function RightPanel() {
     setFileName(selectedFile ? selectedFile.slice(0, -9) : '');
     setTempFileName(selectedFile ? selectedFile.slice(0, -9) : '');
     if (selectedFile && globalDirectory) {
-      window.electronAPI.getMetadata(globalDirectory + '/' + selectedFile)
+      window.electronAPI.getMetadata(path.join(globalDirectory, selectedFile))
         .then(meta => setMetadata(meta || {}));
     } else {
       setMetadata({});
@@ -33,9 +33,12 @@ function RightPanel() {
   const runPython2 = async (title) => {
     console.log(title);
     document.body.style.cursor = 'wait';
-    const result = await window.electronAPI.runPythonScript(['open', `${title}`, globalDirectory]);
-    document.body.style.cursor = 'default';
-    console.log(result);
+    try {
+      const result = await window.electronAPI.runPythonScript(['open', `${title}`, globalDirectory]);
+      console.log(result);
+    } finally {
+      document.body.style.cursor = 'default';
+    }
   };
 
   const updateTitle = (newName) => {
@@ -43,7 +46,7 @@ function RightPanel() {
     console.log(globalDirectory);
     console.log(newName);
 
-    window.electronAPI.renameFile((globalDirectory + '\\' + selectedFile), newName)
+    window.electronAPI.renameFile(path.join(globalDirectory, selectedFile), newName)
       .then(result => {
         if (result.success) {
           setSelectedFile(newName + '.symphony');
@@ -62,7 +65,7 @@ function RightPanel() {
     if (!selectedFile || !globalDirectory) return;
     const newMeta = { ...metadata, [field]: value };
     setMetadata(newMeta);
-    window.electronAPI.setMetadata(globalDirectory + '/' + selectedFile, newMeta);
+    window.electronAPI.setMetadata(path.join(globalDirectory, selectedFile), newMeta);
   };
 
   // Only update tempFileName on change, and update actual file on blur
@@ -117,21 +120,21 @@ function RightPanel() {
           <div className='field-label'>File Location</div>
           <div className='field scrollable dark-bg' style={{whiteSpace: 'nowrap', textOverflow: 'unset',
             overflowX: 'scroll', padding: '7px 7px 2px 7px', fontSize: '13px', cursor: 'pointer', fontStyle: 'italic'}}>
-            <Tooltip text={globalDirectory.replace(/\\/g, '/') + '/' + selectedFile} />
-            {globalDirectory.replace(/\\/g, '/') + '/' + selectedFile}
+            <Tooltip text={path.join(globalDirectory, selectedFile)} />
+            {path.join(globalDirectory, selectedFile)}
           </div>
           </>) : (<><div className='faded'>Select a Symphony to view its details.</div></>) }
         </div>
 
         <button
-          className={'call-to-action tooltip' + (selectedFile ? '' : ' inactive')}
+          className={'call-to-action tooltip' + ((selectedFile && selectedFile.slice(-9) === '.symphony') ? '' : ' inactive')}
           text-style='display'
           style={{ transition: 'filter 0.2s, border 0.4s, background 0.4s' }}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
-          onClick={selectedFile ? () => runPython2(selectedFile) : undefined}
+          onClick={(selectedFile && selectedFile.slice(-9) === '.symphony') ? () => runPython2(selectedFile) : undefined}
         >
-          <Tooltip text={selectedFile ? 'Open this Symphony in the dedicated editor.' : 'Select a Symphony to open it in the editor.'}/>
+          <Tooltip text={(selectedFile && selectedFile.slice(-9) === '.symphony') ? 'Open this Symphony in the dedicated editor.' : 'Select a Symphony to open it in the editor.'}/>
           <div>Open in Editor</div>
           <PencilRuler size={16} strokeWidth={2.5} />
         </button>
