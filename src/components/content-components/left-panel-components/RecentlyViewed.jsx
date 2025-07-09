@@ -56,7 +56,7 @@ function RecentlyViewed() {
     } else {
       try {
         setGlobalUpdateTimestamp(Date.now());
-        const response = window.electronAPI.openNativeApp(item.fileLocation + '\\' + item.name);
+        const response = await window.electronAPI.openNativeApp(item.fileLocation + '\\' + item.name);
         if (!response.success) {
           //console.error(response.error);
           setShowFileNotExist(true);
