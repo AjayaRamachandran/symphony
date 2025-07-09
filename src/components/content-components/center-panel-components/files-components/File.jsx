@@ -26,7 +26,7 @@ function File({name}) {
   }, [selectedFile, name]);
 
   useEffect(() => {
-    setDisplayName((selectedFile === name && tempFileName) ? tempFileName + '.symphony' : fileName);
+    setDisplayName((selectedFile === name && selectedFile.slice(-9) === '.symphony' && tempFileName) ? tempFileName + '.symphony' : fileName);
     //console.log(symphonyFiles);
   }, [name, tempFileName, fileName]);
 
@@ -37,7 +37,7 @@ function File({name}) {
     <>
       <button className={'file-select-box' + (viewType==='grid'? '' : viewType==='content'? '-content' : '-list') + ((selectedFile === fileName) ? ' highlighted' : '')}
               style={{opacity: (clipboardFile && path.basename(clipboardFile) === fileName && clipboardCut)? 0.6 : 1}}
-              onClick={e => { if (displayName.slice(-9) === '.symphony') e.stopPropagation(); setSelectedFile(fileName); console.log(fileName); }}
+              onClick={e => { e.stopPropagation(); setSelectedFile(fileName); console.log(fileName); }}
               onDoubleClick={async () => {(displayName.slice(-9) === '.symphony') ? runPython2(selectedFile) : await window.electronAPI.openNativeApp(globalDirectory + '\\' + displayName); setGlobalUpdateTimestamp(Date.now);
               }}>
         <img src={displayName.slice(-9) === '.symphony' ? fileIcon : wavIcon} color="#606060" height={viewType==='grid'? 78 : viewType==='content'?55: 21}

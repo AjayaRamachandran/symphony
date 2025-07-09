@@ -19,6 +19,8 @@ function Toolbar() {
   const [showExportModal, setShowExportModal] = useState(false);
   const iconSize = 20
 
+  const selectingSymphony = selectedFile && (selectedFile.slice(-9) === '.symphony')
+
   // Helper to call global operator functions
   const callOp = (op) => {
     if (window.symphonyOps && typeof window.symphonyOps[op] === 'function') {
@@ -70,14 +72,14 @@ function Toolbar() {
           <div className='toolbar-subsection'>
             <button className={'icon-button tooltip grayed'}><Tooltip text="Collaborate (Coming Soon)"/><Users size={iconSize}/></button>
             <button className={'icon-button tooltip grayed'}><Tooltip text="Export to MuseScore (Coming Soon)"/><img src={mscz} color={"#737373"} alt="mscz icon" width={iconSize} height={iconSize} /></button>
-            <button className={'icon-button tooltip' + (!selectedFile ? ' grayed' : '')} onClick={() => {selectedFile ? setShowExportModal(true) : undefined}}><Tooltip text="Export to Audio"/><FileAudio2 size={iconSize}/></button>
+            <button className={'icon-button tooltip' + ((!selectedFile || !selectingSymphony) ? ' grayed' : '')} onClick={() => {(selectedFile && selectingSymphony) ? setShowExportModal(true) : undefined}}><Tooltip text="Export to Audio"/><FileAudio2 size={iconSize}/></button>
           </div>
         </div>
         <hr />
         <div className='toolbar-section'>
           FILE
           <div className='toolbar-subsection'>
-            <button className={'icon-button tooltip' + (!selectedFile ? ' grayed' : '')} onClick={() => {selectedFile ? setShowInfo(true) : undefined}}><Tooltip text="See Properties"/><Info size={iconSize}/></button>
+            <button className={'icon-button tooltip' + ((!selectedFile || !selectingSymphony) ? ' grayed' : '')} onClick={() => {(selectedFile && selectingSymphony) ? setShowInfo(true) : undefined}}><Tooltip text="See Properties"/><Info size={iconSize}/></button>
             <button className={'icon-button tooltip' + (!selectedFile ? ' grayed' : '')}><Tooltip text="Star File"/><Star size={iconSize}/></button>
             <button className={'icon-button tooltip' + (!globalDirectory ? ' grayed' : '')} onClick={() => {globalDirectory ? openFileLocation() : undefined}}><Tooltip text="Open File Location"/><FolderOpen size={iconSize}/></button>
             <button className={'icon-button tooltip' + (!selectedFile ? ' grayed' : '')} onClick={() => {selectedFile ? setShowDeleteConfirm(true) : undefined}}><Tooltip text="Delete"/><Trash2 size={iconSize} color='#E46767'/></button>
@@ -103,7 +105,7 @@ function Toolbar() {
         </div>
       </div>
       <GenericModal isOpen={showDeleteConfirm} onClose={() => { setShowDeleteConfirm(false) }}>
-        <DeleteConfirmationModal onComplete={() => { setShowDeleteConfirm(false); handleDelete() }} action={'Delete'} modifier={'Symphony'} />
+        <DeleteConfirmationModal onComplete={() => { setShowDeleteConfirm(false); handleDelete() }} action={'Delete'} modifier={selectingSymphony ? 'Symphony' : '.wav file'} />
       </GenericModal>
       <GenericModal isOpen={showInfo} onClose={() => { setShowInfo(false) }}>
         <ShowInfoModal filePath={globalDirectory + '\\' + selectedFile}/>

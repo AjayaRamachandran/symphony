@@ -45,9 +45,12 @@ def cleanse(string):
             stringCopy = stringCopy[:l] + '_' + stringCopy[l+1:]
     return stringCopy
 
+autoSaveDirectory = json.load(open('src/assets/directory.json'))['Symphony Auto-Save'][0]['Auto-Save']
+
 titleText = 'My Track 1'
 process = ''
 globalUUID = 0
+sessionID = time.strftime('%Y-%m-%d %H%M%S')
 print(f'Running with sysargv: {sys.argv}')
 
 if len(sys.argv) > 4:
@@ -147,7 +150,6 @@ noteMap = {}
 
 tick = 0
 tickInterval = 10
-tempo = 360
 
 NOTES_SHARP = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
 NOTES_FLAT =  ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"]
@@ -603,6 +605,7 @@ def dumpToFile(file, directory):
 
     ps.updateAttributes(noteMap, ticksPerTile, key, mode, waveMap)
     pkl.dump(ps, file, -1)
+    pkl.dump(ps, open(autoSaveDirectory + '\\' + titleText + ' Backup ' + sessionID + '.symphony', 'wb'), -1)
 
     worldMessage = (f"Last Saved {readableTime} to " + directory) if directory != "inner/assets/workingfile.symphony" else "You have unsaved changes - Please save to a file on your PC."
 
@@ -802,6 +805,8 @@ def sameNoteMaps(noteMap1, noteMap2):
 ###### MAINLOOP ######
 running = True
 playHead = Head(0, 1, 0)
+tempo = int(round(3600 / ps.ticksPerTile))
+lastNoteTime = 0
 ctrlZTime = 59
 noteMapVersionTracker = []
 noteMapFutureVersionTracker = []
@@ -816,6 +821,10 @@ while running:
     # checks if new changes have been made, if so adds them to the version history for Ctrl+Z
     ctrlZTime += 1
     if ctrlZTime > 60:
+        for note in noteMap.items():
+            lastNoteTime = max(lastNoteTime, note[1].time)
+            noteCount = max(noteCount, lastNoteTime + 20)
+
         if not pygame.mouse.get_pressed()[0]:
             if noteMapVersionTracker == [] or not any(sameNoteMaps(noteMapVersionTracker[-i], noteMap) for i in range(1, len(noteMapVersionTracker) + 1)):
                 noteMapVersionTracker.append(copy.deepcopy(noteMap))

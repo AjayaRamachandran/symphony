@@ -80,7 +80,7 @@ function RightPanel() {
       <>
         <div>
           <div className='med-title' text-style='display'>Details</div>
-          {selectedFile ? (<>
+          {(selectedFile && selectedFile.slice(-9) === '.symphony') ? (<>
           <div className='field-label'>Title</div>
           <Field
             value={tempFileName}
