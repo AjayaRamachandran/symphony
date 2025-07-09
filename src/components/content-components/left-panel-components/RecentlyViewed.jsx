@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Music, ChartNoAxesGantt, FolderClosed } from 'lucide-react';
+import path from 'path-browserify';
 
 import Tooltip from '@/components/Tooltip';
 import './recently-viewed.css';
@@ -32,8 +33,10 @@ function RecentlyViewed() {
   // Handle single and double click
   const handleClick = (item) => {
     if (item.fileLocation && item.type === 'symphony') {
-      setGlobalDirectory(item.fileLocation);
+      setGlobalDirectory(item.fileLocation.replace(/\\/g, '/'));
       setSelectedFile(item.name);
+      console.log(item.fileLocation.replace(/\\/g, '/'));
+      console.log(item.name);
     }
   };
 
@@ -56,18 +59,19 @@ function RecentlyViewed() {
     } else {
       try {
         setGlobalUpdateTimestamp(Date.now());
-        const response = await window.electronAPI.openNativeApp(item.fileLocation + '\\' + item.name);
+        const response = await window.electronAPI.openNativeApp(path.join(item.fileLocation, item.name));
         if (!response.success) {
           //console.error(response.error);
           setShowFileNotExist(true);
           recentlyViewedDelete(item);
         }
       } catch (err) {
-        //console.error(err);
+        console.error(err);
         setShowFileNotExist(true);
         recentlyViewedDelete(item);
       }
     }
+    setSelectedFile(null);
   };
 
   const recentlyViewedDelete = (item) => {

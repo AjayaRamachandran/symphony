@@ -26,7 +26,7 @@ function Files() {
     });
     window.electronAPI.getSectionForPath(globalDirectory).then((type) => {
       setCurrentSectionType(type.section);
-      console.log(type.section);
+      // console.log(type.section);
     });
   }, [globalDirectory, globalUpdateTimestamp]);
 

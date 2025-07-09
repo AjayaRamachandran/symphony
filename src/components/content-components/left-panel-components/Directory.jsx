@@ -16,7 +16,7 @@ import './directory.css'
 function Directory() {
   const sections = ['Projects', 'Exports', 'Symphony Auto-Save'];
   //const [isModalOpen, setModalOpen] = useState(false);
-  const { globalDirectory, setGlobalDirectory } = useDirectory();
+  const { globalDirectory, setGlobalDirectory, setSelectedFile } = useDirectory();
   const [openSection, setOpenSection] = useState(null);
   const [directory, setDirectory] = useState(null);
   const [showAddAutoSave, setShowAddAutoSave] = useState(false);
@@ -56,8 +56,9 @@ function Directory() {
   });
 
   const callSetGlobalDirectory = (directory) => {
-    console.log('Set global directory to ' + directory)
-    setGlobalDirectory(directory)
+    console.log('Set global directory to ' + directory);
+    setGlobalDirectory(directory.replace(/\\/g, '/'));
+    setSelectedFile(null);
   };
 
   const removeDirectory = () => {
@@ -97,7 +98,7 @@ function Directory() {
           </div>
   
           {toTuples(directory[section]).map((elementPair, elementPairIndex) => (
-            <div className="directory-medium" style={elementPair[1] == globalDirectory ? {filter: 'brightness(1.2)'} : {}} key={elementPairIndex} onClick={() => callSetGlobalDirectory(elementPair[1])}>
+            <div className="directory-medium" style={elementPair[1].replace(/\\/g, '/') == globalDirectory ? {filter: 'brightness(1.2)'} : {}} key={elementPairIndex} onClick={() => callSetGlobalDirectory(elementPair[1])}>
               <FolderClosed style={{flexShrink: 0}} size={16} strokeWidth={1.5} color='#606060'/>
               <div style={{display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignContent: 'center', width: '100%'}}>
                 <span style={{marginLeft: '6px'}}>

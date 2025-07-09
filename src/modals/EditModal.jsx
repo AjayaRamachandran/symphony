@@ -41,7 +41,8 @@ function EditModal({getParams, onClose, onRemove, onConfirm, onDeny, onRefresh})
     console.log('Dialog result:' + result);
     if (result) {
       setSourceLocation(result);
-      const parts = result.split(/[\\/]/).filter(Boolean);
+      const normalized = path.normalize(result);
+      const parts = path.parse(normalized).dir.split(path.sep).filter(Boolean);
       setProjectName(parts[parts.length - 1]);
     }
   };

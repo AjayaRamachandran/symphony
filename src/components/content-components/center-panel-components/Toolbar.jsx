@@ -17,6 +17,7 @@ function Toolbar() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [itemIsStarred, setItemIsStarred] = useState(false);
   const iconSize = 20
 
   const selectingSymphony = selectedFile && (selectedFile.slice(-9) === '.symphony')
@@ -30,14 +31,14 @@ function Toolbar() {
 
   const openFileLocation = () => {
     if (selectedFile && globalDirectory) {
-      window.electronAPI.openFileLocation(globalDirectory + '\\' + selectedFile);
+      window.electronAPI.openFileLocation(path.join(globalDirectory, selectedFile));
     } else if (globalDirectory) {
       window.electronAPI.openNativeApp(globalDirectory);
     }
   }
 
   const handleDelete = useCallback(async () => {
-    console.log(isFieldSelected);
+    //console.log(isFieldSelected);
     if ((selectedFile && globalDirectory)) {
       const filePath = path.join(globalDirectory, selectedFile);
       await window.electronAPI.deleteFile(filePath);
@@ -45,6 +46,50 @@ function Toolbar() {
       setSelectedFile(null);
     }
   }, [selectedFile, globalDirectory, setGlobalUpdateTimestamp, isFieldSelected]);
+
+  const isStarred = async (filePath) => {
+    try {
+      const stars = await window.electronAPI.getStars();
+      console.log(stars)
+      //console.log(filePath)
+      // Normalize input path
+      const normalizedTarget = path.normalize(filePath).replace(/\\/g, '/');
+
+      return stars.some((starPath) => {
+        const normalizedStar = path.normalize(starPath).replace(/\\/g, '/');
+        //console.log(normalizedStar);
+        //console.log(normalizedTarget);
+        return normalizedStar === normalizedTarget;
+      });
+    } catch(e) {
+      return false;
+    }
+  };
+
+  useEffect(() => {
+    try {
+      isStarred(path.join(globalDirectory, selectedFile)).then((result) => {
+      setItemIsStarred(result);
+    })} catch (e) {
+
+    }
+  }, [selectedFile])
+
+  const handleStarToggle = async () => {
+    if (!selectedFile) return;
+
+    const filePath = path.join(globalDirectory, selectedFile);
+    const starred = await isStarred(filePath);
+    //console.log(starred)
+    setItemIsStarred(!starred);
+
+    if (!starred) {
+      await window.electronAPI.addStar(filePath);
+    } else {
+      await window.electronAPI.removeStar(filePath);
+    }
+    setGlobalUpdateTimestamp(Date.now());
+  };
 
   useEffect(() => {
     const handler = async (e) => {
@@ -80,7 +125,15 @@ function Toolbar() {
           FILE
           <div className='toolbar-subsection'>
             <button className={'icon-button tooltip' + ((!selectedFile || !selectingSymphony) ? ' grayed' : '')} onClick={() => {(selectedFile && selectingSymphony) ? setShowInfo(true) : undefined}}><Tooltip text="See Properties"/><Info size={iconSize}/></button>
-            <button className={'icon-button tooltip' + (!selectedFile ? ' grayed' : '')}><Tooltip text="Star File"/><Star size={iconSize}/></button>
+            <button
+              className={'icon-button tooltip' + (!selectedFile ? ' grayed' : '')}
+              onClick={handleStarToggle}
+              disabled={!selectedFile}
+            >
+              <Tooltip text="Star File" />
+              {(itemIsStarred && selectedFile) ?
+              (<><i className="bi bi-star-fill" style={{fontSize: '20px'}}></i></>) : (<><i className="bi bi-star" style={{fontSize: '20px'}}></i></>)}
+            </button>
             <button className={'icon-button tooltip' + (!globalDirectory ? ' grayed' : '')} onClick={() => {globalDirectory ? openFileLocation() : undefined}}><Tooltip text="Open File Location"/><FolderOpen size={iconSize}/></button>
             <button className={'icon-button tooltip' + (!selectedFile ? ' grayed' : '')} onClick={() => {selectedFile ? setShowDeleteConfirm(true) : undefined}}><Tooltip text="Delete"/><Trash2 size={iconSize} color='#E46767'/></button>
           </div>
@@ -107,9 +160,11 @@ function Toolbar() {
       <GenericModal isOpen={showDeleteConfirm} onClose={() => { setShowDeleteConfirm(false) }}>
         <DeleteConfirmationModal onComplete={() => { setShowDeleteConfirm(false); handleDelete() }} action={'Delete'} modifier={selectingSymphony ? 'Symphony' : '.wav file'} />
       </GenericModal>
-      <GenericModal isOpen={showInfo} onClose={() => { setShowInfo(false) }}>
-        <ShowInfoModal filePath={globalDirectory + '\\' + selectedFile}/>
-      </GenericModal>
+      {showInfo && selectedFile && globalDirectory && (
+        <GenericModal isOpen={showInfo} onClose={() => { setShowInfo(false) }}>
+          <ShowInfoModal filePath={path.join(globalDirectory, selectedFile)} />
+        </GenericModal>
+      )}
       <GenericModal isOpen={showExportModal} onClose={() => { setShowExportModal(false) }}>
         <ExportModal onClose={() => setShowExportModal(false) }/>
       </GenericModal>

@@ -605,7 +605,7 @@ def dumpToFile(file, directory):
 
     ps.updateAttributes(noteMap, ticksPerTile, key, mode, waveMap)
     pkl.dump(ps, file, -1)
-    pkl.dump(ps, open(autoSaveDirectory + '\\' + titleText + ' Backup ' + sessionID + '.symphony', 'wb'), -1)
+    pkl.dump(ps, open(autoSaveDirectory + '/' + titleText + ' Backup ' + sessionID + '.symphony', 'wb'), -1)
 
     worldMessage = (f"Last Saved {readableTime} to " + directory) if directory != "inner/assets/workingfile.symphony" else "You have unsaved changes - Please save to a file on your PC."
 

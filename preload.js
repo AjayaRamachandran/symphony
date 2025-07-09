@@ -25,4 +25,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   recentlyViewedDelete: (fileName) => ipcRenderer.invoke('recently-viewed-delete', fileName),
   getSectionForPath: (filePath) => ipcRenderer.invoke('get-section-for-path', filePath),
   openNativeApp: (filePath) => ipcRenderer.invoke('open-native-app', filePath),
+  getStars: () => ipcRenderer.invoke('get-stars'),
+  addStar: (filePath) => ipcRenderer.invoke('add-star', filePath),
+  removeStar: (filePath) => ipcRenderer.invoke('remove-star', filePath),
 });
