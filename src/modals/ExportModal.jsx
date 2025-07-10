@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FolderOpen, ChartNoAxesGantt, Music, Save, AudioLines, FolderClosed } from 'lucide-react';
+import path from 'path-browserify';
 
 import Field from '@/components/content-components/right-panel-components/Field';
 import Dropdown from '@/components/Dropdown';
