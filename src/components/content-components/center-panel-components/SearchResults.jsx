@@ -79,7 +79,7 @@ function SearchResults({ searchResults = [], getSearchTerm, getFocused, onClose 
            <button onClick={onClose}><X size={15} /></button>
           </div>
           <div className="stars scrollable">
-            {stars.map((filePath, index) => {
+            {stars.length > 0 ? stars.map((filePath, index) => {
               const normalizedPath = filePath.replace(/\\/g, '/');
               const basename = path.basename(normalizedPath);
               return (
@@ -94,7 +94,7 @@ function SearchResults({ searchResults = [], getSearchTerm, getFocused, onClose 
                   <span className="chip-name">{basename}</span>
                 </button>
               );
-            })}
+            }) : <>No Starred Files.</>}
           </div>
           {searchResults.length > 0 && (
           <div className="results-label">

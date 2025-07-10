@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Search } from 'lucide-react';
 import { useDirectory } from '@/contexts/DirectoryContext';
 
-import './field.css'
+import './field.css';
 
 const Field = ({
   value: controlledValue,
