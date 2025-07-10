@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import path from 'path-browserify'; // Required for path operations in browser
-import { Star, X } from 'lucide-react';
+import { Music, ChartNoAxesGantt, FolderClosed, X } from 'lucide-react';
 
 import Field from '../right-panel-components/Field';
 import Tooltip from '@/components/Tooltip';
@@ -11,7 +11,7 @@ import GenericModal from '@/modals/GenericModal';
 
 import { useDirectory } from '@/contexts/DirectoryContext';
 
-function SearchResults({ searchResults = [], getSearchTerm, getFocused, onClose }) {
+function SearchResults({ getSearchResults, getSearchTerm, getFocused, onClose }) {
   const [stars, setStars] = useState([]);
   const [showFileNotExist, setShowFileNotExist] = useState(false);
   const { setGlobalDirectory, globalUpdateTimestamp, setGlobalUpdateTimestamp, setSelectedFile } = useDirectory();
@@ -96,11 +96,39 @@ function SearchResults({ searchResults = [], getSearchTerm, getFocused, onClose 
               );
             }) : <>No Starred Files.</>}
           </div>
-          {searchResults.length > 0 && (
+          {getSearchResults().length > 0 && (
+          <>
           <div className="results-label">
             Results for '{getSearchTerm()}'
-          </div>)}
+          </div>
+          <div className="results">
+            {getSearchResults().length > 0 ? Object.entries(getSearchResults()).map((data, index) => {
+              const filePath = data[1].fullPath
+              const normalizedPath = filePath.replace(/\\/g, '/');
+              const dirname = path.dirname(normalizedPath);
+              const ext = path.extname(normalizedPath).slice(1)
+              const fileTypes = {
+                'symphony': ChartNoAxesGantt,
+                'mp3': Music,
+                'wav': Music,
+                '' : FolderClosed,
+              };
+              const Icon = fileTypes[ext];
+              return (
+                <button
+                  key={index}
+                  className="search-result tooltip"
+                  onClick={() => handleClick(normalizedPath)}
+                  onDoubleClick={() => handleDoubleClick(normalizedPath)}
+                >
+                  <Icon size={14} color-type={(ext === '' ? null : ext === 'symphony' ? 'accent-color-2' : 'accent-color')}/>
+                  <span className="chip-name"><span style={{fontWeight: '400', color: '#939393'}}>{'...' + dirname.slice(-30) + '/'}</span><span style={{fontWeight: '700'}}>{data[1].el}</span></span>
+                </button>
+              );
+            }) : <>No Starred Files.</>}
+          </div></>)}
         </div>
+        
       )}
       <GenericModal isOpen={showFileNotExist} onClose={() => { setShowFileNotExist(false) }} showXButton={false}>
         <FileNotExist onComplete={() => { setShowFileNotExist(false); }} />
