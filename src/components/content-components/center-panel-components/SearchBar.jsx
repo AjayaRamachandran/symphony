@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search } from 'lucide-react';
 
-import Field from '../right-panel-components/Field'
+import Field from '../right-panel-components/Field';
 import SearchResults from './SearchResults';
 
 import "./search-bar.css";

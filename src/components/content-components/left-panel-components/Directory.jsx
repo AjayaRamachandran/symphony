@@ -11,7 +11,7 @@ import SameNameWarning from '@/modals/SameNameWarning';
 
 import { useDirectory } from "@/contexts/DirectoryContext";
 
-import './directory.css'
+import './directory.css';
 
 function Directory() {
   const sections = ['Projects', 'Exports', 'Symphony Auto-Save'];
