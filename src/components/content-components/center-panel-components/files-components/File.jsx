@@ -9,9 +9,10 @@ import { useDirectory } from '@/contexts/DirectoryContext';
 import "./file.css";
 
 function File({name}) {
-  const { globalDirectory, selectedFile, setSelectedFile, clipboardFile, clipboardCut, setGlobalUpdateTimestamp, viewType, tempFileName } = useDirectory();
+  const { globalDirectory, selectedFile, setSelectedFile, clipboardFile, clipboardCut, setGlobalUpdateTimestamp, globalUpdateTimestamp, viewType, tempFileName } = useDirectory();
   const [ fileName, setFileName ] = useState(name);
   const [ displayName, setDisplayName ] = useState(fileName);
+  const [ isStarred, setIsStarred ] = useState(false);
 
   const runPython2 = async (title) => {
     console.log(title);
@@ -24,6 +25,16 @@ function File({name}) {
     setFileName(name);
     //console.log(symphonyFiles);
   }, [selectedFile, name]);
+
+  useEffect(() => {
+    window.electronAPI.getStars().then((result) => {
+      if (fileName) {
+        //console.log(result);
+        //setIsStarred(result.includes(path.join(globalDirectory, selectedFile)))
+        setIsStarred(result.some((a) => {return a.replace(/\\/g, '/') === path.join(globalDirectory, fileName).replace(/\\/g, '/')}));
+      }
+    })
+  }, [globalUpdateTimestamp, globalDirectory])
 
   useEffect(() => {
     setDisplayName((selectedFile === name && selectedFile.slice(-9) === '.symphony' && tempFileName) ? tempFileName + '.symphony' : fileName);
@@ -43,6 +54,7 @@ function File({name}) {
         <img src={displayName.slice(-9) === '.symphony' ? fileIcon : wavIcon} color="#606060" height={viewType==='grid'? 78 : viewType==='content'?55: 21}
         style={{marginTop: (viewType==='list'? '3px' : '0')}} />
         <div style={{display: 'flex', flexDirection: viewType==='content'? 'column' : 'row'}}>
+          
         <span
           style={{
             display: 'block',
@@ -56,6 +68,7 @@ function File({name}) {
           }}
         >
           {displayName}
+          {isStarred ? (<><i className="bi bi-star-fill" style={{margin: '0px 4px', fontSize: '10px', color: '#b8a463'}}></i></>) : undefined}
         </span>
         {viewType==='grid'? undefined : viewType==='content'?
         (<><span style={{opacity: 0.5, fontSize: '0.8em', marginTop: '7px'}}>{(displayName.slice(-9) === '.symphony') ? 'SYMPHONY File' : 'WAV Lossless Audio File'}</span></>) :

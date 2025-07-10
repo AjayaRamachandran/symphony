@@ -53,6 +53,21 @@ app.whenReady().then(() => {
     }
   });
 
+  ipcMain.handle('move-file-raw', async (event, arrayBuffer, fileName, destinationDir) => {
+    const destPath = path.join(destinationDir, fileName);
+    try {
+      // Convert ArrayBuffer to Node.js Buffer here
+      const buffer = Buffer.from(arrayBuffer);
+
+      await fs.promises.writeFile(destPath, buffer);
+      return { success: true };
+    } catch (error) {
+      console.error("Failed to save file:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+
   ipcMain.handle('get-symphony-files', async (event, directoryPath) => {
     let files = null
     try { files = fs.readdirSync(directoryPath); } catch(error) { return 'not a valid dir' }
