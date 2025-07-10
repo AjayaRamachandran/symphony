@@ -2,7 +2,9 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, 120px);
   gap: 15px 25px;
-  padding: 45px 50px 30px 0px;
+  padding: 35px 50px 30px 0px;
+  margin: 10px 0px 0px 0px;
+  border-radius: 5px;
   overflow-y: auto;
   height: 100%;
   min-height: 0;
@@ -13,6 +15,43 @@
   grid-auto-rows: min-content;
   background-color: #222222;
 }
+
+.drop-zone {
+  border: 2px dashed transparent;
+  border-image: repeating-linear-gradient(
+    90deg,
+    white 0px,
+    white 10px,
+    transparent 10px,
+    transparent 20px
+  ) 1;
+  animation: dash-move 1s linear infinite;
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+@keyframes dash-move {
+  0% {
+    border-image-slice: 1;
+    border-image-source: repeating-linear-gradient(
+      90deg,
+      white 0px,
+      white 10px,
+      transparent 10px,
+      transparent 20px
+    );
+  }
+  100% {
+    border-image-source: repeating-linear-gradient(
+      90deg,
+      white 10px,
+      white 20px,
+      transparent 20px,
+      transparent 30px
+    );
+  }
+}
+
 
 .empty-box {
   padding: 60px 15px;

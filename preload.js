@@ -28,4 +28,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getStars: () => ipcRenderer.invoke('get-stars'),
   addStar: (filePath) => ipcRenderer.invoke('add-star', filePath),
   removeStar: (filePath) => ipcRenderer.invoke('remove-star', filePath),
+  moveFileRaw: (fileBuffer, fileName, destinationDir) => ipcRenderer.invoke('move-file-raw', fileBuffer, fileName, destinationDir),
 });
