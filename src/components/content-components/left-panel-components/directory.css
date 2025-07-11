@@ -32,6 +32,7 @@
   box-sizing: border-box;
   flex-direction: row;
   z-index: 10;
+  margin-top: 1px;
   }
   .directory-medium:hover {
     filter: brightness(1.2);
@@ -47,3 +48,8 @@
     opacity: 1;
     pointer-events: auto;
   }
+
+@keyframes blink-animation {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}

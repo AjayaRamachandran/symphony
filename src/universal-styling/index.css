@@ -115,6 +115,10 @@ hr {
   margin: 0px 20px;
   border-radius: 999px;
 }
+img {
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
 .hr {
   width: 4px;
   display: block;

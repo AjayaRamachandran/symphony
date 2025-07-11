@@ -1095,8 +1095,11 @@ while running:
         pygame.draw.line(screen, (45, 45, 45), (0, toolbarHeight - 3), (width, toolbarHeight - 3))
 
         ### TRACK TITLE BAR
-        pygame.draw.rect(screen, (0, 0, 0), (width/2 - 80, toolbarHeight/2 - 14, 160, 28), 1, 3)
-        stamp(titleText, SUBHEADING1, width/2, 40, 0.4, "center")
+        pygame.draw.rect(screen, (0, 0, 0), (475, toolbarHeight/2 - 14, width - 950, 28), 1, 3)
+        if len(titleText) < (width - 950) / 10:
+            stamp(titleText, SUBHEADING1, width/2, 40, 0.4, "center")
+        else:
+            stamp(titleText[:int((width - 950) / 10)] + '...', SUBHEADING1, width/2, 40, 0.4, "center")
         pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
 
         ### PLAY/PAUSE BUTTON

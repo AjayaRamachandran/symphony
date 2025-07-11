@@ -8,11 +8,23 @@ import { useDirectory } from '@/contexts/DirectoryContext';
 
 import "./file.css";
 
-function File({name}) {
-  const { globalDirectory, selectedFile, setSelectedFile, clipboardFile, clipboardCut, setGlobalUpdateTimestamp, globalUpdateTimestamp, viewType, tempFileName } = useDirectory();
-  const [ fileName, setFileName ] = useState(name);
-  const [ displayName, setDisplayName ] = useState(fileName);
-  const [ isStarred, setIsStarred ] = useState(false);
+function File({ name }) {
+  const {
+    globalDirectory,
+    selectedFile,
+    setSelectedFile,
+    clipboardFile,
+    clipboardCut,
+    setGlobalUpdateTimestamp,
+    globalUpdateTimestamp,
+    viewType,
+    tempFileName,
+    globalStars
+  } = useDirectory();
+
+  const [fileName, setFileName] = useState(name);
+  const [displayName, setDisplayName] = useState(fileName);
+  const [isStarred, setIsStarred] = useState(false);
 
   const runPython2 = async (title) => {
     console.log(title);
@@ -23,60 +35,98 @@ function File({name}) {
 
   useEffect(() => {
     setFileName(name);
-    //console.log(symphonyFiles);
   }, [selectedFile, name]);
 
   useEffect(() => {
-    window.electronAPI.getStars().then((result) => {
-      if (fileName) {
-        //console.log(result);
-        //setIsStarred(result.includes(path.join(globalDirectory, selectedFile)))
-        setIsStarred(result.some((a) => {return a.replace(/\\/g, '/') === path.join(globalDirectory, fileName).replace(/\\/g, '/')}));
-      }
-    })
-  }, [globalUpdateTimestamp, globalDirectory])
+    const fullPath = path.join(globalDirectory, fileName).replace(/\\/g, '/');
+    setIsStarred(globalStars.includes(fullPath));
+  }, [globalStars, fileName, globalDirectory]);
 
   useEffect(() => {
-    setDisplayName((selectedFile === name && selectedFile.slice(-9) === '.symphony' && tempFileName) ? tempFileName + '.symphony' : fileName);
-    //console.log(symphonyFiles);
+    setDisplayName(
+      selectedFile === name && selectedFile.endsWith('.symphony') && tempFileName
+        ? tempFileName + '.symphony'
+        : fileName
+    );
   }, [name, tempFileName, fileName]);
-
-  // Use tempFileName if this file is selected
-  //const displayName = (selectedFile === name && tempFileName) ? tempFileName + '.symphony' : fileName;
 
   return (
     <>
-      <button className={'file-select-box' + (viewType==='grid'? '' : viewType==='content'? '-content' : '-list') + ((selectedFile === fileName) ? ' highlighted' : '')}
-              style={{opacity: (clipboardFile && path.basename(clipboardFile) === fileName && clipboardCut)? 0.6 : 1}}
-              onClick={e => { e.stopPropagation(); setSelectedFile(fileName); console.log(fileName); }}
-              onDoubleClick={async () => {(displayName.slice(-9) === '.symphony') ? runPython2(selectedFile) : await window.electronAPI.openNativeApp(path.join(globalDirectory,  displayName)); setGlobalUpdateTimestamp(Date.now);
-              }}>
-        <img src={displayName.slice(-9) === '.symphony' ? fileIcon : wavIcon} color="#606060" height={viewType==='grid'? 78 : viewType==='content'?55: 21}
-        style={{marginTop: (viewType==='list'? '3px' : '0')}} />
-        <div style={{display: 'flex', flexDirection: viewType==='content'? 'column' : 'row'}}>
-          
-        <span
-          style={{
-            display: 'block',
-            width: '100%',
-            textAlign: viewType==='grid'?'center':'left',
-            fontSize: '1em',
-            marginTop: (viewType==='grid'? '1px' : '2px'),
-            wordBreak: 'break-word', // break long words
-            overflowWrap: 'break-word', // break long words
-            whiteSpace: 'normal',
-          }}
-        >
-          {displayName}
-          {isStarred ? (<><i className="bi bi-star-fill" style={{margin: '0px 4px', fontSize: '10px', color: '#b8a463'}}></i></>) : undefined}
-        </span>
-        {viewType==='grid'? undefined : viewType==='content'?
-        (<><span style={{opacity: 0.5, fontSize: '0.8em', marginTop: '7px'}}>{(displayName.slice(-9) === '.symphony') ? 'SYMPHONY File' : 'WAV Lossless Audio File'}</span></>) :
-        (<><span style={{opacity: 0.5, fontSize: '1em', marginTop: '3px', width: '100%'}}>{(displayName.slice(-9) === '.symphony') ? 'SYMPHONY File' : 'WAV Lossless Audio File'}</span></>)
+      <button
+        className={
+          'file-select-box' +
+          (viewType === 'grid' ? '' : viewType === 'content' ? '-content' : '-list') +
+          (selectedFile === fileName ? ' highlighted' : '')
         }
-        
+        style={{
+          opacity:
+            clipboardFile && path.basename(clipboardFile) === fileName && clipboardCut ? 0.6 : 1
+        }}
+        draggable
+        onDragStart={(e) => {
+          e.preventDefault(); // very important: cancel default browser drag!
+          const filePath = path.join(globalDirectory, displayName).replace(/\\/g, '/');
+          console.log('Dragging file:', filePath);
+          window.electronAPI.startFileDrag(filePath);
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          setSelectedFile(fileName);
+          console.log(fileName);
+        }}
+        onDoubleClick={async () => {
+          if (displayName.endsWith('.symphony')) {
+            runPython2(selectedFile);
+          } else {
+            await window.electronAPI.openNativeApp(path.join(globalDirectory, displayName));
+            setGlobalUpdateTimestamp(Date.now());
+          }
+        }}
+      >
+        <img
+          src={displayName.endsWith('.symphony') ? fileIcon : wavIcon}
+          color="#606060"
+          height={viewType === 'grid' ? 78 : viewType === 'content' ? 55 : 21}
+          style={{ marginTop: viewType === 'list' ? '3px' : '0' }}
+        />
+        <div style={{ display: 'flex', flexDirection: viewType === 'content' ? 'column' : 'row' }}>
+          <span
+            style={{
+              display: 'block',
+              width: '100%',
+              textAlign: viewType === 'grid' ? 'center' : 'left',
+              fontSize: '1em',
+              marginTop: viewType === 'grid' ? '1px' : '2px',
+              wordBreak: 'break-word',
+              overflowWrap: 'break-word',
+              whiteSpace: 'normal'
+            }}
+          >
+            {displayName}
+            {isStarred && (
+              <i
+                className="bi bi-star-fill"
+                style={{ margin: '0px 4px', fontSize: '10px', color: '#b8a463' }}
+              ></i>
+            )}
+          </span>
+          {viewType === 'grid' ? null : viewType === 'content' ? (
+            <span style={{ opacity: 0.5, fontSize: '0.8em', marginTop: '7px' }}>
+              {displayName.endsWith('.symphony') ? 'SYMPHONY File' : 'WAV Lossless Audio File'}
+            </span>
+          ) : (
+            <span
+              style={{
+                opacity: 0.5,
+                fontSize: '1em',
+                marginTop: '3px',
+                width: '100%'
+              }}
+            >
+              {displayName.endsWith('.symphony') ? 'SYMPHONY File' : 'WAV Lossless Audio File'}
+            </span>
+          )}
         </div>
-        
       </button>
     </>
   );

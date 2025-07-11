@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FolderClosed, Plus, Pencil, X } from 'lucide-react';
 
 import Tooltip from '@/components/Tooltip';
@@ -8,6 +8,7 @@ import EditModal from '@/modals/EditModal';
 import AddAutoSave from '@/modals/AddAutoSave';
 import DeleteConfirmationModal from '@/modals/DeleteConfirmationModal';
 import SameNameWarning from '@/modals/SameNameWarning';
+import InvalidDrop from '@/modals/InvalidDrop';
 
 import { useDirectory } from "@/contexts/DirectoryContext";
 
@@ -15,8 +16,7 @@ import './directory.css';
 
 function Directory() {
   const sections = ['Projects', 'Exports', 'Symphony Auto-Save'];
-  //const [isModalOpen, setModalOpen] = useState(false);
-  const { globalDirectory, setGlobalDirectory, setSelectedFile } = useDirectory();
+  const { globalDirectory, setGlobalDirectory, setSelectedFile, setGlobalUpdateTimestamp } = useDirectory();
   const [openSection, setOpenSection] = useState(null);
   const [directory, setDirectory] = useState(null);
   const [showAddAutoSave, setShowAddAutoSave] = useState(false);
@@ -24,13 +24,13 @@ function Directory() {
   const [reload, setReload] = useState(0);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showSameNameWarning, setShowSameNameWarning] = useState(false);
-  const [pendingDelete, setPendingDelete] = useState(null); // [section, dirName]
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [hoverDir, setHoverDir] = useState(null);
+  const [showInvalidModal, setShowInvalidModal] = useState(false);
+  const dragCounter = useRef(0);
 
-  const [hoverDirectory, setHoverDirectory] = useState(null);
-  const [hoverName, setHoverName] = useState(null);
-  const [hoverDest, setHoverDest] = useState(null);
-
-  //console.log(Array.from(directory['Projects']))
+  // Track which directory is being dragged over for styling
+  const [dragOverDir, setDragOverDir] = useState(null);
 
   useEffect(() => {
     window.electronAPI.getDirectory().then(dir => {
@@ -46,10 +46,6 @@ function Directory() {
 
   const reloadDirectory = () => setReload(r => r + 1);
 
-  const getParams = () => {
-    return {dir: hoverDirectory, name: hoverName, dest: hoverDest};
-  }
-
   const toTuples = arr => arr.map(obj => {
     const key = Object.keys(obj)[0];
     return [key, obj[key]];
@@ -62,7 +58,6 @@ function Directory() {
   };
 
   const removeDirectory = () => {
-    console.log(pendingDelete);
     if (pendingDelete) {
       const [section, dirName] = pendingDelete;
       window.electronAPI.removeDirectory(section, dirName).then(() => {
@@ -75,6 +70,52 @@ function Directory() {
 
   if (!directory) return <div>Loading...</div>;
 
+  const onDragOver = (e) => {
+    e.preventDefault();
+  };
+
+
+  const onDragEnter = (e, dir) => {
+    e.preventDefault();
+    dragCounter.current += 1;
+    setDragOverDir(dir);
+  };
+
+  const onDragLeave = (e, dir) => {
+    e.preventDefault();
+    dragCounter.current -= 1;
+    if (dragCounter.current <= 0) {
+      dragCounter.current = 0;
+      setDragOverDir(null);
+    }
+  };
+
+  const onDrop = (e, dir) => {
+    e.preventDefault();
+    dragCounter.current = 0;
+    setDragOverDir(null);
+
+    const files = Array.from(e.dataTransfer.files);
+    const symphonyFiles = files.filter(file => file.name.endsWith('.symphony') || file.name.endsWith('wav'));
+
+    if (symphonyFiles.length === 0) {
+      setShowInvalidModal(true);
+    }
+
+    symphonyFiles.forEach(async (file) => {
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        console.log(arrayBuffer, file.name, hoverDir);
+        await window.electronAPI.moveFileRaw(arrayBuffer, file.name, hoverDir);
+        setGlobalUpdateTimestamp(Date.now());
+      } catch (err) {
+        console.error("Error processing dropped file:", err);
+      }
+    });
+    // Perform the click action for this directory
+    callSetGlobalDirectory(dir);
+  };
+
   return (
     <div className="directory scrollable med-bg">
       {sections.map((section, sectionIndex) => (
@@ -82,51 +123,87 @@ function Directory() {
 
           <div className="directory-large">
             {section}
-            {section != 'Symphony Auto-Save' ? (
+            {section !== 'Symphony Auto-Save' && (
               <>
                 <button className='tooltip' onClick={() => setOpenSection(section)}>
-                  <Tooltip text="New Folder" positionOverride={['-90px', '25px']}/>
+                  <Tooltip text="New Folder" positionOverride={['-90px', '25px']} />
                   <Plus size={16} strokeWidth={1.5} />
                 </button>
                 <GenericModal isOpen={openSection === section} onClose={() => setOpenSection(null)}>
-                  <NewFolder defaultDestProp={section} onConflict={() => { setShowSameNameWarning(true); }} onClose={() => { setOpenSection(null); reloadDirectory(); }}/>
+                  <NewFolder
+                    defaultDestProp={section}
+                    onConflict={() => { setShowSameNameWarning(true); }}
+                    onClose={() => { setOpenSection(null); reloadDirectory(); }}
+                  />
                 </GenericModal>
               </>
-            ) : (
-              <></>
             )}
           </div>
-  
-          {toTuples(directory[section]).map((elementPair, elementPairIndex) => (
-            <div className="directory-medium" style={elementPair[1].replace(/\\/g, '/') == globalDirectory ? {filter: 'brightness(1.2)'} : {}} key={elementPairIndex} onClick={() => callSetGlobalDirectory(elementPair[1])}>
-              <FolderClosed style={{flexShrink: 0}} size={16} strokeWidth={1.5} color='#606060'/>
-              <div style={{display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignContent: 'center', width: '100%'}}>
-                <span style={{marginLeft: '6px'}}>
-                  {elementPair[0]}
-                </span>
-                <span style={{display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '3px'}}
-                onClick={e => { e.stopPropagation(); setPendingDelete([section, elementPair[0]]); section === 'Symphony Auto-Save' ? setShowDeleteConfirm(true) : setShowEdit(true) }}
-                onMouseEnter={() => {setHoverDirectory(elementPair[1]); setHoverName(elementPair[0]); setHoverDest(section)}}
-                >
-                  {section === 'Symphony Auto-Save' ? (<><X className='del-dir-button' size={14} /></>) :
-                  (<><Pencil className='del-dir-button' size={14} /></>)}
-                </span>
-              </div>
-            </div>
-          ))}
 
+          {toTuples(directory[section]).map((elementPair, elementPairIndex) => {
+            const isSelected = elementPair[1].replace(/\\/g, '/') === globalDirectory;
+            const isDragOver = dragOverDir === elementPair[1];
+
+            return (
+              <div
+                key={elementPairIndex}
+                className="directory-medium"
+                style={{
+                  filter: isSelected ? 'brightness(1.2)' : '',
+                  outline: isDragOver ? '1px dashed #4A90E2' : 'none',
+                  cursor: 'pointer'
+                }}
+                onClick={() => callSetGlobalDirectory(elementPair[1])}
+                onDragEnter={(e) => {onDragEnter(e, elementPair[1]); setHoverDir(elementPair[1].replace(/\\/g, '/'));}}
+                onDragOver={onDragOver}
+                onDragLeave={(e) => onDragLeave(e, elementPair[1])}
+                onDrop={(e) => onDrop(e, elementPair[1])}
+                // onMouseEnter={() => {setHoverDir(elementPair[1].replace(/\\/g, '/')); console.log(elementPair[1].replace(/\\/g, '/'))}}
+              >
+                <FolderClosed style={{ flexShrink: 0 }} size={16} strokeWidth={1.5} color='#606060' />
+                <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignContent: 'center', width: '100%' }}>
+                  <span style={{ marginLeft: '6px' }}>
+                    {elementPair[0]}
+                  </span>
+                  <span
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '3px' }}
+                    onClick={e => {
+                      e.stopPropagation();
+                      setPendingDelete([section, elementPair[0]]);
+                      section === 'Symphony Auto-Save' ? setShowDeleteConfirm(true) : setShowEdit(true);
+                    }}
+                  >
+                    {section === 'Symphony Auto-Save' ? (<X className='del-dir-button' size={14} />) :
+                      (<Pencil className='del-dir-button' size={14} />)}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
         </React.Fragment>
       ))}
+
       <GenericModal isOpen={showAddAutoSave} onClose={() => setShowAddAutoSave(false)} showXButton={false}>
         <AddAutoSave onClose={() => { setShowAddAutoSave(false); reloadDirectory(); }} />
       </GenericModal>
 
       <GenericModal isOpen={showEdit} onClose={() => { setShowEdit(false); setPendingDelete(null); }}>
-        <EditModal getParams={getParams} onConflict={() => { setShowSameNameWarning(true); }} onRefresh={() => { reloadDirectory() } } onClose={() => { setShowEdit(false); setPendingDelete(null); }} onDeny={() => { setShowSameNameWarning(true); setPendingDelete([getParams().dest, getParams().name]) }} onConfirm={() => { setShowDeleteConfirm(true);  }} onRemove={() => { removeDirectory(); }} />
+        <EditModal
+          getParams={() => ({ dir: null, name: null, dest: null })}
+          onConflict={() => { setShowSameNameWarning(true); }}
+          onRefresh={() => { reloadDirectory() }}
+          onClose={() => { setShowEdit(false); setPendingDelete(null); }}
+          onDeny={() => { setShowSameNameWarning(true); setPendingDelete(null) }}
+          onConfirm={() => { setShowDeleteConfirm(true); }}
+          onRemove={() => { removeDirectory(); }}
+        />
       </GenericModal>
 
       <GenericModal isOpen={showDeleteConfirm} onClose={() => { setShowDeleteConfirm(false); setPendingDelete(null); }}>
         <DeleteConfirmationModal onComplete={() => { setShowDeleteConfirm(false); removeDirectory(); setShowEdit(false); setGlobalDirectory(null) }} action={'Remove'} modifier={'folder'} />
+      </GenericModal>
+      <GenericModal isOpen={showInvalidModal} onClose={() => { setShowInvalidModal(false) }}>
+        <InvalidDrop onComplete={() => setShowInvalidModal(false)} />
       </GenericModal>
 
       <GenericModal isOpen={showSameNameWarning} onClose={() => { setShowSameNameWarning(false) }} showXButton={false}>

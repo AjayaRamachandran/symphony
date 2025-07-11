@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   maximize: () => ipcRenderer.send('maximize'),
   close: () => ipcRenderer.send('close'),
   onWindowStateChange: (callback) => ipcRenderer.on('window-state', (_, isMaximized) => callback(isMaximized)),
+  startFileDrag: (filePath) => ipcRenderer.send('start-drag', filePath),
   openDirectory: () => ipcRenderer.invoke('dialog:openDirectory'),
   toggleDevTools: () => ipcRenderer.send('toggle-devtools'),
   saveDirectory: (data) => ipcRenderer.invoke('save-directory', data),
