@@ -11,11 +11,21 @@ import InvalidDrop from '@/modals/InvalidDrop';
 import GenericModal from '@/modals/GenericModal';
 
 function Files() {
-  const { globalDirectory, globalUpdateTimestamp, setGlobalUpdateTimestamp, selectedFile, setSelectedFile, viewType } = useDirectory();
+  const {
+    globalDirectory,
+    globalUpdateTimestamp,
+    setGlobalUpdateTimestamp,
+    selectedFile,
+    setSelectedFile,
+    viewType,
+    setGlobalStars,
+    globalStars
+  } = useDirectory();
+
   const [symphonyFiles, setSymphonyFiles] = useState([]);
   const [currentSectionType, setCurrentSectionType] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [showInvalidModal, setShowInvalidModal ] = useState(false);
+  const [showInvalidModal, setShowInvalidModal] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -34,6 +44,12 @@ function Files() {
     window.electronAPI.getSectionForPath(globalDirectory).then((type) => {
       setCurrentSectionType(type.section);
     });
+
+    // Fetch all starred files once for this directory
+    window.electronAPI.getStars().then((stars) => {
+      const normalizedStars = stars.map((s) => s.replace(/\\/g, '/'));
+      setGlobalStars(normalizedStars);
+    });
   }, [globalDirectory, globalUpdateTimestamp]);
 
   const handleDrop = useCallback((e) => {
@@ -41,7 +57,7 @@ function Files() {
     setIsDragging(false);
 
     const files = Array.from(e.dataTransfer.files);
-    const symphonyFiles = files.filter(file => file.name.endsWith('.symphony'));
+    const symphonyFiles = files.filter(file => file.name.endsWith('.symphony') || file.name.endsWith('.wav'));
 
     if (symphonyFiles.length === 0) {
       setShowInvalidModal(true);
@@ -50,7 +66,6 @@ function Files() {
     symphonyFiles.forEach(async (file) => {
       try {
         const arrayBuffer = await file.arrayBuffer();
-        // Send ArrayBuffer directly without Buffer conversion
         await window.electronAPI.moveFileRaw(arrayBuffer, file.name, globalDirectory);
         setGlobalUpdateTimestamp(Date.now());
       } catch (err) {
@@ -61,12 +76,7 @@ function Files() {
 
   const handleDragOver = (e) => {
     e.preventDefault();
-
-    const items = Array.from(e.dataTransfer.items);
-    const hasValidFile = true;
-
-    // Show copy cursor only for valid symphony files
-    e.dataTransfer.dropEffect = hasValidFile ? 'copy' : 'none';
+    e.dataTransfer.dropEffect = 'copy';
     setIsDragging(true);
   };
 
@@ -82,7 +92,7 @@ function Files() {
           onDrop={handleDrop}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
-          style={{ outline: isDragging ? '1px dashed #737373' : 'none', filter: isDragging? 'brightness(1.1)' : 'none' }}
+          style={{ outline: isDragging ? '1px dashed #737373' : 'none', filter: isDragging ? 'brightness(1.1)' : 'none' }}
         >
           {currentSectionType === 'Projects' && <NewFile />}
           {Array.isArray(symphonyFiles) && symphonyFiles.map((fileName, idx) => (
@@ -91,7 +101,7 @@ function Files() {
         </div>
       )}
       <GenericModal isOpen={showInvalidModal} onClose={() => { setShowInvalidModal(false) }}>
-        <InvalidDrop onComplete={() => setShowInvalidModal(false) }/>
+        <InvalidDrop onComplete={() => setShowInvalidModal(false)} />
       </GenericModal>
     </>
   );

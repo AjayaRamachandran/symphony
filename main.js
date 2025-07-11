@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, nativeImage } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
@@ -51,6 +51,13 @@ app.whenReady().then(() => {
     } else {
       mainWindow.webContents.openDevTools();
     }
+  });
+  ipcMain.on('start-drag', (event, filePath) => {
+    console.log('start-drag', filePath);
+    mainWindow.webContents.startDrag({
+      file: filePath,
+      icon: nativeImage.createFromPath(path.join(__dirname, 'src', 'assets', 'icon-dark32x32.png'))
+    });
   });
 
   ipcMain.handle('move-file-raw', async (event, arrayBuffer, fileName, destinationDir) => {

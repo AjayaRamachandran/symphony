@@ -11,6 +11,7 @@ export function DirectoryProvider({ children }) {
   const [clipboardCut, setClipboardCut] = useState(false);
   const [isFieldSelected, setIsFieldSelected] = useState(false); // Add field selection state
   const [tempFileName, setTempFileName] = useState(""); // Add temp file name for editing
+  const [globalStars, setGlobalStars] = useState([]);
 
   return (
     <DirectoryContext.Provider value={{
@@ -29,7 +30,9 @@ export function DirectoryProvider({ children }) {
       isFieldSelected,
       setIsFieldSelected,
       tempFileName,
-      setTempFileName
+      setTempFileName,
+      globalStars,
+      setGlobalStars,
     }}>
       {children}
     </DirectoryContext.Provider>
