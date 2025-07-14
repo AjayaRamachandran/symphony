@@ -6,6 +6,7 @@ const directoryPath = path.join(__dirname, 'src', 'assets', 'directory.json');
 const RECENTLY_VIEWED_PATH = path.join(__dirname, 'src', 'assets', 'recently-viewed.json');
 const RETRIEVE_OUTPUT_PATH = path.join(__dirname, 'inner', 'src', 'response.json');
 const STARRED_PATH = path.join(__dirname, 'src', 'assets', 'starred.json');
+const USER_SETTINGS_PATH = path.join(__dirname, 'src', 'assets', 'user-settings.json');
 
 let mainWindow;
 
@@ -263,16 +264,19 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle('run-python-script', async (event, argsArray) => {
-    //console.log('Instantiating new .symphony file...');
     console.log(JSON.stringify(argsArray));
-    // Add to recently viewed
-    if (argsArray[0] === 'open') {
+
+    const isOpenCommand = argsArray[0] === 'open';
+    let closeManager = false;
+
+    // Update Recently Viewed
+    if (isOpenCommand) {
       try {
         let recent = [];
         if (fs.existsSync(RECENTLY_VIEWED_PATH)) {
           recent = JSON.parse(fs.readFileSync(RECENTLY_VIEWED_PATH, 'utf-8'));
         }
-        // Compose new entry
+
         const fileName = argsArray[1] || '';
         const fileType = path.extname(fileName).replace('.', '').toLowerCase();
         const entry = {
@@ -280,41 +284,66 @@ app.whenReady().then(() => {
           name: fileName,
           fileLocation: argsArray[2] || ''
         };
-        // Remove any existing entry with same name and location
+
+        // Remove duplicates and prepend new entry
         recent = recent.filter(r => !(r.name === entry.name && r.fileLocation === entry.fileLocation));
-        // Add to top
         recent.unshift(entry);
-        // Limit to 20 entries
         if (recent.length > 20) recent = recent.slice(0, 20);
+
         fs.writeFileSync(RECENTLY_VIEWED_PATH, JSON.stringify(recent, null, 2), 'utf-8');
       } catch (e) {
         console.error('Failed to update recently viewed:', e);
       }
+
+      try {
+        const settings = JSON.parse(fs.readFileSync(USER_SETTINGS_PATH, 'utf-8'));
+        closeManager = !!settings["close_project_manager_when_editing"];
+      } catch (e) {
+        console.error('Failed to read user settings:', e);
+      }
     }
-    
-    return new Promise((resolve, reject) => {
-      const scriptPath = path.join(__dirname, 'inner', 'src', 'main.py'); // Adjust if needed
-      const pythonProcess = spawn('python', [scriptPath, ...argsArray]);
 
-      let output = '';
-      let errorOutput = '';
+    // Prepare to run the Python script
+    const scriptPath = path.join(__dirname, 'inner', 'src', 'main.py');
 
-      pythonProcess.stdout.on('data', (data) => {
-        output += data.toString();
+    if (closeManager) {
+      // Run detached process
+      const detachedProcess = spawn('python', [scriptPath, ...argsArray], {
+        detached: true,
+        stdio: 'ignore',
       });
+      detachedProcess.unref(); // Let it live independently
 
-      pythonProcess.stderr.on('data', (data) => {
-        errorOutput += data.toString();
-      });
+      // Close project manager window
+      const windows = BrowserWindow.getAllWindows();
+      if (windows.length > 0) windows[0].close(); // Adjust if you have a window reference
 
-      pythonProcess.on('close', (code) => {
-        if (code === 0) {
-          resolve({ success: true, output });
-        } else {
-          reject({ success: false, error: errorOutput || `Process exited with code ${code}` });
-        }
+      return { success: true, output: 'Script launched in background' };
+    } else {
+      // Run attached process with output capture
+      return new Promise((resolve, reject) => {
+        const pythonProcess = spawn('python', [scriptPath, ...argsArray]);
+
+        let output = '';
+        let errorOutput = '';
+
+        pythonProcess.stdout.on('data', (data) => {
+          output += data.toString();
+        });
+
+        pythonProcess.stderr.on('data', (data) => {
+          errorOutput += data.toString();
+        });
+
+        pythonProcess.on('close', (code) => {
+          if (code === 0) {
+            resolve({ success: true, output });
+          } else {
+            reject({ success: false, error: errorOutput || `Process exited with code ${code}` });
+          }
+        });
       });
-    });
+    }
   });
 
   ipcMain.handle('rename-file', async (event, { filePath, newName }) => {
@@ -398,6 +427,40 @@ app.whenReady().then(() => {
 
       fs.writeFileSync(RECENTLY_VIEWED_PATH, JSON.stringify(recentlyViewed, null, 2), 'utf-8');
       return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle('get-user-settings', async () => {
+    try {
+      if (!fs.existsSync(USER_SETTINGS_PATH)) {
+        const defaultDirectory = {
+          "search_for_updates" : true,
+          "close_project_manager_when_editing" : false,
+          "iser_name" : "",
+          "disable_auto_save" : false,
+          "disable_delete_confirm" : false
+        };
+        fs.writeFileSync(USER_SETTINGS_PATH, JSON.stringify(defaultDirectory, null, 2));
+      }
+      const data = fs.readFileSync(USER_SETTINGS_PATH, 'utf-8');
+      return JSON.parse(data);
+    } catch (err) {
+      return [];
+    }
+  });
+
+  ipcMain.handle('update-user-settings', async (_event, key, value) => {
+    try {
+      const data = fs.readFileSync(USER_SETTINGS_PATH, 'utf-8');
+      const settings = JSON.parse(data);
+
+      settings[key] = value;
+
+      fs.writeFileSync(USER_SETTINGS_PATH, JSON.stringify(settings, null, 2));
+
+      return { success: true, settings };
     } catch (err) {
       return { success: false, error: err.message };
     }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FolderClosed, Plus, Pencil, X } from 'lucide-react';
+import path from 'path-browserify';
 
 import Tooltip from '@/components/Tooltip';
 import GenericModal from '@/modals/GenericModal';
@@ -26,6 +27,7 @@ function Directory() {
   const [showSameNameWarning, setShowSameNameWarning] = useState(false);
   const [pendingDelete, setPendingDelete] = useState(null);
   const [hoverDir, setHoverDir] = useState(null);
+  const [hoverName, setHoverName] = useState(null);
   const [showInvalidModal, setShowInvalidModal] = useState(false);
   const dragCounter = useRef(0);
 
@@ -64,6 +66,8 @@ function Directory() {
         setShowDeleteConfirm(false);
         setPendingDelete(null);
         reloadDirectory();
+        setGlobalDirectory(null);
+        setGlobalUpdateTimestamp(Date.now());
       });
     }
   };
@@ -154,7 +158,8 @@ function Directory() {
                   cursor: 'pointer'
                 }}
                 onClick={() => callSetGlobalDirectory(elementPair[1])}
-                onDragEnter={(e) => {onDragEnter(e, elementPair[1]); setHoverDir(elementPair[1].replace(/\\/g, '/'));}}
+                onMouseEnter={(e) => {setHoverDir(elementPair[1].replace(/\\/g, '/')); setHoverName(elementPair[0])}}
+                onDragEnter={(e) => {onDragEnter(e, elementPair[1]); setHoverDir(elementPair[1].replace(/\\/g, '/')); console.log(hoverDir);}}
                 onDragOver={onDragOver}
                 onDragLeave={(e) => onDragLeave(e, elementPair[1])}
                 onDrop={(e) => onDrop(e, elementPair[1])}
@@ -189,13 +194,14 @@ function Directory() {
 
       <GenericModal isOpen={showEdit} onClose={() => { setShowEdit(false); setPendingDelete(null); }}>
         <EditModal
-          getParams={() => ({ dir: null, name: null, dest: null })}
+          getParams={async () => {console.log(hoverDir); return {dir: hoverDir, name: hoverName, dest: (await window.electronAPI.getSectionForPath(hoverDir)).section}}}
           onConflict={() => { setShowSameNameWarning(true); }}
           onRefresh={() => { reloadDirectory() }}
           onClose={() => { setShowEdit(false); setPendingDelete(null); }}
           onDeny={() => { setShowSameNameWarning(true); setPendingDelete(null) }}
           onConfirm={() => { setShowDeleteConfirm(true); }}
           onRemove={() => { removeDirectory(); }}
+          onComplete={() => { setShowDeleteConfirm(false); removeDirectory(); setShowEdit(false); setGlobalDirectory(null) }}
         />
       </GenericModal>
 
@@ -205,7 +211,6 @@ function Directory() {
       <GenericModal isOpen={showInvalidModal} onClose={() => { setShowInvalidModal(false) }}>
         <InvalidDrop onComplete={() => setShowInvalidModal(false)} />
       </GenericModal>
-
       <GenericModal isOpen={showSameNameWarning} onClose={() => { setShowSameNameWarning(false) }} showXButton={false}>
         <SameNameWarning onComplete={() => { setShowSameNameWarning(false) }} />
       </GenericModal>

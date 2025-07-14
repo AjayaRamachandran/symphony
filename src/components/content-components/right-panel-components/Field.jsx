@@ -16,7 +16,7 @@ const Field = ({
   defaultText = '',
   className = 'field',
   lightDark = ['#606060', '#c2c2c2'],
-  width = '100%',
+  width = '200px',
   searchField = false,
   singleLine = false // new prop
 }) => {
@@ -123,7 +123,7 @@ const Field = ({
             paddingTop: '7px',
             width,
             color: value === '' ? lightDark[0] : lightDark[1],
-            overflow: 'auto'
+            overflow: 'auto',
           }}
         />
       );
@@ -145,7 +145,7 @@ const Field = ({
         overflowX: singleLine ? 'hidden' : 'auto',
         overflowY: singleLine ? 'hidden' : 'auto',
         cursor: 'text',
-        display: 'flex',
+        display: 'flex'
       }}
       onFocus={() => {
         onFocus();

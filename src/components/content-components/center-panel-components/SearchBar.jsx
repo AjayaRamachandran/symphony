@@ -86,6 +86,7 @@ function SearchBar() {
         onFocus={() => setFocused(true)}
         singleLine={true}
         isControlled={true}
+        width={'100%'}
         //onBlur={() => setFocused(false)}
       />
       <SearchResults getSearchResults={getSearchResults} getSearchTerm={getSearchTerm} getFocused={getFocused} onClose={() => setFocused(false)}/>
