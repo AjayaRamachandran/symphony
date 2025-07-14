@@ -13,14 +13,21 @@ import './toolbar.css'
 import { useDirectory } from '@/contexts/DirectoryContext';
 
 function Toolbar() {
-  const { viewType, setViewType, clipboardFile, setClipboardFile, clipboardCut, setClipboardCut, selectedFile, setSelectedFile, globalDirectory, setGlobalUpdateTimestamp, isFieldSelected } = useDirectory();
+  const { viewType, setViewType, clipboardFile, setClipboardFile, clipboardCut, setClipboardCut, selectedFile, setSelectedFile, globalDirectory, globalUpdateTimestamp, setGlobalUpdateTimestamp, isFieldSelected } = useDirectory();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [itemIsStarred, setItemIsStarred] = useState(false);
+  const [settingsShowDelete, setSettingsShowDelete] = useState(true);
   const iconSize = 20
 
   const selectingSymphony = selectedFile && (selectedFile.slice(-9) === '.symphony')
+
+  useEffect(() => {
+    window.electronAPI.getUserSettings().then((result) => {
+      setSettingsShowDelete(!result["disable_delete_confirm"])
+    })
+  }, [selectedFile, globalUpdateTimestamp]);
 
   // Helper to call global operator functions
   const callOp = (op) => {
@@ -135,7 +142,7 @@ function Toolbar() {
               (<><i className="bi bi-star-fill" style={{fontSize: '20px'}}></i></>) : (<><i className="bi bi-star" style={{fontSize: '20px'}}></i></>)}
             </button>
             <button className={'icon-button tooltip' + (!globalDirectory ? ' grayed' : '')} onClick={() => {globalDirectory ? openFileLocation() : undefined}}><Tooltip text="Open File Location"/><FolderOpen size={iconSize}/></button>
-            <button className={'icon-button tooltip' + (!selectedFile ? ' grayed' : '')} onClick={() => {selectedFile ? setShowDeleteConfirm(true) : undefined}}><Tooltip text="Delete"/><Trash2 size={iconSize} color='#E46767'/></button>
+            <button className={'icon-button tooltip' + (!selectedFile ? ' grayed' : '')} onClick={() => {if (settingsShowDelete) {selectedFile ? setShowDeleteConfirm(true) : undefined} else {selectedFile ? handleDelete() : undefined}}}><Tooltip text="Delete"/><Trash2 size={iconSize} color='#E46767'/></button>
           </div>
         </div>
         <hr />

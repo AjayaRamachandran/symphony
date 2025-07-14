@@ -35,7 +35,7 @@ function Files() {
   }, []);
 
   useEffect(() => {
-    if (!globalDirectory) return;
+    if (!globalDirectory) {setSymphonyFiles('not a valid dir'); setCurrentSectionType(''); return;}
 
     window.electronAPI.getSymphonyFiles(globalDirectory).then((files) => {
       setSymphonyFiles(files);
@@ -57,13 +57,13 @@ function Files() {
     setIsDragging(false);
 
     const files = Array.from(e.dataTransfer.files);
-    const symphonyFiles = files.filter(file => file.name.endsWith('.symphony') || file.name.endsWith('.wav'));
+    const droppedFiles = files.filter(file => file.name.endsWith('.symphony') || file.name.endsWith('.wav'));
 
-    if (symphonyFiles.length === 0) {
+    if (droppedFiles.length === 0) {
       setShowInvalidModal(true);
     }
 
-    symphonyFiles.forEach(async (file) => {
+    droppedFiles.forEach(async (file) => {
       try {
         const arrayBuffer = await file.arrayBuffer();
         await window.electronAPI.moveFileRaw(arrayBuffer, file.name, globalDirectory);

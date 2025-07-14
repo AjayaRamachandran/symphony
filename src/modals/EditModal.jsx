@@ -12,25 +12,35 @@ const options = [
   { label: 'Symphony Auto-Save', icon: Save },
 ];
 
-function EditModal({getParams, onClose, onRemove, onConfirm, onDeny, onRefresh}) {
+function EditModal({getParams, onClose, onRemove, onConfirm, onDeny, onRefresh, onComplete}) {
   const [sourceLocation, setSourceLocation] = useState('');
   const [destination, setDestination] = useState('');
   const [projectName, setProjectName] = useState('');
-  const { globalDirectory, setGlobalDirectory } = useDirectory();
+  const { setGlobalDirectory, selectedFile } = useDirectory();
   const [ params, setParams ] = useState({});
+  const [settingsShowDelete, setSettingsShowDelete] = useState(true);
 
   useEffect(() => {
-    setParams(getParams());
-    const params = getParams();
-    if (params.dest && destination === '') {
-      setDestination(params.dest);
-    }
-    if (params.dir && sourceLocation === '') {
-      setSourceLocation(params.dir);
-    }
-    if (params.name && projectName === '') {
-      setProjectName(params.name);
-    }
+    window.electronAPI.getUserSettings().then((result) => {
+      setSettingsShowDelete(!result["disable_delete_confirm"])
+    })
+  }, [selectedFile]);
+
+  useEffect(() => {
+    getParams().then((result) => {
+      setParams(result);
+      const params = result;
+      if (params.dest && destination === '') {
+        setDestination(params.dest);
+      }
+      if (params.dir && sourceLocation === '') {
+        setSourceLocation(params.dir);
+      }
+      if (params.name && projectName === '') {
+        setProjectName(params.name);
+      }
+      console.log(result);
+    });
   }, []);
 
   const selectedOption = options.find(opt => opt.label === destination) || null;
@@ -124,7 +134,7 @@ function EditModal({getParams, onClose, onRemove, onConfirm, onDeny, onRefresh})
       <div className='modal-body' style={{ marginTop: '2em' }}>Destination</div>
       <Dropdown options={options} onSelect={handleSelect} value={selectedOption}/>
       <div style={{display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '10px'}}>
-        <button className={'call-to-action-2 red'} style={{marginLeft: 0}} text-style='display' onClick={onConfirm}>
+        <button className={'call-to-action-2 red'} style={{marginLeft: 0}} text-style='display' onClick={settingsShowDelete ? onConfirm : onComplete}>
           <Trash2 size={16}/>Remove</button>
         <button className={'call-to-action-2 green' + (((params.dir !== sourceLocation) || (params.dest !== destination) || (params.name !== projectName)) ? '' : ' locked')}
          style={{marginLeft: 0}}

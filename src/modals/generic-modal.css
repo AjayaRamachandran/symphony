@@ -48,6 +48,16 @@
   letter-spacing: 0.2px;
 }
 
+.modal-body2 {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 0px;
+  margin-left: 2px;
+  letter-spacing: 0.2px;
+  display: flex;
+  align-items: center;
+}
+
 .modal-paragraph {
   font-size: 13px;
   font-weight: 300;
@@ -60,6 +70,23 @@
   margin-bottom: 20px;
   width: 320px;
   letter-spacing: 0.2px;
+}
+
+.modal-subtext {
+  font-size: 12.5px;
+  font-weight: 300;
+  overflow-wrap: normal;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-left: 2px;
+  flex: 1;
+  margin-bottom: 40px;
+  width: 320px;
+  letter-spacing: 0.2px;
+}
+.wide {
+  width: 400px;
 }
 
 .modal-file-explorer-button {
@@ -105,4 +132,85 @@
 
 .call-to-action-2.green {
   background-color: #5A893D;
+}
+
+.setting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 5px;
+  margin-bottom: 10px;
+}
+
+/* Switch styling */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 22px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #666;
+  transition: 0.45s cubic-bezier(0.4, 1.35, 0.18, 1);
+  border-radius: 34px;
+}
+
+.slider:before {
+  position: absolute;
+  content: '';
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.45s cubic-bezier(0.4, 1.35, 0.18, 1);
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: #4caf50;
+}input:checked + .slider.red {
+  background-color: #af4c4c;
+}
+
+input:checked + .slider:before {
+  transform: translateX(18px);
+}
+
+
+.divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  width: 100%;
+  margin: 20px 0;
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  border-bottom: 1px solid #444;
+}
+
+.divider-label {
+  padding: 0 12px;
+  color: #aaa;
+  font-weight: 500;
+  white-space: nowrap;
+}.red {
+  color: #c97676;
 }

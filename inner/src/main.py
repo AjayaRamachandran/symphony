@@ -49,6 +49,7 @@ autoSaveDirectory = json.load(open('src/assets/directory.json'))['Symphony Auto-
 
 titleText = 'My Track 1'
 process = ''
+autoSave = True
 globalUUID = 0
 sessionID = time.strftime('%Y-%m-%d %H%M%S')
 print(f'Running with sysargv: {sys.argv}')
@@ -69,6 +70,8 @@ if len(sys.argv) == 4:
       process = sys.argv[1]
       workingFile = sys.argv[3] + '/' + sys.argv[2] # used to cleanse sysargv 2, but realized this can actually cause errors
       titleText = sys.argv[2][:-9]
+      if process == 'open':
+          autoSave = not json.load(open('src/assets/user-settings.json'))["disable_auto_save"]
 elif len(sys.argv) == 2:
     workingFile = sys.argv[1]
 else:
@@ -605,7 +608,8 @@ def dumpToFile(file, directory):
 
     ps.updateAttributes(noteMap, ticksPerTile, key, mode, waveMap)
     pkl.dump(ps, file, -1)
-    pkl.dump(ps, open(autoSaveDirectory + '/' + titleText + ' Backup ' + sessionID + '.symphony', 'wb'), -1)
+    if autoSave:
+      pkl.dump(ps, open(autoSaveDirectory + '/' + titleText + ' Backup ' + sessionID + '.symphony', 'wb'), -1)
 
     worldMessage = (f"Last Saved {readableTime} to " + directory) if directory != "inner/assets/workingfile.symphony" else "You have unsaved changes - Please save to a file on your PC."
 
