@@ -8,7 +8,7 @@ const Field = ({
   value: controlledValue,
   onChange,
   onFocus = () => {}, // default to no-op
-  //onBlur, // if you want to accept onBlur prop, uncomment this
+  onBlur = () => {},
   initialValue = '',
   height = '33px',
   fontSize = '1.3em',
@@ -77,7 +77,7 @@ const Field = ({
           onBlur={e => {
             setIsFieldSelected(false);
             setTimeout(() => setEditing(false), 300);
-            // if (onBlur) onBlur(e); // call parent onBlur if needed
+            if (onBlur) onBlur(e);
           }}
           onKeyDown={handleKeyDown}
           onFocus={() => {
@@ -107,7 +107,7 @@ const Field = ({
           onBlur={e => {
             setIsFieldSelected(false);
             setTimeout(() => setEditing(false), 300);
-            // if (onBlur) onBlur(e); // call parent onBlur if needed
+            if (onBlur) onBlur(e);
           }}
           onKeyDown={handleKeyDown}
           onFocus={() => {

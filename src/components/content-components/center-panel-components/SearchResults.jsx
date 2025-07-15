@@ -96,11 +96,12 @@ function SearchResults({ getSearchResults, getSearchTerm, getFocused, onClose })
               );
             }) : <>No Starred Files.</>}
           </div>
-          {getSearchResults().length > 0 && (
-          <>
-          <div className="results-label">
-            Results for '{getSearchTerm()}'
-          </div>
+          {(getSearchTerm() !== '') && (<>
+            <div className="results-label">
+              Results for '{getSearchTerm()}'
+            </div>
+          </>)}
+          {getSearchResults().length > 0 && (<>
           <div className="results">
             {getSearchResults().length > 0 ? Object.entries(getSearchResults()).map((data, index) => {
               const filePath = data[1].fullPath

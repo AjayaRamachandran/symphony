@@ -86,7 +86,7 @@ function EditModal({getParams, onClose, onRemove, onConfirm, onDeny, onRefresh, 
 
     if (result.success) {
       console.log(`Directory added: ${JSON.stringify(sendRequest)}`);
-      setGlobalDirectory(exists ? params.dest : sourceLocation);
+      setGlobalDirectory(exists ? params.dest : sourceLocation.replace(/\\/g, '/'));
 
       if (!exists) {
         onClose();
@@ -130,7 +130,7 @@ function EditModal({getParams, onClose, onRemove, onConfirm, onDeny, onRefresh, 
         ) : ''}
       </div>
       <div className='modal-body' style={{ marginTop: '2em' }}>Folder Alias</div>
-      <Field fontSize={'13px'} value={projectName} onChange={e => setProjectName(e.target.value)} />
+      <Field fontSize={'13px'} value={projectName} onChange={e => setProjectName(e.target.value)} singleLine={true} width={'320px'}/>
       <div className='modal-body' style={{ marginTop: '2em' }}>Destination</div>
       <Dropdown options={options} onSelect={handleSelect} value={selectedOption}/>
       <div style={{display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '10px'}}>
