@@ -26,7 +26,6 @@ function NewFile() {
       <button className={'file-select-box' + (viewType==='grid'? '' : viewType==='content'? '-content' : '-list') + ' new'} onClick={() => setShowNewFile(true)}>
         <div className={'rounded-rect-icon' + (viewType==='grid'? '' : viewType==='content'? ' content' : ' list')}><Plus size={viewType==='list'? 14 : 40} color='#606060'/></div>
         <div style={{marginTop: (viewType=='grid'? '0px' : (viewType=='content' ? '15px' : '3px'))}}>New Symphony</div>
-        
       </button>
       <GenericModal isOpen={showNewFile} onClose={() => setShowNewFile(false)}>
         <NewFileModal onClose={runPython}/>

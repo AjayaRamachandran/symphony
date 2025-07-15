@@ -75,8 +75,8 @@ function SearchResults({ getSearchResults, getSearchTerm, getFocused, onClose })
       {getFocused() && (
         <div className="search-box">
           <div className="starred-label">
-           STARRED
-           <button onClick={onClose}><X size={15} /></button>
+            STARRED
+            <button onClick={onClose}><X size={15} /></button>
           </div>
           <div className="stars scrollable">
             {stars.length > 0 ? stars.map((filePath, index) => {
