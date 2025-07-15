@@ -438,7 +438,7 @@ app.whenReady().then(() => {
         const defaultDirectory = {
           "search_for_updates" : true,
           "close_project_manager_when_editing" : false,
-          "iser_name" : "",
+          "user_name" : "",
           "disable_auto_save" : false,
           "disable_delete_confirm" : false
         };

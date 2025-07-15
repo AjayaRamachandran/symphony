@@ -36,22 +36,24 @@ function FileNotExist({ onComplete, fileName = () => {} }) {
   return (
     <>
       <div className='modal-title' text-style='display' style={{ marginBottom: '15px' }}>User Settings</div>
+      <div className='modal-paragraph' style={{width: '100%', color: '#939393'}}>Configure your Symphony to work for you. These settings can be reversed at any time.</div>
 
-      <div className='scrollable' style={{ height: '250px', width: '550px', overflowY: 'auto', outline: '1px solid #434343', padding: '15px 10px', borderRadius: '6px' }}>
+      <div className='scrollable' style={{ height: '280px', width: '550px', overflowY: 'auto', overflowX: 'hidden', outline: '1px solid #434343', padding: '15px 20px', borderRadius: '6px' }}>
         <div className='setting-row'>
           <div text-style='display' className='modal-body2'>Change My Name</div>
-            <Field
-              value={userName}
-              height='33px'
-              fontSize='14px'
-              onChange={e => setUserName(e.target.value)}
-              singleLine={true}
-              isControlled={true}
-            />
         </div>
-        <div className='modal-subtext wide'>Change how you're addressed on various text windows across Symphony.</div>
+        <div className='modal-subtext wide' style={{marginBottom: '10px', width: '100%'}}>Change how you're addressed on various text windows across Symphony.</div>
+        <Field
+          value={userName}
+          height='33px'
+          fontSize='14px'
+          onChange={e => setUserName(e.target.value)}
+          singleLine={true}
+          isControlled={true}
+          width={'300px'}
+        />
 
-        <div className='setting-row'>
+        <div className='setting-row' style={{marginTop: '30px'}}>
           <div text-style='display' className='modal-body2'>Automatically Search for Updates and Notify Me</div>
           <label className='switch'>
             <input type='checkbox' checked={settings.search_for_updates} onChange={() => handleToggle('search_for_updates')} />

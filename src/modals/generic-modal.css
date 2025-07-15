@@ -84,6 +84,7 @@
   margin-bottom: 40px;
   width: 320px;
   letter-spacing: 0.2px;
+  line-height: 18px;
 }
 .wide {
   width: 400px;
@@ -137,9 +138,9 @@
 .setting-row {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-end;
   margin-top: 5px;
-  margin-bottom: 10px;
+  margin-bottom: 5px;
 }
 
 /* Switch styling */

@@ -3,10 +3,10 @@
     "private": true,
     "version": "0.0.0",
     "build": {
-      "appId": "com.ajayarsymphony.app",
-      "win": {
-        "icon": "src/assets/icon.ico"
-      }
+        "appId": "com.ajayarsymphony.app",
+        "win": {
+            "icon": "src/assets/icon.ico"
+        }
     },
     "scripts": {
         "build": "vite build",
