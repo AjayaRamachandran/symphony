@@ -1,8 +1,10 @@
 .big-title {
   font-size: 3.5em;
   font-weight: 700;
-  margin-top: 12px;
   margin-left: 3px;
+}
+.big-title.small {
+  font-size: 2.5em;
 }
 
 .title-row {
@@ -13,14 +15,14 @@
 }
 
 .settings-button {
-  margin-top: 15px;
+  margin-top: 4px;
   color: #737373;
   background-color: #2a2a2a;
-  padding: 5px;
   border-radius: 5px;
   align-items: center;
   display: flex;
   justify-content: center;
+  padding: 5px;
 }
 
 .section-title {
@@ -31,4 +33,13 @@
   margin-left: 3px;
   letter-spacing: 0.1em;
   color: #606060;
+}
+
+.rotated {
+  transition: transform 0.4s cubic-bezier(0, 1.3, 0.3, 1);
+}
+
+.rotate:hover .rotated {
+  transition: transform 0.4s cubic-bezier(0, 1.3, 0.3, 1);
+  transform: rotate(270deg);
 }

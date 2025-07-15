@@ -38,8 +38,10 @@ function File({ name }) {
   }, [selectedFile, name]);
 
   useEffect(() => {
-    const fullPath = path.join(globalDirectory, fileName).replace(/\\/g, '/');
-    setIsStarred(globalStars.includes(fullPath));
+    if (globalDirectory) {
+      const fullPath = path.join(globalDirectory, fileName).replace(/\\/g, '/');
+      setIsStarred(globalStars.includes(fullPath));
+    }
   }, [globalStars, fileName, globalDirectory]);
 
   useEffect(() => {

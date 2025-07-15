@@ -8,6 +8,16 @@ const RETRIEVE_OUTPUT_PATH = path.join(__dirname, 'inner', 'src', 'response.json
 const STARRED_PATH = path.join(__dirname, 'src', 'assets', 'starred.json');
 const USER_SETTINGS_PATH = path.join(__dirname, 'src', 'assets', 'user-settings.json');
 
+const DEFAULT_SETTINGS = {
+  "needs_onboarding": true,
+  "search_for_updates": true,
+  "close_project_manager_when_editing": false,
+  "user_name": "",
+  "fancy_graphics" : true,
+  "disable_auto_save": false,
+  "disable_delete_confirm": false
+};
+
 let mainWindow;
 
 app.whenReady().then(() => {
@@ -434,20 +444,23 @@ app.whenReady().then(() => {
 
   ipcMain.handle('get-user-settings', async () => {
     try {
-      if (!fs.existsSync(USER_SETTINGS_PATH)) {
-        const defaultDirectory = {
-          "search_for_updates" : true,
-          "close_project_manager_when_editing" : false,
-          "user_name" : "",
-          "disable_auto_save" : false,
-          "disable_delete_confirm" : false
-        };
-        fs.writeFileSync(USER_SETTINGS_PATH, JSON.stringify(defaultDirectory, null, 2));
+      let userSettings = {};
+
+      if (fs.existsSync(USER_SETTINGS_PATH)) {
+        const data = fs.readFileSync(USER_SETTINGS_PATH, 'utf-8');
+        userSettings = JSON.parse(data);
       }
-      const data = fs.readFileSync(USER_SETTINGS_PATH, 'utf-8');
-      return JSON.parse(data);
+
+      // Merge defaults with user settings
+      const updatedSettings = { ...DEFAULT_SETTINGS, ...userSettings };
+
+      // Save merged settings back to file (in case new keys were added)
+      fs.writeFileSync(USER_SETTINGS_PATH, JSON.stringify(updatedSettings, null, 2));
+
+      return updatedSettings;
     } catch (err) {
-      return [];
+      console.error("Error reading or updating user settings:", err);
+      return DEFAULT_SETTINGS; // fallback to defaults if something breaks
     }
   });
 

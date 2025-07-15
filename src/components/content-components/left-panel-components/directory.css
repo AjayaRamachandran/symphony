@@ -29,6 +29,7 @@
 
   display: flex;
   width: 98%;
+
   box-sizing: border-box;
   flex-direction: row;
   z-index: 10;
@@ -38,6 +39,17 @@
     filter: brightness(1.2);
     cursor: pointer;
   }
+
+  .directory-text {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    max-width: 200px;
+    flex: 1;
+  } .directory-medium:hover .directory-text {
+    max-width: 150px;
+  }
+
 
   .directory-medium .del-dir-button {
     opacity: 0;

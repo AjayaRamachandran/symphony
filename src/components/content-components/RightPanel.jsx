@@ -7,16 +7,23 @@ import Tooltip from '@/components/Tooltip';
 
 import "./right-panel.css";
 import { useDirectory } from '@/contexts/DirectoryContext';
-import NewFile from './center-panel-components/files-components/NewFile';
 
 function RightPanel() {
   const [hovered, setHovered] = useState(false);
   const [fileName, setFileName] = useState('');
   const [metadata, setMetadata] = useState({});
+  const [userFirstName, setUserFirstName] = useState('');
   const {
     selectedFile, setSelectedFile, setGlobalUpdateTimestamp, globalDirectory, setGlobalDirectory,
     tempFileName, setTempFileName
   } = useDirectory();
+
+  useEffect(() => {
+    window.electronAPI.getUserSettings().then((result) => {
+      setUserFirstName(result['user_name'] || null)
+      console.log(result['user_name'])
+    })
+  }, [selectedFile])
 
   // Load metadata when file changes
   useEffect(() => {
@@ -32,13 +39,8 @@ function RightPanel() {
 
   const runPython2 = async (title) => {
     console.log(title);
-    document.body.style.cursor = 'wait';
-    try {
-      const result = await window.electronAPI.runPythonScript(['open', `${title}`, globalDirectory]);
-      console.log(result);
-    } finally {
-      document.body.style.cursor = 'default';
-    }
+    const result = await window.electronAPI.runPythonScript(['open', `${title}`, globalDirectory]);
+    console.log(result);
   };
 
   const updateTitle = (newName) => {
@@ -74,7 +76,7 @@ function RightPanel() {
   };
   const handleTitleBlur = (e) => {
     if (tempFileName !== fileName) {
-      updateTitle(tempFileName);
+      updateTitle(tempFileName || ('Untitled ' + Date.now().toString()));
     }
   };
 
@@ -91,6 +93,7 @@ function RightPanel() {
             onChange={handleTitleChange}
             onBlur={handleTitleBlur}
             singleLine={true}
+            controlledValue={true}
           />
 
           <div className='field-label'>Description</div>
@@ -103,7 +106,7 @@ function RightPanel() {
 
           <div className='field-label'>Composer / Arr.</div>
           <Field
-            value={metadata.Composer || ''}
+            value={metadata.Composer || userFirstName}
             height='70px'
             fontSize='1.2em'
             onChange={e => updateMetadataField('Composer', e.target.value)}
@@ -120,7 +123,7 @@ function RightPanel() {
           <div className='field-label'>File Location</div>
           <div className='field scrollable dark-bg' style={{whiteSpace: 'nowrap', textOverflow: 'unset',
             overflowX: 'scroll', padding: '7px 7px 2px 7px', fontSize: '13px', cursor: 'pointer', fontStyle: 'italic'}}>
-            <Tooltip text={path.join(globalDirectory, selectedFile)} />
+            <Tooltip text={globalDirectory && path.join(globalDirectory, selectedFile)} />
             {path.join(globalDirectory, selectedFile)}
           </div>
           </>) : (<><div className='faded'>Select a Symphony to view its details.</div></>) }

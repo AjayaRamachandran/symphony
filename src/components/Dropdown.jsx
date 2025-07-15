@@ -36,7 +36,7 @@ const Dropdown = ({ options, onSelect, value, placeholder = 'Select an option' }
   return (
     <div className="dropdown" ref={dropdownRef}>
       <button className="dropdown-toggle" onClick={() => setOpen(!open)}>
-        {selected ? selected.label : placeholder}
+        <span className='truncate'>{selected ? selected.label : placeholder}</span>
         <span className="chevron">{open ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}</span>
       </button>
       {open && (
@@ -48,7 +48,7 @@ const Dropdown = ({ options, onSelect, value, placeholder = 'Select an option' }
               onClick={() => handleOnSelect(opt)}
             >
               {opt.icon && <span className="icon">{<opt.icon size={16} />}</span>}
-              <span>{opt.label}</span>
+              <span className='truncate'>{opt.label}</span>
             </li>
           ))}
         </ul>

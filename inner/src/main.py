@@ -544,6 +544,7 @@ if process == 'retrieve':
                   'Mode' : ps.mode,
                   'Tempo (tpm)' : round(3600 / ps.ticksPerTile, 2),
                   'Empty?' : (ps.noteMap == {}),
+                  'Length (tiles)' : str((max(ps.noteMap.items() if (ps.noteMap.items() != []) else [[[0,0]]], key=lambda x : x[0][1]))[0][1])
                   }, 'id': globalUUID
                }, responseLoc)
     responseLoc.close()

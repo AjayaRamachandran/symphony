@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-function FileNotExist({onComplete, fileName=() => {}}) {
+function FileNotExist({onComplete, fileName = () => ''}) {
 
   return (
     <>

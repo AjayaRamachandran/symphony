@@ -10,6 +10,7 @@ import AddAutoSave from '@/modals/AddAutoSave';
 import DeleteConfirmationModal from '@/modals/DeleteConfirmationModal';
 import SameNameWarning from '@/modals/SameNameWarning';
 import InvalidDrop from '@/modals/InvalidDrop';
+import SplashScreen from '@/modals/SplashScreen';
 
 import { useDirectory } from "@/contexts/DirectoryContext";
 
@@ -17,7 +18,7 @@ import './directory.css';
 
 function Directory() {
   const sections = ['Projects', 'Exports', 'Symphony Auto-Save'];
-  const { globalDirectory, setGlobalDirectory, setSelectedFile, setGlobalUpdateTimestamp } = useDirectory();
+  const { globalDirectory, setGlobalDirectory, setSelectedFile, setGlobalUpdateTimestamp, showSplashScreen, setShowSplashScreen } = useDirectory();
   const [openSection, setOpenSection] = useState(null);
   const [directory, setDirectory] = useState(null);
   const [showAddAutoSave, setShowAddAutoSave] = useState(false);
@@ -45,6 +46,12 @@ function Directory() {
       }
     });
   }, [reload]);
+
+  useEffect(() => {
+    if (!showAddAutoSave) {
+      setShowSplashScreen(true);
+    }
+  }, [showAddAutoSave])
 
   const reloadDirectory = () => setReload(r => r + 1);
 
@@ -167,7 +174,7 @@ function Directory() {
               >
                 <FolderClosed style={{ flexShrink: 0 }} size={16} strokeWidth={1.5} color='#606060' />
                 <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignContent: 'center', width: '100%' }}>
-                  <span style={{ marginLeft: '6px' }}>
+                  <span className='directory-text' style={{ marginLeft: '6px' }}>
                     {elementPair[0]}
                   </span>
                   <span
@@ -191,6 +198,9 @@ function Directory() {
       <GenericModal isOpen={showAddAutoSave} onClose={() => setShowAddAutoSave(false)} showXButton={false}>
         <AddAutoSave onClose={() => { setShowAddAutoSave(false); reloadDirectory(); }} />
       </GenericModal>
+      <GenericModal isOpen={showSplashScreen} onClose={() => setShowSplashScreen(false)} showXButton={false} custom={'splash'}>
+        <SplashScreen onComplete={() => { setShowSplashScreen(false); reloadDirectory(); }} />
+      </GenericModal>
 
       <GenericModal isOpen={showEdit} onClose={() => { setShowEdit(false); setPendingDelete(null); }}>
         <EditModal
@@ -201,7 +211,7 @@ function Directory() {
           onDeny={() => { setShowSameNameWarning(true); setPendingDelete(null) }}
           onConfirm={() => { setShowDeleteConfirm(true); }}
           onRemove={() => { removeDirectory(); }}
-          onComplete={() => { setShowDeleteConfirm(false); removeDirectory(); setShowEdit(false); setGlobalDirectory(null) }}
+          onComplete={() => { setShowDeleteConfirm(false); removeDirectory(); setShowEdit(false); setGlobalDirectory(null); setSelectedFile(null); }}
         />
       </GenericModal>
 

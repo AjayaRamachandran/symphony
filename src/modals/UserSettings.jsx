@@ -1,29 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import  { TriangleAlert, Users } from 'lucide-react';
+import  { TriangleAlert, Users, Settings } from 'lucide-react';
 
 import Field from '@/components/content-components/right-panel-components/Field'
 
-function FileNotExist({ onComplete, fileName = () => {} }) {
+function UserSettings({ onComplete }) {
   const [focused, setFocused] = useState(false);
   const [userName, setUserName] = useState('');
 
   const [settings, setSettings] = useState({
-    search_for_updates: true,
-    close_project_manager_when_editing: false,
-    user_name: "",
-    disable_auto_save: false,
-    disable_delete_confirm: false
+    "needs_onboarding": true,
+    "search_for_updates": true,
+    "close_project_manager_when_editing": false,
+    "user_name": "",
+    "fancy_graphics": true,
+    "disable_auto_save": false,
+    "disable_delete_confirm": false
   });
 
-  useEffect(() => {
-    if (userName) window.electronAPI.updateUserSettings('user_name', userName);
-    console.log(userName);
-  }, [userName]);
+  const handleUserNameChange = (name) => {
+    setUserName(name)
+    window.electronAPI.updateUserSettings('user_name', name);
+    // console.log(name + 'is the username');
+  }
 
   useEffect(() => {
     window.electronAPI.getUserSettings().then((data) => {
-      setSettings(data);
-      setUserName(data['user_name'])
+      setSettings(data ?? {});
+      setUserName(data.user_name ?? '');
     });
   }, []);
 
@@ -35,10 +38,10 @@ function FileNotExist({ onComplete, fileName = () => {} }) {
 
   return (
     <>
-      <div className='modal-title' text-style='display' style={{ marginBottom: '15px' }}>User Settings</div>
-      <div className='modal-paragraph' style={{width: '100%', color: '#939393'}}>Configure your Symphony to work for you. These settings can be reversed at any time.</div>
+      <div className='modal-title' text-style='display' style={{ marginBottom: '15px' }}><Settings size={20}/>User Settings</div>
+      <div className='modal-paragraph' style={{width: '100%', color: '#939393'}}>Configure your Symphony to work best for you. These settings can be reversed at any time.</div>
 
-      <div className='scrollable' style={{ height: '280px', width: '550px', overflowY: 'auto', overflowX: 'hidden', outline: '1px solid #434343', padding: '15px 20px', borderRadius: '6px' }}>
+      <div className='scrollable' style={{ height: '440px', width: '550px', overflowY: 'auto', overflowX: 'hidden', outline: '1px solid #434343', padding: '15px 20px', borderRadius: '6px' }}>
         <div className='setting-row'>
           <div text-style='display' className='modal-body2'>Change My Name</div>
         </div>
@@ -47,7 +50,7 @@ function FileNotExist({ onComplete, fileName = () => {} }) {
           value={userName}
           height='33px'
           fontSize='14px'
-          onChange={e => setUserName(e.target.value)}
+          onChange={e => handleUserNameChange(e.target.value || '')}
           singleLine={true}
           isControlled={true}
           width={'300px'}
@@ -70,6 +73,16 @@ function FileNotExist({ onComplete, fileName = () => {} }) {
           </label>
         </div>
         <div className='modal-subtext wide'>Closes the Project Manager when you decide to open a Symphony in the editor.</div>
+
+        <div className='setting-row' style={{marginTop: '30px'}}>
+          <div text-style='display' className='modal-body2'>Use Fancy Graphics</div>
+          <label className='switch'>
+            <input type='checkbox' checked={settings.fancy_graphics} onChange={() => handleToggle('fancy_graphics')} />
+            <span className='slider'></span>
+          </label>
+        </div>
+        <div className='modal-subtext wide'>Enables some modern graphic effects within the UI. Only disable if you are experiencing significant slowness across the system. This setting does not affect the editor. <i>You may need to restart Symphony to see changes.</i></div>
+
 
         {/* <div className='setting-row'>
           <div text-style='display' className='modal-body2 wide'>Launch Symphony on Startup</div>
@@ -107,4 +120,4 @@ function FileNotExist({ onComplete, fileName = () => {} }) {
   );
 }
 
-export default FileNotExist;
+export default UserSettings;
