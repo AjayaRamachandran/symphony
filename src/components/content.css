@@ -99,6 +99,7 @@
   visibility: hidden;
   font-family: 'Inter', sans-serif;
   background-color: #333;
+  border: 1px solid #444;
   color: #fff;
   font-size: 12px;
   padding: 4px 8px;
@@ -111,8 +112,15 @@
   opacity: 0;
   transition: opacity 0.2s ease-in-out;
   z-index: 1;
-  font-weight: 400;
-  box-shadow: 0 3px 7px #00000022;
+  font-weight: 300;
+  box-shadow: 0 3px 9px #00000066;
+  letter-spacing: 0.5px;
+  display: flex;
+  flex-direction: row;
+}
+.tooltip-inner-alt {
+  opacity: 0.3;
+  padding-left: 2px;
 }
 
 .tooltip:hover .tooltip-text {
@@ -177,4 +185,13 @@
   white-space: nowrap;
   text-overflow: ellipsis;
   max-width: 280px;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
 }
