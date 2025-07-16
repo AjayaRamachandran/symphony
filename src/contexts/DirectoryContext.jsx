@@ -12,7 +12,7 @@ export function DirectoryProvider({ children }) {
   const [isFieldSelected, setIsFieldSelected] = useState(false); // Add field selection state
   const [tempFileName, setTempFileName] = useState(""); // Add temp file name for editing
   const [globalStars, setGlobalStars] = useState([]);
-  const [showSplashScreen, setShowSplashScreen] = useState(true);
+  const [showSplashScreen, setShowSplashScreen] = useState(false);
 
   return (
     <DirectoryContext.Provider value={{

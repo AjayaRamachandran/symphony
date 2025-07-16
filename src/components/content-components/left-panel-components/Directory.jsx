@@ -48,10 +48,12 @@ function Directory() {
   }, [reload]);
 
   useEffect(() => {
-    if (!showAddAutoSave) {
-      setShowSplashScreen(true);
-    }
-  }, [showAddAutoSave])
+    window.electronAPI.getUserSettings().then((result) => {
+      if (result["show_splash_screen"]) {
+        setShowSplashScreen(true);
+      }
+    })
+  }, [])
 
   const reloadDirectory = () => setReload(r => r + 1);
 
