@@ -291,15 +291,6 @@ input:checked + .slider:before {
   width: 38px;
 }
 
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-.spin {
-  animation: spin 1s linear infinite;
-}
-
 .banner {
   background: linear-gradient(110deg, #bc4512, #da0f90);
   display: block;

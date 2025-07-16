@@ -19,6 +19,7 @@ function Toolbar() {
   const [showExportModal, setShowExportModal] = useState(false);
   const [itemIsStarred, setItemIsStarred] = useState(false);
   const [settingsShowDelete, setSettingsShowDelete] = useState(true);
+  const [actionKey, setActionKey] = useState('Ctrl');
   const iconSize = 20
 
   const selectingSymphony = selectedFile && (selectedFile.slice(-9) === '.symphony')
@@ -28,6 +29,14 @@ function Toolbar() {
       setSettingsShowDelete(!result["disable_delete_confirm"])
     })
   }, [selectedFile, globalUpdateTimestamp]);
+
+  useEffect(() => {
+    const isMac = navigator.userAgentData?.platform
+      ? navigator.userAgentData.platform.toLowerCase().includes('mac')
+      : navigator.platform.toLowerCase().includes('mac');
+
+    setActionKey(isMac ? '⌘' : 'Ctrl');
+  }, []);
 
   // Helper to call global operator functions
   const callOp = (op) => {
@@ -112,10 +121,10 @@ function Toolbar() {
         <div className='toolbar-section'>
           EDIT
           <div className='toolbar-subsection'>
-            <button className={'icon-button tooltip' + (!selectedFile ? ' grayed' : '')} onClick={() => {selectedFile ? callOp('handleCopy') : undefined}}><Tooltip text="Copy"/><Copy size={iconSize}/></button>
-            <button className={'icon-button tooltip' + (!selectedFile ? ' grayed' : '')} onClick={() => {selectedFile ? callOp('handleCut') : undefined}}><Tooltip text="Cut"/><Scissors size={iconSize}/></button>
-            <button className={'icon-button tooltip' + (!clipboardFile ? ' grayed' : '')} onClick={() => {selectedFile ? callOp('handlePaste') : undefined}}><Tooltip text="Paste"/><Clipboard size={iconSize}/></button>
-            <button className={'icon-button tooltip' + (!selectedFile ? ' grayed' : '')} onClick={() => {selectedFile ? callOp('handleDuplicate') : undefined}}><Tooltip text="Duplicate"/><CopyPlus size={iconSize}/></button>
+            <button className={'icon-button tooltip' + (!selectedFile ? ' grayed' : '')} onClick={() => {selectedFile ? callOp('handleCopy') : undefined}}><Tooltip text="Copy" altText={`(${actionKey}+C)`}/><Copy size={iconSize}/></button>
+            <button className={'icon-button tooltip' + (!selectedFile ? ' grayed' : '')} onClick={() => {selectedFile ? callOp('handleCut') : undefined}}><Tooltip text="Cut" altText={`(${actionKey}+X)`}/><Scissors size={iconSize}/></button>
+            <button className={'icon-button tooltip' + (!clipboardFile ? ' grayed' : '')} onClick={() => {selectedFile ? callOp('handlePaste') : undefined}}><Tooltip text="Paste" altText={`(${actionKey}+V)`}/><Clipboard size={iconSize}/></button>
+            <button className={'icon-button tooltip' + (!selectedFile ? ' grayed' : '')} onClick={() => {selectedFile ? callOp('handleDuplicate') : undefined}}><Tooltip text="Duplicate" altText={`(${actionKey}+D)`}/><CopyPlus size={iconSize}/></button>
           </div>
         </div>
         <hr />
@@ -142,7 +151,7 @@ function Toolbar() {
               (<><i className="bi bi-star-fill" style={{fontSize: '20px'}}></i></>) : (<><i className="bi bi-star" style={{fontSize: '20px'}}></i></>)}
             </button>
             <button className={'icon-button tooltip' + (!globalDirectory ? ' grayed' : '')} onClick={() => {globalDirectory ? openFileLocation() : undefined}}><Tooltip text="Open File Location"/><FolderOpen size={iconSize}/></button>
-            <button className={'icon-button tooltip' + (!selectedFile ? ' grayed' : '')} onClick={() => {if (settingsShowDelete) {selectedFile ? setShowDeleteConfirm(true) : undefined} else {selectedFile ? handleDelete() : undefined}}}><Tooltip text="Delete"/><Trash2 size={iconSize} color='#E46767'/></button>
+            <button className={'icon-button tooltip' + (!selectedFile ? ' grayed' : '')} onClick={() => {if (settingsShowDelete) {selectedFile ? setShowDeleteConfirm(true) : undefined} else {selectedFile ? handleDelete() : undefined}}}><Tooltip text="Delete" altText={`(Del/Bkspc)`}/><Trash2 size={iconSize} color='#E46767'/></button>
           </div>
         </div>
         <hr />

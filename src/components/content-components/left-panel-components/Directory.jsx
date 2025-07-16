@@ -139,7 +139,7 @@ function Directory() {
             {section !== 'Symphony Auto-Save' && (
               <>
                 <button className='tooltip' onClick={() => setOpenSection(section)}>
-                  <Tooltip text="New Folder" positionOverride={['-90px', '25px']} />
+                  <Tooltip text="New Folder" positionOverride={['-100px', '25px']} />
                   <Plus size={16} strokeWidth={1.5} />
                 </button>
                 <GenericModal isOpen={openSection === section} onClose={() => setOpenSection(null)}>
@@ -180,13 +180,14 @@ function Directory() {
                     {elementPair[0]}
                   </span>
                   <span
+                    className='tooltip'
                     style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '3px' }}
                     onClick={e => {
                       e.stopPropagation();
                       setPendingDelete([section, elementPair[0]]);
                       section === 'Symphony Auto-Save' ? setShowDeleteConfirm(true) : setShowEdit(true);
                     }}
-                  >
+                  ><Tooltip text="Edit" positionOverride={['75px', '0px']} />
                     {section === 'Symphony Auto-Save' ? (<X className='del-dir-button' size={14} />) :
                       (<Pencil className='del-dir-button' size={14} />)}
                   </span>

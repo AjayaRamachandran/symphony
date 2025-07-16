@@ -137,7 +137,7 @@ function RightPanel() {
           onMouseLeave={() => setHovered(false)}
           onClick={(selectedFile && selectedFile.slice(-9) === '.symphony') ? () => runPython2(selectedFile) : undefined}
         >
-          <Tooltip text={(selectedFile && selectedFile.slice(-9) === '.symphony') ? 'Open this Symphony in the dedicated editor.' : 'Select a Symphony to open it in the editor.'}/>
+          <Tooltip text={(selectedFile && selectedFile.slice(-9) === '.symphony') ? 'Click to open in editor, or double click file.' : 'Select a Symphony to open it in the editor.'}/>
           <div>Open in Editor</div>
           <PencilRuler size={16} strokeWidth={2.5} />
         </button>

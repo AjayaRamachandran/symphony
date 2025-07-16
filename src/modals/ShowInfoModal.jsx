@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Info } from 'lucide-react';
+import { Info, LoaderCircle } from 'lucide-react';
 
 function ShowInfoModal({ filePath }) {
   const [fileInfo, setFileInfo] = useState(null);
@@ -41,8 +41,8 @@ function ShowInfoModal({ filePath }) {
       )}
 
       {!fileInfo && !error && (
-        <div className="modal-paragraph text-gray-500">
-          Loading file info...
+        <div className="modal-paragraph text-gray-500" style={{display: 'flex', flexDirection: 'row', gap: '10px', alignItems: 'center', marginBottom: '5px'}}>
+          <LoaderCircle className="spin"/>Loading file info...
         </div>
       )}
 
