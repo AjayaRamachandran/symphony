@@ -11,6 +11,7 @@ function UserSettings({ onComplete }) {
     "needs_onboarding": true,
     "search_for_updates": true,
     "close_project_manager_when_editing": false,
+    "show_splash_screen": true,
     "user_name": "",
     "fancy_graphics": true,
     "disable_auto_save": false,
@@ -73,6 +74,16 @@ function UserSettings({ onComplete }) {
           </label>
         </div>
         <div className='modal-subtext wide'>Closes the Project Manager when you decide to open a Symphony in the editor.</div>
+
+        <div className='setting-row'>
+          <div text-style='display' className='modal-body2'>Show Splash Screen on Startup</div>
+          <label className='switch'>
+            <input type='checkbox' checked={settings.show_splash_screen} onChange={() => handleToggle('show_splash_screen')} />
+            <span className='slider'></span>
+          </label>
+        </div>
+        <div className='modal-subtext wide'>Shows the splash screen, with quick launch and resources, upon starting the project manager.</div>
+
 
         <div className='setting-row' style={{marginTop: '30px'}}>
           <div text-style='display' className='modal-body2'>Use Fancy Graphics</div>

@@ -12,6 +12,7 @@ const DEFAULT_SETTINGS = {
   "needs_onboarding": true,
   "search_for_updates": true,
   "close_project_manager_when_editing": false,
+  "show_splash_screen": true,
   "user_name": "",
   "fancy_graphics" : true,
   "disable_auto_save": false,
@@ -361,19 +362,30 @@ app.whenReady().then(() => {
     let baseName = newName;
     let ext = path.extname(newName);
     if (!ext) ext = '.symphony';
-    //baseName = (ext === '.symphony') ? newName.slice(0, -9) : newName;
+
     console.log(`main.js::ipcMain.handle('rename-file') - baseName: ${baseName}`);
     let candidate = baseName + ext;
     let counter = 1;
     const files = fs.readdirSync(dir);
     console.log(files);
+
     while (files.includes(candidate)) {
       candidate = `${baseName} (${counter})${ext}`;
       counter++;
     }
+
     try {
       const newFilePath = path.join(dir, candidate);
       fs.renameSync(filePath, newFilePath);
+
+      // Also rename the metadata JSON if it exists
+      const originalJsonPath = filePath.replace(/\.symphony$/, '.json');
+      const newJsonPath = newFilePath.replace(/\.symphony$/, '.json');
+
+      if (fs.existsSync(originalJsonPath)) {
+        fs.renameSync(originalJsonPath, newJsonPath);
+      }
+
       return { success: true, newFilePath };
     } catch (err) {
       return { success: false, error: err.message };
@@ -408,6 +420,11 @@ app.whenReady().then(() => {
   ipcMain.handle('delete-file', async (event, filePath) => {
     try {
       fs.unlinkSync(filePath);
+      // Try to delete the corresponding .json metadata file
+      const metadataPath = filePath.replace(/\.symphony$/, '.json');
+      if (fs.existsSync(metadataPath)) {
+        fs.unlinkSync(metadataPath);
+      }
       return { success: true };
     } catch (err) {
       return { success: false, error: err.message };

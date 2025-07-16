@@ -13,7 +13,7 @@
 <img src="https://img.shields.io/badge/Lucide-darkred?logo=Lucide">
 </p>
 
-<img src="https://www.dropbox.com/scl/fi/1cs50fias0t2lpy6cfnjw/READMEPIC1.png?rlkey=efavhqi1zc8oiclzh0mwjanyr&st=gaf7ggos&raw=1" style="border-radius: 5px;">
+<img src="https://www.dropbox.com/scl/fi/sj3qb5zu4x82k8s6785rn/Symphony-SS.png?rlkey=lxpta4hjcdhybl4400nrql20o&st=wpe8nxt3&raw=1" style="border-radius: 5px;">
 
 ## Overview
 

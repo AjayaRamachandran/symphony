@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Music, ChartNoAxesGantt, FolderClosed, BookMarked, GitBranch, Play } from 'lucide-react';
+import path from 'path-browserify';
+
 import Tooltip from '@/components/Tooltip';
 import '@/components/content-components/left-panel-components/recently-viewed.css'
+import GenericModal from '@/modals/GenericModal';
+import FileNotExist from '@/modals/FileNotExist';
 
 import banner from '@/assets/banner.svg'
 import { useDirectory } from '@/contexts/DirectoryContext';
@@ -11,7 +15,9 @@ function SplashScreen({onComplete}) {
   const [page, setPage] = useState(0);
   const [userFirstName, setUserFirstName] = useState('');
   const [recentlyViewed, setRecentlyViewed] = useState([]);
-  const {globalUpdateTimestamp} = useDirectory();
+  const [launchItemName, setLaunchItemName] = useState(null);
+  const [showFileNotExist, setShowFileNotExist] = useState(false);
+  const {globalUpdateTimestamp, setGlobalUpdateTimestamp, setSelectedFile} = useDirectory();
 
   const fileTypes = {
     'symphony': ChartNoAxesGantt,
@@ -32,14 +38,52 @@ function SplashScreen({onComplete}) {
     }).catch(() => setRecentlyViewed([]));
   }, [globalUpdateTimestamp]);
 
+  const handleClick = async (item) => {
+    setLaunchItemName(item.name);
+    if (item.type === 'symphony') {
+      try {
+        setGlobalUpdateTimestamp(Date.now());
+          const result = await window.electronAPI.runPythonScript([
+            'open',
+            item.name,
+            item.fileLocation
+          ]);
+          console.log("Python script succeeded:", result.output);
+        } catch (err) {
+          console.error("Python script failed:", err.error || err);
+          setShowFileNotExist(true);
+          recentlyViewedDelete(item);
+        }
+    } else {
+      try {
+        setGlobalUpdateTimestamp(Date.now());
+        const response = await window.electronAPI.openNativeApp(path.join(item.fileLocation, item.name));
+        if (!response.success) {
+          //console.error(response.error);
+          setShowFileNotExist(true);
+          recentlyViewedDelete(item);
+        }
+      } catch (err) {
+        console.error(err);
+        setShowFileNotExist(true);
+        recentlyViewedDelete(item);
+      }
+    }
+    setSelectedFile(null);
+  };
+
+  const recentlyViewedDelete = (item) => {
+    window.electronAPI.recentlyViewedDelete(item.name);
+    setGlobalUpdateTimestamp(Date.now());
+  }
 
   return (
     <>
       <div className='banner'><img src={banner} style={{ width: '500px', display: 'block' }}></img></div>
       <div style={{padding: '30px', borderTop: '1px solid #3c3c3c'}}>
-        <div className='modal-big-title' text-style='display' style={{margin : '0px 0px', fontSize: '28px'}}>Hi {userFirstName.split(' ')[0]}!</div>
-        <div className='modal-paragraph' text-style='display' style={{fontSize: '14px', marginBottom: '8px', marginTop: '8px'}}>Let's create something amazing.</div>
-        {recentlyViewed.length > 0 && <>
+        <div className='modal-big-title' text-style='display' style={{margin : '0px 0px', fontSize: '28px'}}>{userFirstName ? 'Hi ' + userFirstName.split(' ')[0] : 'Welcome'}!</div>
+        <div className='modal-paragraph' text-style='display' style={{fontSize: '14px', marginBottom: '28px', marginTop: '8px'}}>Let's create something amazing.</div>
+        {recentlyViewed.length > 0 && <><div className='modal-body' text-style='display' style={{fontSize: '18px', marginBottom: '8px', marginTop: '15px'}}>Jump Back In</div>
           <div className="quick-launch scrollable med-bg">
             {recentlyViewed.map((item, recentIndex) => {
               if (recentIndex < 3) {
@@ -49,7 +93,6 @@ function SplashScreen({onComplete}) {
                     className="quick-launch-medium tooltip"
                     key={recentIndex}
                     onClick={() => handleClick(item)}
-                    onDoubleClick={async () => { await handleDoubleClick(item); }}
                   >
                     {Icon && (
                       <Icon style={{ flexShrink: 0 }} size={16} strokeWidth={1.5}
@@ -58,7 +101,7 @@ function SplashScreen({onComplete}) {
                     <div className="truncated-text" style={{ marginLeft: '6px' }}>
                       {item.name}
                     </div>
-                    <Tooltip text={item.name} />
+                    {/* <Tooltip text={item.name} /> */}
                   </button>
                 );
               }
@@ -87,11 +130,13 @@ function SplashScreen({onComplete}) {
           </button>
         </div>
         <div style={{display: 'flex', justifyContent: 'space-between', height: 'min-content', alignItems: 'flex-end'}}>
-          <button style={{opacity: '0.7'}}><i>Don't show this screen on startup</i></button>
+          <button style={{opacity: '0.7'}} onClick={async () => {await window.electronAPI.updateUserSettings('show_splash_screen', false); onComplete();}}><i>Don't show this screen on startup</i></button>
           <button className='call-to-action-2' text-style='display' onClick={() => onComplete()}>Close</button>
         </div>
-        
       </div>
+      <GenericModal isOpen={showFileNotExist} onClose={() => { setShowFileNotExist(false) }} showXButton={false}>
+        <FileNotExist onComplete={() => { setShowFileNotExist(false); }} fileName={() => ''} />
+      </GenericModal>
     </>
   );
 }
