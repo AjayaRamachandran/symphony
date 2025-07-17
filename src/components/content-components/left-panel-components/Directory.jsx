@@ -187,7 +187,7 @@ function Directory() {
                       setPendingDelete([section, elementPair[0]]);
                       section === 'Symphony Auto-Save' ? setShowDeleteConfirm(true) : setShowEdit(true);
                     }}
-                  ><Tooltip text="Edit" positionOverride={['75px', '0px']} />
+                  ><Tooltip text="Edit" positionOverride={['70px', '0px']} />
                     {section === 'Symphony Auto-Save' ? (<X className='del-dir-button' size={14} />) :
                       (<Pencil className='del-dir-button' size={14} />)}
                   </span>

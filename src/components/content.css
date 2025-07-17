@@ -109,8 +109,8 @@
   left: 50%;
   transform: translateX(-50%);
   white-space: nowrap;
-  opacity: 0;
-  transition: opacity 0.2s ease-in-out;
+  opacity: 0 !important;
+  transition: opacity 1s cubic-bezier(1,0,.86,-0.64);
   z-index: 1;
   font-weight: 300;
   box-shadow: 0 3px 9px #00000066;
@@ -119,13 +119,13 @@
   flex-direction: row;
 }
 .tooltip-inner-alt {
-  opacity: 0.3;
+  color: #888;
   padding-left: 2px;
 }
 
 .tooltip:hover .tooltip-text {
   visibility: visible;
-  opacity: 1;
+  opacity: 1 !important;
   z-index: auto !important;
 }
 
