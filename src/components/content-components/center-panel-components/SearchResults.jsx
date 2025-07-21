@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import path from 'path-browserify'; // Required for path operations in browser
-import { Music, ChartNoAxesGantt, FolderClosed, X } from 'lucide-react';
+import { Music, ChartNoAxesGantt, FolderClosed, X, KeyboardMusic } from 'lucide-react';
 
 import Field from '../right-panel-components/Field';
 import Tooltip from '@/components/Tooltip';
@@ -112,6 +112,7 @@ function SearchResults({ getSearchResults, getSearchTerm, getFocused, onClose })
                 'symphony': ChartNoAxesGantt,
                 'mp3': Music,
                 'wav': Music,
+                'mid': KeyboardMusic,
                 '' : FolderClosed,
               };
               const Icon = fileTypes[ext];
@@ -122,7 +123,7 @@ function SearchResults({ getSearchResults, getSearchTerm, getFocused, onClose })
                   onClick={() => handleClick(normalizedPath)}
                   onDoubleClick={() => handleDoubleClick(normalizedPath)}
                 >
-                  <Icon size={14} color-type={(ext === '' ? null : ext === 'symphony' ? 'accent-color-2' : 'accent-color')}/>
+                  <Icon size={14} color-type={(ext === '' ? null : ext === 'symphony' ? 'accent-color-2' : ext === 'wav' || ext === 'mp3' ? 'accent-color' : 'icon-color')}/>
                   <span className="chip-name"><span style={{fontWeight: '400', color: '#939393'}}>{'...' + dirname.slice(-30) + '/'}</span><span style={{fontWeight: '700'}}>{data[1].el}</span></span>
                 </button>
               );

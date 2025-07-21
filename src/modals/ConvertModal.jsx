@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FolderOpen, ChartNoAxesGantt, Music, Save, AudioLines, FolderClosed } from 'lucide-react';
+import { FolderOpen, ChartNoAxesGantt, Music, Save, AudioLines, FolderClosed, KeyboardMusic } from 'lucide-react';
 import path from 'path-browserify';
 
 import Field from '@/components/content-components/right-panel-components/Field';
@@ -8,13 +8,13 @@ import Tooltip from '@/components/Tooltip';
 import { useDirectory } from '@/contexts/DirectoryContext';
 
 const formats = [
-  { label: 'WAV', icon: AudioLines }
+  { label: 'MIDI', icon: KeyboardMusic }
 ];
 
-function ExportModal({onClose, onComplete}) {
+function ConvertModal({onClose, onComplete}) {
   const [projectName, setProjectName] = useState(' ');
   const [destination, setDestination] = useState('');
-  const [format, setFormat] = useState('WAV');
+  const [format, setFormat] = useState('MIDI');
   const [folders, setFolders] = useState([]);
 
   const { globalDirectory, setGlobalDirectory, selectedFile, setSelectedFile } = useDirectory();
@@ -45,7 +45,7 @@ function ExportModal({onClose, onComplete}) {
   const finish = async (pathToFile) => {
     document.body.style.cursor = 'wait';
     try {
-      await window.electronAPI.runPythonScript(['export', path.join(globalDirectory, selectedFile), pathToFile]);
+      await window.electronAPI.runPythonScript(['convert', path.join(globalDirectory, selectedFile), pathToFile]);
     } finally {
       document.body.style.cursor = 'default';
     }
@@ -53,7 +53,7 @@ function ExportModal({onClose, onComplete}) {
 
   return (
     <>
-      <div className='modal-title' text-style='display' style={{marginBottom : '25px'}}>Export as Audio</div>
+      <div className='modal-title' text-style='display' style={{marginBottom : '25px'}}>Export to...</div>
       <div className='modal-body'>Symphony Name</div>
       <div className='tooltip'>
         <div className='modal-file-explorer-button' style={{cursor: 'not-allowed'}}>
@@ -83,4 +83,4 @@ function ExportModal({onClose, onComplete}) {
   );
 }
 
-export default ExportModal;
+export default ConvertModal;

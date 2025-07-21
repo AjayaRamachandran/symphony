@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Music, ChartNoAxesGantt, FolderClosed } from 'lucide-react';
+import { Music, ChartNoAxesGantt, FolderClosed, KeyboardMusic } from 'lucide-react';
 import path from 'path-browserify';
 
 import Tooltip from '@/components/Tooltip';
@@ -17,6 +17,7 @@ function RecentlyViewed() {
     'symphony': ChartNoAxesGantt,
     'mp3': Music,
     'wav': Music,
+    'mid': KeyboardMusic,
     '' : FolderClosed,
   };
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Copy, Scissors, Clipboard, CopyPlus, Users, Info, Star, FolderOpen, Trash2, FileAudio2, LayoutGrid, List, Rows2 } from 'lucide-react';
+import { Copy, Scissors, Clipboard, CopyPlus, Users, Info, Star, FolderOpen, Trash2, FileAudio2, LayoutGrid, List, Rows2, Shapes } from 'lucide-react';
 import path from 'path-browserify';
 
 import mscz from '@/assets/mscz-icon.svg';
@@ -8,6 +8,7 @@ import GenericModal from '@/modals/GenericModal';
 import DeleteConfirmationModal from '@/modals/DeleteConfirmationModal';
 import ShowInfoModal from '@/modals/ShowInfoModal';
 import ExportModal from '@/modals/ExportModal';
+import ConvertModal from '@/modals/ConvertModal';
 
 import './toolbar.css'
 import { useDirectory } from '@/contexts/DirectoryContext';
@@ -17,6 +18,7 @@ function Toolbar() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showConvertModal, setShowConvertModal] = useState(false);
   const [itemIsStarred, setItemIsStarred] = useState(false);
   const [settingsShowDelete, setSettingsShowDelete] = useState(true);
   const [actionKey, setActionKey] = useState('Ctrl');
@@ -132,7 +134,8 @@ function Toolbar() {
           SHARE / EXPORT
           <div className='toolbar-subsection'>
             <button className={'icon-button tooltip grayed'}><Tooltip text="Collaborate (Coming Soon)"/><Users size={iconSize}/></button>
-            <button className={'icon-button tooltip grayed'}><Tooltip text="Export to MuseScore (Coming Soon)"/><img src={mscz} color={"#737373"} alt="mscz icon" width={iconSize} height={iconSize} /></button>
+            <button className={'icon-button tooltip' + ((!selectedFile || !selectingSymphony) ? ' grayed' : '')} onClick={() => {(selectedFile && selectingSymphony) ? setShowConvertModal(true) : undefined}}><Tooltip text="Export to..."/><Shapes size={iconSize}/></button>
+            {/* <button className={'icon-button tooltip grayed'}><Tooltip text="Export to MuseScore (Coming Soon)"/><img src={mscz} color={"#737373"} alt="mscz icon" width={iconSize} height={iconSize} /></button> */}
             <button className={'icon-button tooltip' + ((!selectedFile || !selectingSymphony) ? ' grayed' : '')} onClick={() => {(selectedFile && selectingSymphony) ? setShowExportModal(true) : undefined}}><Tooltip text="Export to Audio"/><FileAudio2 size={iconSize}/></button>
           </div>
         </div>
@@ -183,6 +186,9 @@ function Toolbar() {
       )}
       <GenericModal isOpen={showExportModal} onClose={() => { setShowExportModal(false) }}>
         <ExportModal onClose={() => setShowExportModal(false) }/>
+      </GenericModal>
+      <GenericModal isOpen={showConvertModal} onClose={() => { setShowConvertModal(false) }}>
+        <ConvertModal onClose={() => setShowConvertModal(false) }/>
       </GenericModal>
     </>
   );

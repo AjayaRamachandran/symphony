@@ -19,6 +19,7 @@ import sys
 import json
 from pathlib import Path
 from soundfile import write as sfwrite
+import pretty_midi
 
 try:
     from ctypes import windll
@@ -34,6 +35,7 @@ SET ARGUMENTS:
 "main.py" "open" "filename" "folder" : starts program, opening file and establishing autosave bridge
 "main.py" "retrieve" "filepath" "id" : gets all information about program and puts it into the json with the id
 "main.py" "export" "filepath" "folder" : exports the file into the provided folder as a .wav
+"main.py" "convert" "filepath" "folder" : exports the file into the provided folder as a .mid
 
 "main.py" "filename" : opens file with autosave bridge
 "main.py" : starts program without autosave (NOT RECOMMENDED)
@@ -60,7 +62,7 @@ if len(sys.argv) > 4:
     print("Wrong usage: Too many arguments!")
     sys.exit(1)
 if len(sys.argv) == 4:
-    if sys.argv[1] == 'export':
+    if sys.argv[1] == 'export' or sys.argv[1] == 'convert':
         process = sys.argv[1]
         workingFile = sys.argv[2]
         destination = sys.argv[3]
@@ -81,7 +83,7 @@ else:
 
 ###### (PYGAME &) WINDOW INITIALIZE ######
 
-if (process == 'instantiate') or (process == 'retrieve') or (process == 'export'):
+if process in ['instantiate', 'retrieve', 'export', 'convert']:
     environ["SDL_VIDEODRIVER"] = "dummy"
 
 print("Initialized Args " + str(time.time()))
@@ -787,6 +789,47 @@ if process == 'export':
 
     arr2d = toSound(finalWave, returnType='2DArray')
     exportToWav(arr2d, destination + '/' + path.splitext(path.basename(workingFile))[0] + '.wav', sample_rate=44100)
+    sys.exit()
+
+def createMidiFromNotes(noteData, outputFolderPath, instrumentName="Acoustic Grand Piano"):
+    global tpm
+    baseName = path.splitext(path.basename(workingFile))[0]
+    ext = ".mid"
+    candidate = path.join(outputFolderPath, baseName + ext)
+    # Resolve name conflicts
+    counter = 1
+    while path.exists(candidate):
+        candidate = path.join(outputFolderPath, f"{baseName} ({counter}){ext}")
+        counter += 1
+    
+    midi = pretty_midi.PrettyMIDI()
+    instrument = pretty_midi.Instrument(program=pretty_midi.instrument_name_to_program(instrumentName))
+
+    for note in noteData:
+        pitch = note["pitch"]
+        start = note["startTime"]
+        end = start + note["duration"]
+        velocity = note.get("velocity", 127)
+
+        midiNote = pretty_midi.Note(velocity=velocity, pitch=pitch, start=start, end=end)
+        instrument.notes.append(midiNote)
+
+    midi.instruments.append(instrument)
+    midi.write(candidate)
+
+def convertNoteMapToStrikeList():
+    strikeList = []
+    for el, note in noteMap.items():
+        if note.lead:
+            offset = 1
+            while (note.key, note.time + offset, note.color) in noteMap:
+                offset += 1
+            strikeList.append({"pitch": note.key + 35, "startTime": ((note.time - 1) / 4), "duration": (offset / 4)})
+    
+    return strikeList
+        
+if process == 'convert':
+    createMidiFromNotes(convertNoteMapToStrikeList(), destination)
     sys.exit()
 
 def stamp(text, style, x, y, luminance, justification = "left"):
