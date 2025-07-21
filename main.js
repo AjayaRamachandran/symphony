@@ -90,8 +90,10 @@ app.whenReady().then(() => {
   ipcMain.handle('get-symphony-files', async (event, directoryPath) => {
     let files = null
     try { files = fs.readdirSync(directoryPath); } catch(error) { return 'not a valid dir' }
+
+    const validFileExts = ['.symphony', '.wav', '.mid'];
     
-    const symphonyFiles = files.filter(file => path.extname(file) === '.symphony' || path.extname(file) === '.wav');
+    const symphonyFiles = files.filter(file => validFileExts.includes(path.extname(file)));
     return symphonyFiles || 'no files';
   });
 
