@@ -13,6 +13,7 @@ function UserSettings({ onComplete }) {
     "close_project_manager_when_editing": false,
     "show_splash_screen": true,
     "user_name": "",
+    "show_console": false,
     "fancy_graphics": true,
     "disable_auto_save": false,
     "disable_delete_confirm": false
@@ -42,7 +43,7 @@ function UserSettings({ onComplete }) {
       <div className='modal-title' text-style='display' style={{ marginBottom: '15px' }}><Settings size={20}/>User Settings</div>
       <div className='modal-paragraph' style={{width: '100%', color: '#939393'}}>Configure your Symphony to work best for you. These settings can be reversed at any time.</div>
 
-      <div className='scrollable' style={{ height: '440px', width: '550px', overflowY: 'auto', overflowX: 'hidden', outline: '1px solid #434343', padding: '15px 20px', borderRadius: '6px' }}>
+      <div className='scrollable' style={{ height: '400px', width: '550px', overflowY: 'auto', overflowX: 'hidden', outline: '1px solid #434343', padding: '15px 20px', borderRadius: '6px' }}>
         <div className='setting-row'>
           <div text-style='display' className='modal-body2'>Change My Name</div>
         </div>
@@ -107,6 +108,7 @@ function UserSettings({ onComplete }) {
         <div className="divider">
           <span className="divider-label red">DANGER ZONE</span>
         </div>
+
         <div className='setting-row'>
           <div text-style='display' className='modal-body2'><TriangleAlert size={14} style={{marginRight: '5px'}}/>Disable Auto-Save Backup</div>
           <label className='switch'>
@@ -123,7 +125,17 @@ function UserSettings({ onComplete }) {
             <span className='slider red'></span>
           </label>
         </div>
-        <div className='modal-subtext wide' style={{ marginBottom: '10px' }}>Disables the confirmation upon deleting files, and removing folders.</div>
+        <div className='modal-subtext wide'>Disables the confirmation upon deleting files, and removing folders.</div>
+
+        <div className='setting-row'>
+          <div text-style='display' className='modal-body2'><TriangleAlert size={14} style={{marginRight: '5px'}}/>Show Console</div>
+          <label className='switch'>
+            <input type='checkbox' checked={settings.show_console} onChange={() => handleToggle('show_console')} />
+            <span className='slider red'></span>
+          </label>
+        </div>
+        <div className='modal-subtext wide' style={{ marginBottom: '10px' }}>Shows the console output of the Editor in a separate window.</div>
+
       </div>
 
       <button className='call-to-action-2' text-style='display' onClick={() => onComplete()}>Save & Exit</button>

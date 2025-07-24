@@ -1,6 +1,6 @@
 ###### IMPORT ######
 
-from pygame import display as pygamedisplay, font as pygamefont, mixer as pygamemixer, image as pygameimage, event as pygameevent, time as pygametime, draw as pygamedraw, key as pygamekey, Surface as pygameSurface, mouse, quit, RESIZABLE, NOFRAME, SRCALPHA, SYSTEM_CURSOR_HAND, sndarray, K_LALT, SYSTEM_CURSOR_ARROW, SYSTEM_CURSOR_IBEAM, K_LSHIFT, KEYDOWN, QUIT, VIDEORESIZE, K_0, K_1, K_2, K_3, K_4, K_5, K_6, K_7, K_8, K_9, K_BACKSPACE, K_RETURN, K_UP, K_DOWN, K_RIGHT, K_LEFT, K_LCTRL, K_SPACE, K_DELETE, K_PERIOD, K_COMMA, KEYUP, MOUSEWHEEL, K_s, K_z
+from pygame import display as pygamedisplay, font as pygamefont, mixer as pygamemixer, image as pygameimage, event as pygameevent, time as pygametime, draw as pygamedraw, key as pygamekey, Surface as pygameSurface, mouse, quit, RESIZABLE, NOFRAME, SRCALPHA, SYSTEM_CURSOR_HAND, sndarray, K_LALT, SYSTEM_CURSOR_ARROW, SYSTEM_CURSOR_IBEAM, K_LSHIFT, KEYDOWN, QUIT, VIDEORESIZE, K_0, K_1, K_2, K_3, K_4, K_5, K_6, K_7, K_8, K_9, K_BACKSPACE, K_RETURN, K_UP, K_DOWN, K_RIGHT, K_LEFT, K_LCTRL, K_LMETA, K_SPACE, K_DELETE, K_PERIOD, K_COMMA, KEYUP, MOUSEWHEEL, K_s, K_z, K_y
 from io import BytesIO
 import numpy as np
 # import random
@@ -9,6 +9,9 @@ import copy
 import cv2
 from math import *
 import time
+lastTime = time.time()
+START_TIME = lastTime
+
 from os import environ, path
 #import os
 # import json
@@ -21,18 +24,63 @@ from pathlib import Path
 from soundfile import write as sfwrite
 import pretty_midi
 
+consoleMessages = []
+
+class console:
+    @staticmethod
+    def log(message):
+        _msg = time.strftime('%Y-%m-%d %H:%M:%S') + ' > [Symphony] ' + str(message)
+        print(_msg)
+        consoleMessages.append(((_msg), "gray"))
+
+    @staticmethod
+    def message(message):
+        _msg = time.strftime('%Y-%m-%d %H:%M:%S') + ' > [Message] ' + str(message)
+        print(_msg)
+        consoleMessages.append((_msg, "magenta"))
+
+    @staticmethod
+    def warn(message):
+        _msg = time.strftime('%Y-%m-%d %H:%M:%S') + ' > [Warning] ' + str(message)
+        print(_msg)
+        consoleMessages.append((_msg, "yellow"))
+
+    @staticmethod
+    def error(message):
+        _msg = time.strftime('%Y-%m-%d %H:%M:%S') + ' > [Error] ' + str(message)
+        print(_msg)
+        consoleMessages.append((_msg, "red"))
+
+if sys.platform.startswith("win"):
+    console.log("Running on Windows")
+    platform = 'windows'
+    CMD_KEY = K_LCTRL
+elif sys.platform == "darwin":
+    console.log("Running on macOS")
+    platform = 'mac'
+    CMD_KEY = K_LMETA
+elif sys.platform.startswith("linux"):
+    console.log("Running on Linux")
+    platform = 'linux'
+    CMD_KEY = K_LCTRL
+else:
+    console.warn(f"Running on unknown platform: {sys.platform}")
+    platform = 'unknown'
+    CMD_KEY = K_LCTRL
+
 try:
     from ctypes import windll
     myappid = 'nimbial.symphony.editor.v1-0' # arbitrary string
     windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 except ImportError:
+    console.warn('Error importing windll or setting Unique AppID. You might be running on a non-Windows platform.')
     pass # Not on Windows or ctypes is not available
 
 ### Handling Arguments
 '''
 SET ARGUMENTS:
-"main.py" "instantiate" "filename" "folder" : does not start pygame, simply creates the file in the provided folder and exits
-"main.py" "open" "filename" "folder" : starts program, opening file and establishing autosave bridge
+"main.py" "instantiate" "filename" "folder": does not start pygame, simply creates the file in the provided folder and exits
+"main.py" "open" "filename" "folder": starts program, opening file and establishing autosave bridge
 "main.py" "retrieve" "filepath" "id" : gets all information about program and puts it into the json with the id
 "main.py" "export" "filepath" "folder" : exports the file into the provided folder as a .wav
 "main.py" "convert" "filepath" "folder" : exports the file into the provided folder as a .mid
@@ -54,12 +102,12 @@ process = ''
 autoSave = True
 globalUUID = 0
 sessionID = time.strftime('%Y-%m-%d %H%M%S')
-print(f'Running with sysargv: {sys.argv}')
+console.log(f'Running with sysargv: {sys.argv}')
 
 process = 'open'
 
 if len(sys.argv) > 4:
-    print("Wrong usage: Too many arguments!")
+    console.error("Wrong usage: Too many arguments!")
     sys.exit(1)
 if len(sys.argv) == 4:
     if sys.argv[1] == 'export' or sys.argv[1] == 'convert':
@@ -71,22 +119,86 @@ if len(sys.argv) == 4:
         workingFile = sys.argv[2]
         globalUUID = sys.argv[3]
     else:
-      process = sys.argv[1]
-      workingFile = sys.argv[3] + '/' + sys.argv[2] # used to cleanse sysargv 2, but realized this can actually cause errors
-      titleText = sys.argv[2][:-9]
-      if process == 'open':
-          autoSave = not json.load(open('src/assets/user-settings.json'))["disable_auto_save"]
+        process = sys.argv[1]
+        workingFile = sys.argv[3] + '/' + sys.argv[2] # used to cleanse sysargv 2, but realized this can actually cause errors
+        titleText = sys.argv[2][:-9]
+        if process == 'open':
+            autoSave = not json.load(open('src/assets/user-settings.json'))["disable_auto_save"]
+            import tkinter as tk
+            import threading
 elif len(sys.argv) == 2:
+    import tkinter as tk
+    import threading
     workingFile = sys.argv[1]
+    console.warn('You are running Symphony without the Project Manager. This can lead to poor file safety and potential project loss.')
 else:
+    import tkinter as tk
+    import threading
     workingFile = ""
+    console.warn('You are running Symphony without the Project Manager. This can lead to poor file safety and potential project loss.')
+    console.warn('You are running Symphony without a designated autosave destination. We highly recommend against this.')
+
+###### TK CONSOLE INITIALIZE ######
+if process == 'open' or len(sys.argv) < 3:
+    class ConsoleWindow(tk.Tk):
+        def __init__(self, lines, font="Consolas 10"):
+            super().__init__()
+            icon = tk.PhotoImage(file="inner/assets/terminal-icon.png")
+            self.iconphoto(True, icon)
+            self.title("Symphony: Console")
+            self.geometry("800x400")
+            self.configure(bg="black")
+
+            self.lines = lines  # now list of (message, tag)
+            self.font = font
+
+            self.text = tk.Text(self, bg="black", font=font,
+                                wrap="word", state="disabled")
+            self.scroll = tk.Scrollbar(self, command=self.text.yview)
+            self.text.configure(yscrollcommand=self.scroll.set)
+
+            self.text.tag_config("gray", foreground="gray")
+            self.text.tag_config("yellow", foreground="yellow")
+            self.text.tag_config("red", foreground="red")
+            self.text.tag_config("magenta", foreground="magenta")
+
+            self.text.pack(side="left", fill="both", expand=True)
+            self.scroll.pack(side="right", fill="y")
+
+            self._last_len = 0
+            self.after(100, self.update_console)
+
+        def update_console(self):
+            if len(self.lines) != self._last_len:
+                self._last_len = len(self.lines)
+                self.text.configure(state="normal")
+                self.text.delete("1.0", "end")
+                for message, tag in self.lines:
+                    self.text.insert("end", message + "\n", tag)
+                self.text.see("end")
+                self.text.configure(state="disabled")
+            self.after(100, self.update_console)
+
+
+    def start_tk(lines):
+        console = ConsoleWindow(lines)
+        console.mainloop()
+
+    if json.load(open('src/assets/user-settings.json'))["show_console"]:
+        threading.Thread(target=start_tk, args=(consoleMessages,), daemon=True).start()
+        try:
+            userName = json.load(open('src/assets/user-settings.json'))["user_name"].split(sep=' ')[0]
+        except:
+            userName = 'User'
+        console.message(f'Hey, {userName}! This console can be safely closed at any time, and your editor will remain active.')
 
 ###### (PYGAME &) WINDOW INITIALIZE ######
 
 if process in ['instantiate', 'retrieve', 'export', 'convert']:
     environ["SDL_VIDEODRIVER"] = "dummy"
 
-print("Initialized Args " + str(time.time()))
+console.log("Initialized Args "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
+lastTime = time.time()
 
 width, height = (1100, 592)
 minWidth, minHeight = (925, 592)
@@ -95,16 +207,18 @@ if path.exists(iconPath):
     gameIcon = pygameimage.load(iconPath)
     pygamedisplay.set_icon(gameIcon)
 else:
-    print(f"Warning: Icon file not found at {iconPath}")
+    console.warn(f"Warning: Icon file not found at {iconPath}")
 
-print("Initialized Icon Path " + str(time.time()))
+console.log("Initialized Icon Path "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
+lastTime = time.time()
 
 #pygame.init()
 pygamedisplay.init()
 pygamefont.init()
 pygamemixer.init()
 
-print("Initialized Pygame " + str(time.time()))
+console.log("Initialized Pygame "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
+lastTime = time.time()
 
 pygamedisplay.set_caption(f"{titleText} - Symphony v1.0 Beta")
 #pygamedisplay.set_icon(pygame.image.load("src/assets/icon.png"))
@@ -117,7 +231,8 @@ else:
     pygameevent.pump()
     time.sleep(0.1)
 
-print("Initialized Window " + str(time.time()))
+console.log("Initialized Window "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
+lastTime = time.time()
 
 play_obj = None # global to hold the last Channel/Sound so it doesn't get garbage-collected
 SAMPLE_RATE = 44100
@@ -162,7 +277,8 @@ waveImages = [squareWaveImage, triangleWaveImage, sawtoothWaveImage]
 upChevronImage = pygameimage.load("inner/assets/up.png")
 downChevronImage = pygameimage.load("inner/assets/down.png")
 
-print("Initialized Assets " + str(time.time()))
+console.log("Initialized Assets "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
+lastTime = time.time()
 
 ###### VARIABLES INITIALIZE ######
 
@@ -226,7 +342,7 @@ globalVolume = 0.3
 
 viewRow = 50.01
 viewColumn = 0.01
-#print(innerHeight)
+#console.log(innerHeight)
 viewScaleX = (width - leftColumn) / 32 # old value = 32
 viewScaleY = innerHeight // 32 # old value = 16
 dRow = 0
@@ -253,7 +369,8 @@ saveFrame = 0
 drawSelectBox = False
 mouseFirstDown = True
 
-print("Initialized Variables " + str(time.time()))
+console.log("Initialized Variables "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
+lastTime = time.time()
 
 ###### CLASSES ######
 
@@ -490,13 +607,15 @@ class Note():
             pygamedraw.line(screen, (0, 255, 0), # right edge
                             (headerX + (width - leftColumn)/viewScaleX, headerY + 1), (headerX + (width - leftColumn)/viewScaleX, headerY + innerHeight/viewScaleY - 1), 2)
 
-print("Initialized Classes " + str(time.time()))
+console.log("Initialized Classes "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
+lastTime = time.time()
 
 def toNote(note: Note):
     '''Function to convert old notes (before color was added) into new color'''
     try:
         color = note.color
     except:
+        console.warn('Adapting old note to have color \'orange\'.')
         color = "orange"
     return Note(note.key, note.time, note.lead, color)
 
@@ -516,23 +635,26 @@ class ProgramState():
         self.key = key
         self.mode = mode
         self.waveMap = waves
-        print(f"Updated ProgramState with key {key} and mode {mode}.")
+        console.log(f"Updated ProgramState with key {key} and mode {mode}.")
 
 def toProgramState(state : ProgramState):
     '''Maps a (potentially) old program state to a new one for backwards compatibility'''
     try:
         stateMkey = state.key
     except:
+        console.warn('Adapting old file format to have key Eb.')
         stateMkey = "Eb"
 
     try:
         statemode = state.mode
     except:
+        console.warn('Adapting old file format to have mode Lydian.')
         statemode = "Lydian"
 
     try:
         stateWaves = state.waveMap
     except:
+        console.warn('Adapting old file format to have waveMap.')
         stateWaves = {
             "orange" : 0,
             "purple" : 0,
@@ -555,13 +677,15 @@ def toProgramState(state : ProgramState):
 
 if workingFile == "" or process == 'instantiate': # if the workingfile is not provided or we are creating a new file, initialize a new program state
     ps = ProgramState(10, noteMap, "Eb", "Lydian", waveMap)
+    console.log('Creating new programState...')
 else:
     ps = toProgramState(pkl.load(open(workingFile, "rb")))
+    console.log('Loading existing programState...')
 
 if process == 'retrieve':
-    print('DUMPING INTO RESPONSE.JSON')
+    console.log('DUMPING INTO RESPONSE.JSON')
     responseLoc = open('inner/src/response.json', 'w')
-    print(ps.noteMap)
+    console.log(ps.noteMap)
     tpm = round(3600 / ps.ticksPerTile, 2)
     tiles = int((max(ps.noteMap.items(), key=lambda x : x[0][1]))[0][1]) if (len(ps.noteMap.items()) > 0) else 0
     json.dump({ 'fileInfo' : {
@@ -576,7 +700,8 @@ if process == 'retrieve':
     responseLoc.close()
     sys.exit()
 
-print("Initialized ProgramState " + str(time.time()))
+console.log("Initialized ProgramState "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
+lastTime = time.time()
 
 noteMap = ps.noteMap
 ticksPerTile = ps.ticksPerTile
@@ -619,8 +744,8 @@ def dumpToFile(file, directory):
     delQ, addQ = [], []
     for thing in noteMap.items():
         if (thing[1].key, thing[1].time, thing[1].color) != thing[0]:
-            print("A discrepancy was found between hashmap and obj data. Repairing (prioritizing obj data) now...")
-            print(f"Discrepancy details -- HM Key: {thing[0]}, Obj Data: {(thing[1].key, thing[1].time, thing[1].color)}")
+            console.log("A discrepancy was found between hashmap and obj data. Repairing (prioritizing obj data) now...")
+            console.log(f"Discrepancy details -- HM Key: {thing[0]}, Obj Data: {(thing[1].key, thing[1].time, thing[1].color)}")
             addQ.append([(thing[1].key, thing[1].time, thing[1].color), thing[1]])
             delQ.append(thing[0])
         
@@ -721,7 +846,7 @@ def playNotes(notes, duration=1, waves=0, volume=0.2, sample_rate=SAMPLE_RATE):
         sound = toSound(audio)
         play_obj = sound.play()
     except Exception as e:
-        print(f"NoteError: {e}")
+        console.error(f"NoteError: {e}")
 
 def assembleNotes(notes, phases, duration=1, volume=0.2, sample_rate=SAMPLE_RATE):
     '''Compound notes playback, tracks phase to keep continuous notes'''
@@ -876,7 +1001,8 @@ def sameNoteMaps(noteMap1, noteMap2):
     except:
         return False
     
-print("Initialized Functions " + str(time.time()))
+console.log("Initialized Functions "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
+console.log("Startup complete in " + str(round(time.time() - START_TIME, 5)) + ' seconds.')
 
 ###### MAINLOOP ######
 running = True
@@ -981,7 +1107,7 @@ while running:
                         try:
                             mouseCellStart
                         except NameError:
-                            #print("mouseCellStart not defined -- a selection was not initialized.")
+                            #console.log("mouseCellStart not defined -- a selection was not initialized.")
                             None
                         else:
                             if (not mouseCellStart in noteMap) and (timeOffset, keyOffset) == (0,0):
@@ -1351,7 +1477,7 @@ while running:
         try:
             mouseCellStart
         except NameError:
-            #print("mouseCellStart not defined -- a selection was not initialized.")
+            #console.log("mouseCellStart not defined -- a selection was not initialized.")
             None
         else:
             if (mouseHoldStart != mouse.get_pos()) and brushType == "select":
@@ -1383,7 +1509,7 @@ while running:
     for event in pygameevent.get():
         if event.type == QUIT:
             running = False
-            print("Pygame was quit")
+            console.warn("Pygame was quit")
         elif event.type == VIDEORESIZE:
             screen = pygamedisplay.set_mode((max(event.w, minWidth), max(event.h, minHeight)), RESIZABLE)
             width, height = (max(event.w, minWidth), max(event.h, minHeight))
@@ -1441,7 +1567,7 @@ while running:
                 dCol += 0.16
             elif event.key == K_LEFT: # Scrub left
                 dCol -= 0.16
-            elif event.key == K_LCTRL: # Switch to eraser momentarily
+            elif event.key == CMD_KEY: # Switch to eraser momentarily
                 brushType = "eraser"
             elif event.key == K_LSHIFT: # Switch to select permanently
                 brushType = "select"
@@ -1461,7 +1587,7 @@ while running:
                 for q in delQ:
                     del noteMap[q]
             elif event.key == K_s:
-                if pygamekey.get_pressed()[K_LCTRL]: # if the user presses Ctrl+S (to save)
+                if pygamekey.get_pressed()[CMD_KEY]: # if the user presses Ctrl+S (to save)
                     if workingFile == "": # file dialog to show up if the user's workspace is not attached to a file
                         filename = asksaveasfile(initialfile = 'Untitled.symphony', mode='wb',defaultextension=".symphony", filetypes=[("Symphony Musical Composition","*.symphony")])
                         if filename != None:
@@ -1481,20 +1607,20 @@ while running:
                         myPath = open(workingFile, "wb")
                         dumpToFile(myPath, workingFile)
                     saveFrame = 0
-            elif event.key == K_z:
-                if pygamekey.get_pressed()[K_LCTRL]:
-                    if pygamekey.get_pressed()[K_LSHIFT]: # user wishes to redo (Ctrl+Shift+Z)
+            elif event.key == K_z or event.key == K_y:
+                if pygamekey.get_pressed()[CMD_KEY]:
+                    if (pygamekey.get_pressed()[K_LSHIFT] and event.key == K_z) or event.key == K_y: # user wishes to redo (Ctrl+Shift+Z or Ctrl+Y)
                         try:
                             noteMapVersionTracker.append(copy.deepcopy(noteMapFutureVersionTracker.pop()))
                         except Exception as e:
-                            print("Cannot redo further")
+                            console.warn("Cannot redo further")
                         if len(noteMapFutureVersionTracker) > 0:
                             noteMap = copy.deepcopy(noteMapFutureVersionTracker[-1])
-                    else: # user wishes to undo (Ctrl+Z)
+                    elif event.key == K_z: # user wishes to undo (Ctrl+Z)
                         try:
                             noteMapFutureVersionTracker.append(copy.deepcopy(noteMapVersionTracker.pop()))
                         except Exception as e:
-                            print("Cannot undo further")
+                            console.warn("Cannot undo further")
                         if len(noteMapVersionTracker) > 0:
                             noteMap = copy.deepcopy(noteMapVersionTracker[-1])
             elif event.key == K_PERIOD:
@@ -1517,7 +1643,7 @@ while running:
                 for d in delQ:
                     del noteMap[d]
         elif event.type == KEYUP:
-            if event.key == K_LCTRL: # Switches away from eraser when Ctrl is let go
+            if event.key == CMD_KEY: # Switches away from eraser when Ctrl is let go
                 brushType = "brush"
                 for note in noteMap.items():
                     note[1].selected = False
@@ -1564,3 +1690,4 @@ else: # save all changes upon closing that have happened since the last autosave
     
 # quit loop
 quit()
+sys.exit()

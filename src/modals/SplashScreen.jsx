@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Music, ChartNoAxesGantt, FolderClosed, BookMarked, GitBranch, Play } from 'lucide-react';
+import { Music, ChartNoAxesGantt, FolderClosed, BookMarked, GitBranch, Play, KeyboardMusic } from 'lucide-react';
 import path from 'path-browserify';
 
 import Tooltip from '@/components/Tooltip';
@@ -23,6 +23,7 @@ function SplashScreen({onComplete}) {
     'symphony': ChartNoAxesGantt,
     'mp3': Music,
     'wav': Music,
+    'mid': KeyboardMusic,
     '' : FolderClosed,
   };
 

@@ -15,6 +15,7 @@ const DEFAULT_SETTINGS = {
   "show_splash_screen": true,
   "user_name": "",
   "fancy_graphics" : true,
+  "show_console": false,
   "disable_auto_save": false,
   "disable_delete_confirm": false
 };
@@ -281,6 +282,7 @@ app.whenReady().then(() => {
 
     const isOpenCommand = argsArray[0] === 'open';
     let closeManager = false;
+    let openConsole = false;
 
     // Update Recently Viewed
     if (isOpenCommand) {
@@ -311,6 +313,7 @@ app.whenReady().then(() => {
       try {
         const settings = JSON.parse(fs.readFileSync(USER_SETTINGS_PATH, 'utf-8'));
         closeManager = !!settings["close_project_manager_when_editing"];
+        openConsole = !!settings["open_console"];
       } catch (e) {
         console.error('Failed to read user settings:', e);
       }
@@ -318,6 +321,7 @@ app.whenReady().then(() => {
 
     // Prepare to run the Python script
     const scriptPath = path.join(__dirname, 'inner', 'src', 'main.py');
+    console.log(`${argsArray.map(arg => `'${arg}'`).join(' ')}`)
 
     if (closeManager) {
       // Run detached process
@@ -594,7 +598,7 @@ app.whenReady().then(() => {
 
     return new Promise((resolve, reject) => {
       const scriptPath = path.join(__dirname, 'inner', 'src', 'main.py');
-      console.log(`${scriptPath}, 'retrieve', ${filePath}, ${id}`)
+      console.log(`'retrieve' '${filePath}' '${id}'`)
       const pythonProcess = spawn('python', [scriptPath, 'retrieve', filePath, id]);
 
       pythonProcess.on('close', (code) => {

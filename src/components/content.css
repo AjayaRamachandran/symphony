@@ -77,27 +77,36 @@
   border-radius: 50%;
   display: inline-block;
   cursor: pointer;
-  transition: background-color 0.3s ease;
 }
 
 .mac-btn.close {
   background-color: #ff5f57;
 }
+.mac-btn.close:hover {
+  background-color: #ff5f57;
+  background: radial-gradient(#cc4e47 0%, #cc4e47 40%, #ff5f57 41%, #ff5f57 100%);
+}
 
 .mac-btn.minimize {
   background-color: #ffbd2e;
+}
+.mac-btn.minimize:hover {
+  background-color: #ffbd2e;
+  background: radial-gradient(#c29940 0%, #c29940 40%, #ffbd2e 41%, #ffbd2e 100%);
 }
 
 .mac-btn.maximize {
   background-color: #28c840;
 }
+.mac-btn.maximize:hover {
+  background-color: #28c840;
+  background: radial-gradient(#359944 0%, #359944 40%, #28c840 41%, #28c840 100%);
+}
 
 /* When window is unfocused, fade to gray */
 .mac-controls.unfocused .mac-btn {
-  background-color: #888888 !important;
+  background: #888888 !important;
 }
-
-
 
 .full-page {
   display: flex;
