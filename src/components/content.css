@@ -2,12 +2,18 @@
   -webkit-app-region: drag;
   height: 30px;
   display: flex;
+  flex-direction: row;
   align-items: center;
   justify-content: space-between;
   background: #222222;
   color: #bbbbbb;
   padding: 0px 0px 0px 8px;
-
+}
+.titlebar-center {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
 }
 
 .window-controls {
@@ -30,6 +36,68 @@
 .x-button:hover {
   background-color: #cf493a;
 }
+
+/* Only applies to Mac layout */
+.titlebar.mac {
+  justify-content: center;
+  position: relative;
+  padding: 0; /* override Windows padding */
+}
+
+/* Centered title for Mac */
+.titlebar.mac .titlebar-center {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  pointer-events: none;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Mac traffic light controls on the left */
+.mac-controls {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding-left: 10px;
+  -webkit-app-region: no-drag;
+  position: absolute;
+  left: 0;
+}
+
+.mac-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.mac-btn {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.mac-btn.close {
+  background-color: #ff5f57;
+}
+
+.mac-btn.minimize {
+  background-color: #ffbd2e;
+}
+
+.mac-btn.maximize {
+  background-color: #28c840;
+}
+
+/* When window is unfocused, fade to gray */
+.mac-controls.unfocused .mac-btn {
+  background-color: #888888 !important;
+}
+
+
 
 .full-page {
   display: flex;

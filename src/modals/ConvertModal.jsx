@@ -6,6 +6,7 @@ import Field from '@/components/content-components/right-panel-components/Field'
 import Dropdown from '@/components/Dropdown';
 import Tooltip from '@/components/Tooltip';
 import { useDirectory } from '@/contexts/DirectoryContext';
+import InitExportFolder from '@/modals/InitExportFolder';
 
 const formats = [
   { label: 'MIDI', icon: KeyboardMusic }
@@ -16,6 +17,7 @@ function ConvertModal({onClose, onComplete}) {
   const [destination, setDestination] = useState('');
   const [format, setFormat] = useState('MIDI');
   const [folders, setFolders] = useState([]);
+  const [showInitExportFolder, setShowInitExportFolder] = useState(false);
 
   const { globalDirectory, setGlobalDirectory, selectedFile, setSelectedFile } = useDirectory();
 
@@ -32,6 +34,9 @@ function ConvertModal({onClose, onComplete}) {
       });
       setFolders(formatted);
       console.log(formatted);
+      if (formatted.length === 0) {
+        setShowInitExportFolder(true);
+      }
     });
   }, []);
 
@@ -53,6 +58,11 @@ function ConvertModal({onClose, onComplete}) {
 
   return (
     <>
+    {showInitExportFolder ? 
+            (<>
+              <InitExportFolder onComplete={() => {setShowInitExportFolder(false); onClose()} }/>
+            </>)
+           : (<>
       <div className='modal-title' text-style='display' style={{marginBottom : '25px'}}>Export to...</div>
       <div className='modal-body'>Symphony Name</div>
       <div className='tooltip'>
@@ -79,7 +89,7 @@ function ConvertModal({onClose, onComplete}) {
       text-style='display' onClick={(format === '' || destination === '' || projectName === '') ? null : async () => { await finish(selectedFolder.value); setGlobalDirectory(selectedFolder.value); setSelectedFile(null); onClose() }}>
         Export
       </button>
-    </>
+    </>)}</>
   );
 }
 

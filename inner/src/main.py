@@ -310,7 +310,7 @@ class Button():
         '''Method to return whether the button has been clicked'''
         return mouseFunction((self.x, toolbarHeight/2 - 14, self.width, self.height))[0] and mouse.get_pressed()[0] and not mouseTask
     
-    def draw(self, itemToDraw = None):
+    def draw(self, itemToDraw = None, overrideDark = False):
         '''Method to draw a button.'''
         if self.mouseBounds():
             mouse.set_cursor(SYSTEM_CURSOR_HAND)
@@ -319,7 +319,7 @@ class Button():
             pygamedraw.rect(screen, self.color, (self.x, toolbarHeight/2 - self.height/2, self.width, self.height), border_radius=3)
             stamp(str(self.colorIndex + 1), self.textSize, self.x + self.width/2, self.y, 0.1, "center")
         else:
-            pygamedraw.rect(screen, mouseFunction((self.x, toolbarHeight/2 - self.height/2, self.width, self.height))[1], (self.x, toolbarHeight/2 - self.height/2, self.width, self.height), border_radius=3)
+            pygamedraw.rect(screen, (25, 25, 25) if overrideDark else mouseFunction((self.x, toolbarHeight/2 - self.height/2, self.width, self.height))[1], (self.x, toolbarHeight/2 - self.height/2, self.width, self.height), border_radius=3)
         pygamedraw.rect(screen, (0, 0, 0), (self.x, toolbarHeight/2 - self.height/2, self.width, self.height), 1, 3)
     
         if self.colorCycle == None:
@@ -917,7 +917,7 @@ while running:
         headerY = row * innerHeight / viewScaleY + toolbarHeight + (viewRow%1 * innerHeight/viewScaleY) - innerHeight/viewScaleY
         headerX = leftColumn - (viewColumn%1 * (width - leftColumn)/viewScaleX) - (width - leftColumn)/viewScaleX
         for column in range(ceil(viewScaleX) + 2):
-            cm = (floor((column+viewColumn)%timeInterval) == 0) * 8
+            cm = (floor((column+viewColumn)%timeInterval) == 1) * 8
             pygamedraw.rect(screen, ((28 + cm, 28 + cm, 28 + cm) if not (-(floor(row - viewRow) + keyIndex + 1) % 12) in modeIntervals else (43 + cm, 43 + cm, 43 + cm)),
                          (headerX, headerY, (width - leftColumn)/viewScaleX, innerHeight/viewScaleY), border_radius=3)
             pygamedraw.rect(screen, (0, 0, 0),
@@ -1120,7 +1120,7 @@ while running:
     for row in range(ceil(viewScaleY) + 1):
         headerX, headerY = 0, row * innerHeight / viewScaleY + toolbarHeight + (viewRow%1 * innerHeight/viewScaleY) - innerHeight/viewScaleY
         note = f"{(NOTES_SHARP if accidentals == 'sharps' else NOTES_FLAT)[floor((viewRow - row) % 12)]} {floor((viewRow - row) / 12) + 2}"
-        pygamedraw.rect(screen, ((43, 43, 43) if floor((row - viewRow)%2) == 0 else (51, 51, 51)),
+        pygamedraw.rect(screen, ((26, 26, 26) if not (-(floor(row - viewRow) + keyIndex + 1) % 12) in modeIntervals else (34, 34, 34)),
                          (headerX, headerY, leftColumn, innerHeight/viewScaleY), border_radius=3)
         pygamedraw.rect(screen, (0, 0, 0),
                          (headerX, headerY, leftColumn, innerHeight/viewScaleY), 1, 3)
@@ -1206,7 +1206,11 @@ while running:
         if playheadButton.mouseClicked():
             head = not head
             mouseTask = True
-        playheadButton.draw(headImage)
+        if head:
+            mouse.set_cursor(SYSTEM_CURSOR_IBEAM)
+            playheadButton.draw(headImage, overrideDark=True)
+        else:
+            playheadButton.draw(headImage)
 
         ### COLOR BUTTON
         colorButton.x = width - 345
