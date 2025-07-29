@@ -4,7 +4,8 @@ import path from 'path-browserify';
 
 import fileIcon from '@/assets/file-icon.svg';
 import wavIcon from '@/assets/wav-icon.svg';
-import midiIcon from '@/assets/midi-icon.svg'; // Make sure this exists
+import mp3Icon from '@/assets/mp3-icon.svg';
+import midiIcon from '@/assets/midi-icon.svg';
 import { useDirectory } from '@/contexts/DirectoryContext';
 
 import "./file.css";
@@ -17,6 +18,10 @@ const fileTypeMap = {
   '.wav': {
     icon: wavIcon,
     label: 'WAV Lossless Audio File',
+  },
+  '.mp3': {
+    icon: mp3Icon,
+    label: 'MP3 Compressed Audio File',
   },
   '.mid': {
     icon: midiIcon,

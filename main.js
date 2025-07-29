@@ -92,7 +92,7 @@ app.whenReady().then(() => {
     let files = null
     try { files = fs.readdirSync(directoryPath); } catch(error) { return 'not a valid dir' }
 
-    const validFileExts = ['.symphony', '.wav', '.mid'];
+    const validFileExts = ['.symphony', '.wav', '.mid', '.mp3'];
     
     const symphonyFiles = files.filter(file => validFileExts.includes(path.extname(file)));
     return symphonyFiles || 'no files';

@@ -134,7 +134,7 @@ function UserSettings({ onComplete }) {
             <span className='slider red'></span>
           </label>
         </div>
-        <div className='modal-subtext wide' style={{ marginBottom: '10px' }}>Shows the console output of the Editor in a separate window.</div>
+        <div className='modal-subtext wide' style={{ marginBottom: '10px' }}>Shows the console output of the Editor in a separate window. May cause program instability in some fringe cases. Proceed with caution.</div>
 
       </div>
 
