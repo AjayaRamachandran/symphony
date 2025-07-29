@@ -177,7 +177,7 @@ function Toolbar() {
         </div>
       </div>
       <GenericModal isOpen={showDeleteConfirm} onClose={() => { setShowDeleteConfirm(false) }}>
-        <DeleteConfirmationModal onComplete={() => { setShowDeleteConfirm(false); handleDelete() }} action={'Delete'} modifier={selectingSymphony ? 'Symphony' : '.wav file'} />
+        <DeleteConfirmationModal onComplete={() => { setShowDeleteConfirm(false); handleDelete() }} action={'Delete'} modifier={selectingSymphony ? 'Symphony' : 'file'} />
       </GenericModal>
       {showInfo && selectedFile && globalDirectory && (
         <GenericModal isOpen={showInfo} onClose={() => { setShowInfo(false) }}>

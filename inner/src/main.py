@@ -125,72 +125,63 @@ if len(sys.argv) == 4:
         if process == 'open':
             autoSave = not json.load(open('src/assets/user-settings.json'))["disable_auto_save"]
             import tkinter as tk
-            import threading
+            #import threading
 elif len(sys.argv) == 2:
     import tkinter as tk
-    import threading
+    #import threading
     workingFile = sys.argv[1]
     console.warn('You are running Symphony without the Project Manager. This can lead to poor file safety and potential project loss.')
 else:
     import tkinter as tk
-    import threading
+    #import threading
     workingFile = ""
     console.warn('You are running Symphony without the Project Manager. This can lead to poor file safety and potential project loss.')
     console.warn('You are running Symphony without a designated autosave destination. We highly recommend against this.')
 
 ###### TK CONSOLE INITIALIZE ######
-if process == 'open' or len(sys.argv) < 3:
-    class ConsoleWindow(tk.Tk):
-        def __init__(self, lines, font="Consolas 10"):
-            super().__init__()
-            icon = tk.PhotoImage(file="inner/assets/terminal-icon.png")
-            self.iconphoto(True, icon)
-            self.title("Symphony: Console")
-            self.geometry("800x400")
-            self.configure(bg="black")
+class ConsoleWindow(tk.Tk):
+    def __init__(self, lines, font="Consolas 10"):
+        super().__init__()
+        icon = tk.PhotoImage(file="inner/assets/terminal-icon.png")
+        self.iconphoto(True, icon)
+        self.title("Symphony: Console")
+        self.geometry("800x400")
+        self.resizable(False, False)
+        self.configure(bg="black")
+        self.lines = lines
+        self.font = font
 
-            self.lines = lines  # now list of (message, tag)
-            self.font = font
+        self.text = tk.Text(self, bg="black", font=font, wrap="word", state="disabled")
+        self.scroll = tk.Scrollbar(self, command=self.text.yview)
+        self.text.configure(yscrollcommand=self.scroll.set)
 
-            self.text = tk.Text(self, bg="black", font=font,
-                                wrap="word", state="disabled")
-            self.scroll = tk.Scrollbar(self, command=self.text.yview)
-            self.text.configure(yscrollcommand=self.scroll.set)
+        self.text.tag_config("gray", foreground="gray")
+        self.text.tag_config("yellow", foreground="yellow")
+        self.text.tag_config("red", foreground="red")
+        self.text.tag_config("magenta", foreground="magenta")
 
-            self.text.tag_config("gray", foreground="gray")
-            self.text.tag_config("yellow", foreground="yellow")
-            self.text.tag_config("red", foreground="red")
-            self.text.tag_config("magenta", foreground="magenta")
+        self.text.pack(side="left", fill="both", expand=True)
+        self.scroll.pack(side="right", fill="y")
 
-            self.text.pack(side="left", fill="both", expand=True)
-            self.scroll.pack(side="right", fill="y")
+        self._last_len = 0
 
-            self._last_len = 0
-            self.after(100, self.update_console)
+    def update_console(self):
+        if len(self.lines) != self._last_len:
+            self._last_len = len(self.lines)
+            self.text.configure(state="normal")
+            self.text.delete("1.0", "end")
+            for message, tag in self.lines:
+                self.text.insert("end", message + "\n", tag)
+            self.text.see("end")
+            self.text.configure(state="disabled")
 
-        def update_console(self):
-            if len(self.lines) != self._last_len:
-                self._last_len = len(self.lines)
-                self.text.configure(state="normal")
-                self.text.delete("1.0", "end")
-                for message, tag in self.lines:
-                    self.text.insert("end", message + "\n", tag)
-                self.text.see("end")
-                self.text.configure(state="disabled")
-            self.after(100, self.update_console)
-
-
-    def start_tk(lines):
-        console = ConsoleWindow(lines)
-        console.mainloop()
-
-    if json.load(open('src/assets/user-settings.json'))["show_console"]:
-        threading.Thread(target=start_tk, args=(consoleMessages,), daemon=True).start()
-        try:
-            userName = json.load(open('src/assets/user-settings.json'))["user_name"].split(sep=' ')[0]
-        except:
-            userName = 'User'
-        console.message(f'Hey, {userName}! This console can be safely closed at any time, and your editor will remain active.')
+show_console = json.load(open('src/assets/user-settings.json'))["show_console"]
+if json.load(open('src/assets/user-settings.json'))["show_console"]:
+    try:
+        userName = json.load(open('src/assets/user-settings.json'))["user_name"].split(sep=' ')[0]
+    except:
+        userName = 'User'
+    console.message(f'Hey, {userName}! This console can be safely closed at any time, and your editor will remain active.')
 
 ###### (PYGAME &) WINDOW INITIALIZE ######
 
@@ -1013,7 +1004,30 @@ ctrlZTime = 59
 noteMapVersionTracker = []
 noteMapFutureVersionTracker = []
 
+root = None
+last_update = time.time()
+
+# Setup Tkinter console window (only if setting allows it)
+if json.load(open('src/assets/user-settings.json'))["show_console"]:
+    try:
+        root = ConsoleWindow(consoleMessages)
+    except Exception as e:
+        print(f"Failed to open console window: {e}")
+        root = None
+
 while running:
+    # Tkinter GUI updates
+    if root is not None:
+        try:
+            now = time.time()
+            if now - last_update > 0.05:  # Limit updates
+                root.update()
+                root.update_console()
+                last_update = now
+        except Exception as e:
+            print(f"[Console closed or failed: {e}]")
+            root = None  # Fully disable Tkinter from now on
+
     saveFrame += 60 * (1 / fps)
     if saveFrame > 1200: # Saves every 20 seconds
         saveFrame = 0

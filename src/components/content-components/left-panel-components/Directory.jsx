@@ -109,7 +109,7 @@ function Directory() {
     setDragOverDir(null);
 
     const files = Array.from(e.dataTransfer.files);
-    const symphonyFiles = files.filter(file => file.name.endsWith('.symphony') || file.name.endsWith('.wav') || file.name.endsWith('.mid'));
+    const symphonyFiles = files.filter(file => file.name.endsWith('.symphony') || file.name.endsWith('.wav') || file.name.endsWith('.mid') || file.name.endsWith('.mp3'));
 
     if (symphonyFiles.length === 0) {
       setShowInvalidModal(true);
