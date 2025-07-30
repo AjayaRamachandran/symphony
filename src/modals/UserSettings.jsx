@@ -43,7 +43,7 @@ function UserSettings({ onComplete }) {
       <div className='modal-title' text-style='display' style={{ marginBottom: '15px' }}><Settings size={20}/>User Settings</div>
       <div className='modal-paragraph' style={{width: '100%', color: '#939393'}}>Configure your Symphony to work best for you. These settings can be reversed at any time.</div>
 
-      <div className='scrollable' style={{ height: '400px', width: '550px', overflowY: 'auto', overflowX: 'hidden', outline: '1px solid #434343', padding: '15px 20px', borderRadius: '6px' }}>
+      <div className='scrollable' style={{ height: '400px', width: '550px', overflowY: 'auto', overflowX: 'hidden', outline: '1px solid #434343', padding: '15px 20px 0px 20px', borderRadius: '6px' }}>
         <div className='setting-row'>
           <div text-style='display' className='modal-body2'>Change My Name</div>
         </div>
@@ -127,14 +127,18 @@ function UserSettings({ onComplete }) {
         </div>
         <div className='modal-subtext wide'>Disables the confirmation upon deleting files, and removing folders.</div>
 
-        <div className='setting-row'>
-          <div text-style='display' className='modal-body2'><TriangleAlert size={14} style={{marginRight: '5px'}}/>Show Console</div>
-          <label className='switch'>
-            <input type='checkbox' checked={settings.show_console} onChange={() => handleToggle('show_console')} />
-            <span className='slider red'></span>
-          </label>
-        </div>
-        <div className='modal-subtext wide' style={{ marginBottom: '10px' }}>Shows the console output of the Editor in a separate window. May cause program instability in some fringe cases. Proceed with caution.</div>
+        {window.electronAPI.platform.startsWith('win') && (
+          <>
+            <div className='setting-row'>
+              <div text-style='display' className='modal-body2'><TriangleAlert size={14} style={{marginRight: '5px'}}/>Show Console</div>
+              <label className='switch'>
+                <input type='checkbox' checked={settings.show_console} onChange={() => handleToggle('show_console')} />
+                <span className='slider red'></span>
+              </label>
+            </div>
+            <div className='modal-subtext wide'>Shows the console output of the Editor in a separate window. May cause program instability in some fringe cases. Proceed with caution.</div>
+          </>
+        )}
 
       </div>
 
