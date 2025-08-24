@@ -6,3 +6,4 @@ src/assets/user-settings.json
 dist/
 build/
 venv/
+inner/src/build/main
