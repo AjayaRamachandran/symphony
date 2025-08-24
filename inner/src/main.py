@@ -4,6 +4,7 @@ from pygame import display as pygamedisplay, font as pygamefont, mixer as pygame
 from io import BytesIO
 import numpy as np
 # import random
+import tkinter as tk
 import ctypes
 import copy
 import cv2
@@ -79,14 +80,17 @@ except ImportError:
 ### Handling Arguments
 '''
 SET ARGUMENTS:
-"main.py" "instantiate" "filename" "folder": does not start pygame, simply creates the file in the provided folder and exits
-"main.py" "open" "filename" "folder": starts program, opening file and establishing autosave bridge
-"main.py" "retrieve" "filepath" "id" : gets all information about program and puts it into the json with the id
-"main.py" "export" "filepath" "folder" : exports the file into the provided folder as a .wav
-"main.py" "convert" "filepath" "folder" : exports the file into the provided folder as a .mid
+"main.py" "open" "filename" "folder" [src_folder] [autosave_dir_path] [user_settings_path]: starts program, opening file and establishing autosave bridge. Only 'open' requires autosave_dir_path and user_settings_path.
+"main.py" "instantiate" "filename" "folder" [src_folder]: does not start pygame, simply creates the file in the provided folder and exits
+"main.py" "retrieve" "filepath" "id" [src_folder]: gets all information about program and puts it into the json with the id
+"main.py" "export" "filepath" "folder" [src_folder]: exports the file into the provided folder as a .wav
+"main.py" "convert" "filepath" "folder" [src_folder]: exports the file into the provided folder as a .mid
 
-"main.py" "filename" : opens file with autosave bridge
-"main.py" : starts program without autosave (NOT RECOMMENDED)
+"main.py" "filename": opens file with autosave bridge
+"main.py": starts program without autosave (NOT RECOMMENDED)
+
+autosave_dir_path: absolute path to the autosave directory.json file (required only for 'open')
+user_settings_path: absolute path to the user-settings.json file (required only for 'open')
 '''
 def cleanse(string):
     stringCopy = string
@@ -95,7 +99,16 @@ def cleanse(string):
             stringCopy = stringCopy[:l] + '_' + stringCopy[l+1:]
     return stringCopy
 
-autoSaveDirectory = json.load(open('src/assets/directory.json'))['Symphony Auto-Save'][0]['Auto-Save']
+def get_arg_path(arg_index, default_relative):
+    import os
+    if len(sys.argv) > arg_index:
+        return sys.argv[arg_index]
+    return os.path.abspath(default_relative)
+
+autoSaveDirectory = None
+user_settings_path = None
+directory_json_path = None
+source_path = None
 
 titleText = 'My Track 1'
 process = ''
@@ -106,10 +119,10 @@ console.log(f'Running with sysargv: {sys.argv}')
 
 process = 'open'
 
-if len(sys.argv) > 4:
+if len(sys.argv) > 7:
     console.error("Wrong usage: Too many arguments!")
     sys.exit(1)
-if len(sys.argv) == 4:
+if len(sys.argv) >= 5:
     if sys.argv[1] == 'export' or sys.argv[1] == 'convert':
         process = sys.argv[1]
         workingFile = sys.argv[2]
@@ -123,26 +136,30 @@ if len(sys.argv) == 4:
         workingFile = sys.argv[3] + '/' + sys.argv[2] # used to cleanse sysargv 2, but realized this can actually cause errors
         titleText = sys.argv[2][:-9]
         if process == 'open':
-            autoSave = not json.load(open('src/assets/user-settings.json'))["disable_auto_save"]
-            import tkinter as tk
+            if process == 'open' and user_settings_path:
+                autoSave = not json.load(open(user_settings_path))["disable_auto_save"]
             #import threading
 elif len(sys.argv) == 2:
-    import tkinter as tk
     #import threading
     workingFile = sys.argv[1]
     console.warn('You are running Symphony without the Project Manager. This can lead to poor file safety and potential project loss.')
 else:
-    import tkinter as tk
     #import threading
     workingFile = ""
     console.warn('You are running Symphony without the Project Manager. This can lead to poor file safety and potential project loss.')
     console.warn('You are running Symphony without a designated autosave destination. We highly recommend against this.')
 
+if process == 'open' and len(sys.argv) == 7:
+    source_path = get_arg_path(4, 'assets/directory.json')
+    directory_json_path = get_arg_path(5, 'assets/directory.json')
+    user_settings_path = get_arg_path(6, 'assets/user-settings.json')
+    autoSaveDirectory = json.load(open(directory_json_path))['Symphony Auto-Save'][0]['Auto-Save']
+
 ###### TK CONSOLE INITIALIZE ######
 class ConsoleWindow(tk.Tk):
     def __init__(self, lines, font="Consolas 10"):
         super().__init__()
-        icon = tk.PhotoImage(file="inner/assets/terminal-icon.png")
+        icon = tk.PhotoImage(file=f"{source_path}/assets/terminal-icon.png")
         self.iconphoto(True, icon)
         self.title("Symphony: Console")
         self.geometry("800x400")
@@ -175,13 +192,15 @@ class ConsoleWindow(tk.Tk):
             self.text.see("end")
             self.text.configure(state="disabled")
 
-show_console = json.load(open('src/assets/user-settings.json'))["show_console"]
-if json.load(open('src/assets/user-settings.json'))["show_console"]:
-    try:
-        userName = json.load(open('src/assets/user-settings.json'))["user_name"].split(sep=' ')[0]
-    except:
-        userName = 'User'
-    console.message(f'Hey, {userName}! This console can be safely closed at any time, and your editor will remain active.')
+show_console = False
+if process == 'open' and user_settings_path:
+    show_console = json.load(open(user_settings_path))["show_console"]
+    if show_console:
+        try:
+            userName = json.load(open(user_settings_path))["user_name"].split(sep=' ')[0]
+        except Exception:
+            userName = 'User'
+        console.message(f'Hey, {userName}! This console can be safely closed at any time, and your editor will remain active.')
 
 ###### (PYGAME &) WINDOW INITIALIZE ######
 
@@ -193,7 +212,7 @@ lastTime = time.time()
 
 width, height = (1100, 592)
 minWidth, minHeight = (925, 592)
-iconPath = 'inner/assets/icon32x32.png'
+iconPath = f'{source_path}/assets/icon32x32.png'
 if path.exists(iconPath):
     gameIcon = pygameimage.load(iconPath)
     pygamedisplay.set_icon(gameIcon)
@@ -212,7 +231,7 @@ console.log("Initialized Pygame "+ '(' + str(round(time.time() - lastTime, 5)) +
 lastTime = time.time()
 
 pygamedisplay.set_caption(f"{titleText} - Symphony v1.0 Beta")
-#pygamedisplay.set_icon(pygame.image.load("src/assets/icon.png"))
+#pygamedisplay.set_icon(pygame.image.load(f"{source_path}/icon.png"))
 screen = pygamedisplay.set_mode((width, height), RESIZABLE, NOFRAME)
 
 if (process == 'instantiate') or (process == 'retrieve'):
@@ -242,31 +261,32 @@ clock = pygametime.Clock()
 fps = 60
 
 # imports font styles
-TITLE1 = pygamefont.Font("inner/InterVariable.ttf", 60)
-HEADING1 = pygamefont.Font("inner/InterVariable.ttf", 24)
-SUBHEADING1 = pygamefont.Font("inner/InterVariable.ttf", 14)
-BODY = pygamefont.Font("inner/InterVariable.ttf", 14)
-SUBSCRIPT1 = pygamefont.Font("inner/InterVariable.ttf", 11)
+mainFont = f'{source_path}/assets/InterVariable.ttf'
+TITLE1 = pygamefont.Font(mainFont, 60)
+HEADING1 = pygamefont.Font(mainFont, 24)
+SUBHEADING1 = pygamefont.Font(mainFont, 14)
+BODY = pygamefont.Font(mainFont, 14)
+SUBSCRIPT1 = pygamefont.Font(mainFont, 11)
 
 bytes_io = BytesIO()
 
 ###### ASSETS ######
 
-playImage = pygameimage.load("inner/assets/play.png")
-pauseImage = pygameimage.load("inner/assets/pause.png")
-headImage = pygameimage.load("inner/assets/head.png")
-brushImage = pygameimage.load("inner/assets/brush.png")
-eraserImage = pygameimage.load("inner/assets/eraser.png")
-negaterImage = pygameimage.load("inner/assets/negater.png")
-rainbowImage = pygameimage.load("inner/assets/rainbow.png")
+playImage = pygameimage.load(f"{source_path}/assets/play.png")
+pauseImage = pygameimage.load(f"{source_path}/assets/pause.png")
+headImage = pygameimage.load(f"{source_path}/assets/head.png")
+brushImage = pygameimage.load(f"{source_path}/assets/brush.png")
+eraserImage = pygameimage.load(f"{source_path}/assets/eraser.png")
+negaterImage = pygameimage.load(f"{source_path}/assets/negater.png")
+rainbowImage = pygameimage.load(f"{source_path}/assets/rainbow.png")
 
-squareWaveImage = pygameimage.load("inner/assets/square.png")
-sawtoothWaveImage = pygameimage.load("inner/assets/sawtooth.png")
-triangleWaveImage = pygameimage.load("inner/assets/triangle.png")
+squareWaveImage = pygameimage.load(f"{source_path}/assets/square.png")
+sawtoothWaveImage = pygameimage.load(f"{source_path}/assets/sawtooth.png")
+triangleWaveImage = pygameimage.load(f"{source_path}/assets/triangle.png")
 waveImages = [squareWaveImage, triangleWaveImage, sawtoothWaveImage]
 
-upChevronImage = pygameimage.load("inner/assets/up.png")
-downChevronImage = pygameimage.load("inner/assets/down.png")
+upChevronImage = pygameimage.load(f"{source_path}/assets/up.png")
+downChevronImage = pygameimage.load(f"{source_path}/assets/down.png")
 
 console.log("Initialized Assets "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
 lastTime = time.time()
@@ -756,7 +776,7 @@ def dumpToFile(file, directory):
     if autoSave:
       pkl.dump(ps, open(autoSaveDirectory + '/' + titleText + ' Backup ' + sessionID + '.symphony', 'wb'), -1)
 
-    worldMessage = (f"Last Saved {readableTime} to " + directory) if directory != "inner/assets/workingfile.symphony" else "You have unsaved changes - Please save to a file on your PC."
+    worldMessage = (f"Last Saved {readableTime} to " + directory) if directory != f"{source_path}/assets/workingfile.symphony" else "You have unsaved changes - Please save to a file on your PC."
 
 if process == 'instantiate':
     dumpToFile(open(workingFile, 'wb'), workingFile)
@@ -1008,12 +1028,13 @@ root = None
 last_update = time.time()
 
 # Setup Tkinter console window (only if setting allows it)
-if json.load(open('src/assets/user-settings.json'))["show_console"]:
-    try:
-        root = ConsoleWindow(consoleMessages)
-    except Exception as e:
-        print(f"Failed to open console window: {e}")
-        root = None
+if process == 'open' and len(sys.argv) == 4:
+    if json.load(open(user_settings_path))["show_console"]:
+        try:
+            root = ConsoleWindow(consoleMessages)
+        except Exception as e:
+            print(f"Failed to open console window: {e}")
+            root = None
 
 while running:
     # Tkinter GUI updates
@@ -1031,8 +1052,8 @@ while running:
     saveFrame += 60 * (1 / fps)
     if saveFrame > 1200: # Saves every 20 seconds
         saveFrame = 0
-        myPath = open(workingFile if workingFile != "" else "inner/assets/workingfile.symphony", "wb")
-        dumpToFile(myPath, workingFile if workingFile != "" else "inner/assets/workingfile.symphony")
+        myPath = open(workingFile if workingFile != "" else f"{source_path}/assets/workingfile.symphony", "wb")
+        dumpToFile(myPath, workingFile if workingFile != "" else f"{source_path}/assets/workingfile.symphony")
         myPath.close()
     # checks if new changes have been made, if so adds them to the version history for Ctrl+Z
     ctrlZTime += 1
@@ -1606,17 +1627,17 @@ while running:
                         filename = asksaveasfile(initialfile = 'Untitled.symphony', mode='wb',defaultextension=".symphony", filetypes=[("Symphony Musical Composition","*.symphony")])
                         if filename != None:
                             filestring = filename.name
-                            myPath = open("inner/assets/workingfile.symphony", "wb")
+                            myPath = open(f"{source_path}/assets/workingfile.symphony", "wb")
                             dumpToFile(myPath, directory=filestring)
-                            myPath = open("inner/assets/workingfile.symphony", "rb")
+                            myPath = open(f"{source_path}/assets/workingfile.symphony", "rb")
 
                             pathBytes = bytearray(myPath.read())
                             filename.write(pathBytes)
                             filename.close()
                             workingFile = filestring
                         else:
-                            myPath = open("inner/assets/workingfile.symphony", "wb")
-                            dumpToFile(myPath, "inner/assets/workingfile.symphony")
+                            myPath = open(f"{source_path}/assets/workingfile.symphony", "wb")
+                            dumpToFile(myPath, f"{source_path}/assets/workingfile.symphony")
                     else: # save to workspace file
                         myPath = open(workingFile, "wb")
                         dumpToFile(myPath, workingFile)
@@ -1690,10 +1711,10 @@ while running:
 if workingFile == "": # file dialog to show up if the user has unsaved changes (they have not attached the workspace to a file)
     filename = asksaveasfile(initialfile = 'Untitled.symphony', mode='wb',defaultextension=".symphony", filetypes=[("Symphony Musical Composition","*.symphony")])
     if filename != None:
-        myPath = open("inner/assets/workingfile.symphony", "wb")
+        myPath = open(f"{source_path}/assets/workingfile.symphony", "wb")
 
-        dumpToFile(myPath, directory="inner/assets/workingfile.symphony")
-        myPath = open("inner/assets/workingfile.symphony", "rb")
+        dumpToFile(myPath, directory=f"{source_path}/assets/workingfile.symphony")
+        myPath = open(f"{source_path}/assets/workingfile.symphony", "rb")
 
         pathBytes = bytearray(myPath.read())
         filename.write(pathBytes)

@@ -1,0 +1,11 @@
+{
+  "needs_onboarding": false,
+  "search_for_updates": true,
+  "close_project_manager_when_editing": false,
+  "show_splash_screen": true,
+  "user_name": "Ajaya",
+  "fancy_graphics": true,
+  "show_console": true,
+  "disable_auto_save": false,
+  "disable_delete_confirm": false
+}

@@ -3,10 +3,11 @@ const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
 const directoryPath = path.join(__dirname, 'src', 'assets', 'directory.json');
-const RECENTLY_VIEWED_PATH = path.join(__dirname, 'src', 'assets', 'recently-viewed.json');
+const sourcePath = path.join(__dirname, 'inner', 'src');
+const RECENTLY_VIEWED_PATH = path.join(__dirname, 'inner', 'src', 'recently-viewed.json');
 const RETRIEVE_OUTPUT_PATH = path.join(__dirname, 'inner', 'src', 'response.json');
 const STARRED_PATH = path.join(__dirname, 'src', 'assets', 'starred.json');
-const USER_SETTINGS_PATH = path.join(__dirname, 'src', 'assets', 'user-settings.json');
+const USER_SETTINGS_PATH = path.join(__dirname, 'inner', 'src', 'user-settings.json');
 
 const DEFAULT_SETTINGS = {
   "needs_onboarding": true,
@@ -317,15 +318,20 @@ app.whenReady().then(() => {
       } catch (e) {
         console.error('Failed to read user settings:', e);
       }
+      // Append absolute autosave and user settings paths for 'open' command
+      const absSourcePath = path.resolve(sourcePath);
+      const absAutoSave = path.resolve(directoryPath);
+      const absUserSettings = path.resolve(USER_SETTINGS_PATH);
+      argsArray.push(absSourcePath, absAutoSave, absUserSettings);
     }
 
-    // Prepare to run the Python script
-    const scriptPath = path.join(__dirname, 'inner', 'src', 'main.py');
+    // Always use main.exe in inner/dist
+    const exePath = path.join(__dirname, 'inner', 'dist', 'main.exe');
     console.log(`${argsArray.map(arg => `'${arg}'`).join(' ')}`)
 
     if (closeManager) {
       // Run detached process
-      const detachedProcess = spawn('python', [scriptPath, ...argsArray], {
+      const detachedProcess = spawn(exePath, argsArray, {
         detached: true,
         stdio: 'ignore',
       });
@@ -339,7 +345,7 @@ app.whenReady().then(() => {
     } else {
       // Run attached process with output capture
       return new Promise((resolve, reject) => {
-        const pythonProcess = spawn('python', [scriptPath, ...argsArray]);
+        const pythonProcess = spawn(exePath, argsArray);
 
         let output = '';
         let errorOutput = '';
@@ -597,9 +603,9 @@ app.whenReady().then(() => {
     const id = crypto.randomUUID();
 
     return new Promise((resolve, reject) => {
-      const scriptPath = path.join(__dirname, 'inner', 'src', 'main.py');
+      const exePath = path.join(__dirname, 'inner', 'dist', 'main.exe');
       console.log(`'retrieve' '${filePath}' '${id}'`)
-      const pythonProcess = spawn('python', [scriptPath, 'retrieve', filePath, id]);
+      const pythonProcess = spawn(exePath, ['retrieve', filePath, id]);
 
       pythonProcess.on('close', (code) => {
         if (code !== 0) {
