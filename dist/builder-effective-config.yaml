@@ -1,0 +1,25 @@
+directories:
+  output: dist
+  buildResources: src/assets
+appId: com.ajayarsymphony.app
+productName: Symphony
+asarUnpack:
+  - inner/dist/main.exe
+  - inner/dist/workingfile.symphony
+  - inner/dist/assets/*.png
+  - inner/dist/assets/*.ttf
+files:
+  - filter:
+      - dist/
+      - main.js
+      - preload.js
+      - index.html
+      - inner/dist/main.exe
+      - inner/dist/assets/*.png
+      - inner/dist/assets/*.ttf
+      - src/assets/*.json
+      - src/assets/*.png
+      - src/assets/*.svg
+win:
+  icon: src/assets/icon.ico
+electronVersion: 34.5.8

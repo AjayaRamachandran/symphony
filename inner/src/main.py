@@ -5,7 +5,6 @@ from io import BytesIO
 import numpy as np
 # import random
 import tkinter as tk
-import ctypes
 import copy
 import cv2
 from math import *
@@ -14,12 +13,10 @@ lastTime = time.time()
 START_TIME = lastTime
 
 from os import environ, path
-#import os
 # import json
 import sys
 import dill as pkl
 from tkinter.filedialog import asksaveasfile #, asksaveasfilename
-import sys
 import json
 from pathlib import Path
 from soundfile import write as sfwrite
@@ -82,7 +79,7 @@ except ImportError:
 SET ARGUMENTS:
 "main.py" "open" "filename" "folder" [src_folder] [autosave_dir_path] [user_settings_path]: starts program, opening file and establishing autosave bridge. Only 'open' requires autosave_dir_path and user_settings_path.
 "main.py" "instantiate" "filename" "folder" [src_folder]: does not start pygame, simply creates the file in the provided folder and exits
-"main.py" "retrieve" "filepath" "id" [src_folder]: gets all information about program and puts it into the json with the id
+"main.py" "retrieve" "filepath" "id" [src_folder] [user_data_path]: gets all information about program and puts it into the json with the id, writes response.json to user_data_path if provided, else to src_folder
 "main.py" "export" "filepath" "folder" [src_folder]: exports the file into the provided folder as a .wav
 "main.py" "convert" "filepath" "folder" [src_folder]: exports the file into the provided folder as a .mid
 
@@ -91,6 +88,7 @@ SET ARGUMENTS:
 
 autosave_dir_path: absolute path to the autosave directory.json file (required only for 'open')
 user_settings_path: absolute path to the user-settings.json file (required only for 'open')
+user_data_path: absolute path to the user data directory (used for retrieve)
 '''
 def cleanse(string):
     stringCopy = string
@@ -261,32 +259,39 @@ clock = pygametime.Clock()
 fps = 60
 
 # imports font styles
-mainFont = f'{source_path}/assets/InterVariable.ttf'
-TITLE1 = pygamefont.Font(mainFont, 60)
-HEADING1 = pygamefont.Font(mainFont, 24)
-SUBHEADING1 = pygamefont.Font(mainFont, 14)
-BODY = pygamefont.Font(mainFont, 14)
-SUBSCRIPT1 = pygamefont.Font(mainFont, 11)
+if process == 'open':
+    mainFont = f'{source_path}/assets/InterVariable.ttf'
+    TITLE1 = pygamefont.Font(mainFont, 60)
+    HEADING1 = pygamefont.Font(mainFont, 24)
+    SUBHEADING1 = pygamefont.Font(mainFont, 14)
+    BODY = pygamefont.Font(mainFont, 14)
+    SUBSCRIPT1 = pygamefont.Font(mainFont, 11)
 
-bytes_io = BytesIO()
+    bytes_io = BytesIO()
 
-###### ASSETS ######
+    ###### ASSETS ######
 
-playImage = pygameimage.load(f"{source_path}/assets/play.png")
-pauseImage = pygameimage.load(f"{source_path}/assets/pause.png")
-headImage = pygameimage.load(f"{source_path}/assets/head.png")
-brushImage = pygameimage.load(f"{source_path}/assets/brush.png")
-eraserImage = pygameimage.load(f"{source_path}/assets/eraser.png")
-negaterImage = pygameimage.load(f"{source_path}/assets/negater.png")
-rainbowImage = pygameimage.load(f"{source_path}/assets/rainbow.png")
+    playImage = pygameimage.load(f"{source_path}/assets/play.png")
+    pauseImage = pygameimage.load(f"{source_path}/assets/pause.png")
+    headImage = pygameimage.load(f"{source_path}/assets/head.png")
+    brushImage = pygameimage.load(f"{source_path}/assets/brush.png")
+    eraserImage = pygameimage.load(f"{source_path}/assets/eraser.png")
+    negaterImage = pygameimage.load(f"{source_path}/assets/negater.png")
+    rainbowImage = pygameimage.load(f"{source_path}/assets/rainbow.png")
 
-squareWaveImage = pygameimage.load(f"{source_path}/assets/square.png")
-sawtoothWaveImage = pygameimage.load(f"{source_path}/assets/sawtooth.png")
-triangleWaveImage = pygameimage.load(f"{source_path}/assets/triangle.png")
-waveImages = [squareWaveImage, triangleWaveImage, sawtoothWaveImage]
+    squareWaveImage = pygameimage.load(f"{source_path}/assets/square.png")
+    sawtoothWaveImage = pygameimage.load(f"{source_path}/assets/sawtooth.png")
+    triangleWaveImage = pygameimage.load(f"{source_path}/assets/triangle.png")
+    waveImages = [squareWaveImage, triangleWaveImage, sawtoothWaveImage]
 
-upChevronImage = pygameimage.load(f"{source_path}/assets/up.png")
-downChevronImage = pygameimage.load(f"{source_path}/assets/down.png")
+    upChevronImage = pygameimage.load(f"{source_path}/assets/up.png")
+    downChevronImage = pygameimage.load(f"{source_path}/assets/down.png")
+else:
+    TITLE1 = ''
+    HEADING1 = ''
+    SUBHEADING1 = ''
+    BODY = ''
+    SUBSCRIPT1 = ''
 
 console.log("Initialized Assets "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
 lastTime = time.time()
@@ -693,22 +698,30 @@ else:
     ps = toProgramState(pkl.load(open(workingFile, "rb")))
     console.log('Loading existing programState...')
 
-if process == 'retrieve':
-    console.log('DUMPING INTO RESPONSE.JSON')
-    responseLoc = open('inner/src/response.json', 'w')
-    console.log(ps.noteMap)
-    tpm = round(3600 / ps.ticksPerTile, 2)
-    tiles = int((max(ps.noteMap.items(), key=lambda x : x[0][1]))[0][1]) if (len(ps.noteMap.items()) > 0) else 0
-    json.dump({ 'fileInfo' : {
-                  'Key' : ps.key,
-                  'Mode' : ps.mode,
-                  'Tempo (tpm)' : tpm,
-                  #'Empty?' : (ps.noteMap == {}),
-                  'Length (tiles)' : tiles,
-                  'Duration' : ("0" if len(str(floor(tiles / tpm))) == 1 else '') + str(floor(tiles / tpm)) + ':' + ("0" if len(str(round(((tiles / tpm) % 1) * 60))) == 1 else '') + str(round(((tiles / tpm) % 1) * 60))
-                  }, 'id': globalUUID
-               }, responseLoc)
-    responseLoc.close()
+if process == 'retrieve' and len(sys.argv) >= 5:
+    filepath = sys.argv[2]
+    id_val = sys.argv[3]
+    src_folder = sys.argv[4]
+    user_data_path = sys.argv[5] if len(sys.argv) >= 6 else None
+
+
+    response_path = path.join(user_data_path if user_data_path else src_folder, 'response.json')
+    with open(response_path, 'w') as f:
+        console.log('DUMPING INTO RESPONSE.JSON')
+        console.log(path.join(user_data_path, 'response.json'))
+        #console.log(ps.noteMap)
+        tpm = round(3600 / ps.ticksPerTile, 2)
+        tiles = int((max(ps.noteMap.items(), key=lambda x : x[0][1]))[0][1]) if (len(ps.noteMap.items()) > 0) else 0
+        json.dump({ 'fileInfo' : {
+                    'Key' : ps.key,
+                    'Mode' : ps.mode,
+                    'Tempo (tpm)' : tpm,
+                    #'Empty?' : (ps.noteMap == {}),
+                    'Length (tiles)' : tiles,
+                    'Duration' : ("0" if len(str(floor(tiles / tpm))) == 1 else '') + str(floor(tiles / tpm)) + ':' + ("0" if len(str(round(((tiles / tpm) % 1) * 60))) == 1 else '') + str(round(((tiles / tpm) % 1) * 60))
+                    }, 'id': globalUUID
+                }, f)
+        f.close()
     sys.exit()
 
 console.log("Initialized ProgramState "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
@@ -773,7 +786,7 @@ def dumpToFile(file, directory):
 
     ps.updateAttributes(noteMap, ticksPerTile, key, mode, waveMap)
     pkl.dump(ps, file, -1)
-    if autoSave:
+    if autoSave and process == 'open':
       pkl.dump(ps, open(autoSaveDirectory + '/' + titleText + ' Backup ' + sessionID + '.symphony', 'wb'), -1)
 
     worldMessage = (f"Last Saved {readableTime} to " + directory) if directory != f"{source_path}/assets/workingfile.symphony" else "You have unsaved changes - Please save to a file on your PC."
@@ -1028,7 +1041,7 @@ root = None
 last_update = time.time()
 
 # Setup Tkinter console window (only if setting allows it)
-if process == 'open' and len(sys.argv) == 4:
+if process == 'open' and len(sys.argv) == 7:
     if json.load(open(user_settings_path))["show_console"]:
         try:
             root = ConsoleWindow(consoleMessages)

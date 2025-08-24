@@ -60,7 +60,6 @@ function SplashScreen({onComplete}) {
         setGlobalUpdateTimestamp(Date.now());
         const response = await window.electronAPI.openNativeApp(path.join(item.fileLocation, item.name));
         if (!response.success) {
-          //console.error(response.error);
           setShowFileNotExist(true);
           recentlyViewedDelete(item);
         }
@@ -76,6 +75,11 @@ function SplashScreen({onComplete}) {
   const recentlyViewedDelete = (item) => {
     window.electronAPI.recentlyViewedDelete(item.name);
     setGlobalUpdateTimestamp(Date.now());
+  }
+
+  // open external link in default browser
+  const openExternal = (url) => {
+    window.electronAPI.openExternal(url);
   }
 
   return (
@@ -102,7 +106,6 @@ function SplashScreen({onComplete}) {
                     <div className="truncated-text" style={{ marginLeft: '6px' }}>
                       {item.name}
                     </div>
-                    {/* <Tooltip text={item.name} /> */}
                   </button>
                 );
               }
@@ -111,19 +114,19 @@ function SplashScreen({onComplete}) {
         </>}
         <div className='modal-body' text-style='display' style={{fontSize: '18px', marginBottom: '8px', marginTop: '15px'}}>Resources</div>
         <div className="quick-launch scrollable med-bg">
-          <button className="quick-launch-medium tooltip" onClick={() => handleClick(item)}>
+          <button className="quick-launch-medium tooltip" onClick={() => openExternal('https://symphony.nimbialapps.com/docs')}>
             <BookMarked style={{ flexShrink: 0 }} size={16} strokeWidth={1.5} />
             <div className="truncated-text" style={{ marginLeft: '6px' }}>
               Learn how to use Symphony <span style={{opacity: '0.5', fontStyle: 'italic'}}>(recommended)</span>
             </div>
           </button>
-          <button className="quick-launch-medium tooltip" onClick={() => handleClick(item)}>
+          <button className="quick-launch-medium tooltip" onClick={() => openExternal('https://symphony.nimbialapps.com/download')}>
             <GitBranch style={{ flexShrink: 0 }} size={16} strokeWidth={1.5} />
             <div className="truncated-text" style={{ marginLeft: '6px' }}>
               See the latest Release Notes
             </div>
           </button>
-          <button className="quick-launch-medium tooltip" onClick={() => handleClick(item)}>
+          <button className="quick-launch-medium tooltip" onClick={() => openExternal('https://symphony.nimbialapps.com')}>
             <Play style={{ flexShrink: 0 }} size={16} strokeWidth={1.5} />
             <div className="truncated-text" style={{ marginLeft: '6px' }}>
               Watch the launch video

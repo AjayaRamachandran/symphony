@@ -2,14 +2,38 @@
     "name": "symphony",
     "private": true,
     "version": "0.0.0",
+    "main": "main.js",
     "build": {
         "appId": "com.ajayarsymphony.app",
+        "productName": "Symphony",
+        "asarUnpack": [
+            "inner/dist/main.exe",
+            "inner/dist/workingfile.symphony",
+            "inner/dist/assets/*.png",
+            "inner/dist/assets/*.ttf"
+        ],
+        "files": [
+            "dist/",
+            "main.js",
+            "preload.js",
+            "index.html",
+            "inner/dist/main.exe",
+            "inner/dist/assets/*.png",
+            "inner/dist/assets/*.ttf",
+            "src/assets/*.json",
+            "src/assets/*.png",
+            "src/assets/*.svg"
+        ],
+        "directories": {
+            "buildResources": "src/assets"
+        },
         "win": {
             "icon": "src/assets/icon.ico"
         }
     },
     "scripts": {
-        "build": "vite build",
+        "build:react": "vite build",
+        "build:electron": "electron-builder",
         "lint": "eslint",
         "preview": "vite preview",
         "start": "vite",
@@ -34,7 +58,8 @@
         "@types/react-dom": "^18.3.0",
         "@vitejs/plugin-react": "^4.3.1",
         "concurrently": "^9.2.0",
-        "electron": "^34.0.0",
+        "electron": "^34.5.8",
+        "electron-builder": "^26.0.12",
         "eslint": "^9.9.0",
         "eslint-plugin-react": "^7.35.0",
         "eslint-plugin-react-hooks": "^5.1.0-rc.0",

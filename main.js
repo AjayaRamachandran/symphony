@@ -2,12 +2,13 @@ const { app, BrowserWindow, ipcMain, dialog, shell, nativeImage } = require('ele
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
-const directoryPath = path.join(__dirname, 'src', 'assets', 'directory.json');
+const userDataPath = app.getPath('userData');
+const directoryPath = path.join(userDataPath, 'directory.json');
 const sourcePath = path.join(__dirname, 'inner', 'src');
-const RECENTLY_VIEWED_PATH = path.join(__dirname, 'inner', 'src', 'recently-viewed.json');
-const RETRIEVE_OUTPUT_PATH = path.join(__dirname, 'inner', 'src', 'response.json');
-const STARRED_PATH = path.join(__dirname, 'src', 'assets', 'starred.json');
-const USER_SETTINGS_PATH = path.join(__dirname, 'inner', 'src', 'user-settings.json');
+const RECENTLY_VIEWED_PATH = path.join(userDataPath, 'recently-viewed.json');
+const RETRIEVE_OUTPUT_PATH = path.join(userDataPath, 'response.json');
+const STARRED_PATH = path.join(userDataPath, 'starred.json');
+const USER_SETTINGS_PATH = path.join(userDataPath, 'user-settings.json');
 
 const DEFAULT_SETTINGS = {
   "needs_onboarding": true,
@@ -24,6 +25,25 @@ const DEFAULT_SETTINGS = {
 let mainWindow;
 
 app.whenReady().then(() => {
+  // On first run, copy default JSONs from asar to userData if missing
+  function ensureFile(src, dest, defaultContent) {
+    if (!fs.existsSync(dest)) {
+      try {
+        if (fs.existsSync(src)) {
+          fs.copyFileSync(src, dest);
+        } else if (defaultContent !== undefined) {
+          fs.writeFileSync(dest, JSON.stringify(defaultContent, null, 2), 'utf-8');
+        }
+      } catch (e) {
+        console.error('Failed to copy default file:', src, '->', dest, e);
+      }
+    }
+  }
+  const assetDir = path.join(__dirname, 'src', 'assets');
+  ensureFile(path.join(assetDir, 'user-settings.json'), USER_SETTINGS_PATH, DEFAULT_SETTINGS);
+  ensureFile(path.join(assetDir, 'directory.json'), directoryPath, {"Projects":[],"Exports":[],"Symphony Auto-Save":[]});
+  ensureFile(path.join(assetDir, 'starred.json'), STARRED_PATH, []);
+  ensureFile(path.join(assetDir, 'recently-viewed.json'), RECENTLY_VIEWED_PATH, []);
   mainWindow = new BrowserWindow({
     width: 1300,
     height: 800,
@@ -37,8 +57,12 @@ app.whenReady().then(() => {
     },
   });
 
-  mainWindow.loadURL('http://localhost:5173');
-  //mainWindow.webContents.openDevTools();
+  const isDev = !app.isPackaged;
+  if (isDev) {
+    mainWindow.loadURL('http://localhost:5173');
+  } else {
+    mainWindow.loadFile('dist/index.html');
+  }
 
   // Respond to frontend window control events
   ipcMain.on('minimize', () => mainWindow.minimize());
@@ -72,6 +96,10 @@ app.whenReady().then(() => {
       file: filePath,
       icon: nativeImage.createFromPath(path.join(__dirname, 'src', 'assets', 'icon-dark32x32.png'))
     });
+  });
+
+  ipcMain.on('open-external', (event, url) => {
+    shell.openExternal(url);
   });
 
   ipcMain.handle('move-file-raw', async (event, arrayBuffer, fileName, destinationDir) => {
@@ -285,6 +313,13 @@ app.whenReady().then(() => {
     let closeManager = false;
     let openConsole = false;
 
+    // const absSourcePath = path.resolve(sourcePath);
+    const absSourcePath = path.join(process.resourcesPath, 'app.asar.unpacked', 'inner', 'dist');
+    argsArray.push(absSourcePath);
+
+    // Pass userData path to Python for response.json
+    //argsArray.push(userDataPath);
+
     // Update Recently Viewed
     if (isOpenCommand) {
       try {
@@ -319,14 +354,13 @@ app.whenReady().then(() => {
         console.error('Failed to read user settings:', e);
       }
       // Append absolute autosave and user settings paths for 'open' command
-      const absSourcePath = path.resolve(sourcePath);
       const absAutoSave = path.resolve(directoryPath);
       const absUserSettings = path.resolve(USER_SETTINGS_PATH);
-      argsArray.push(absSourcePath, absAutoSave, absUserSettings);
+      argsArray.push(absAutoSave, absUserSettings);
     }
 
-    // Always use main.exe in inner/dist
-    const exePath = path.join(__dirname, 'inner', 'dist', 'main.exe');
+    // Always use main.exe in asar.unpacked
+    const exePath = path.join(process.resourcesPath, 'app.asar.unpacked', 'inner', 'dist', 'main.exe');
     console.log(`${argsArray.map(arg => `'${arg}'`).join(' ')}`)
 
     if (closeManager) {
@@ -367,6 +401,57 @@ app.whenReady().then(() => {
         });
       });
     }
+  });
+
+  ipcMain.handle('run-python-retrieve', async (event, filePath) => {
+    const id = crypto.randomUUID();
+
+    return new Promise((resolve, reject) => {
+      const exePath = path.join(process.resourcesPath, 'app.asar.unpacked', 'inner', 'dist', 'main.exe');
+      const absSourcePath = path.join(process.resourcesPath, 'app.asar.unpacked', 'inner', 'dist');
+      //argsArray.push(userDataPath);
+      console.log(`'retrieve' '${filePath}' '${id}' '${absSourcePath}' '${userDataPath}'`)
+
+      const pythonProcess = spawn(exePath, ['retrieve', filePath, id, absSourcePath, userDataPath]);
+
+      pythonProcess.on('close', (code) => {
+        if (code !== 0) {
+          reject({ success: false, error: `Python exited with code ${code}` });
+          return;
+        }
+
+        // Wait for file to contain matching ID
+        const maxWaitMs = 10000;
+        const intervalMs = 100;
+        let waited = 0;
+
+        const check = () => {
+          if (!fs.existsSync(RETRIEVE_OUTPUT_PATH)) {
+            waited += intervalMs;
+            if (waited >= maxWaitMs) {
+              reject({ success: false, error: 'Timeout waiting for response.json' });
+            } else {
+              setTimeout(check, intervalMs);
+            }
+            return;
+          }
+          console.log(RETRIEVE_OUTPUT_PATH);
+          const data = JSON.parse(fs.readFileSync(RETRIEVE_OUTPUT_PATH, 'utf-8'));
+          if (data.id === id) {
+            resolve(data);
+          } else {
+            waited += intervalMs;
+            if (waited >= maxWaitMs) {
+              reject({ success: false, error: 'ID mismatch or timeout' });
+            } else {
+              setTimeout(check, intervalMs);
+            }
+          }
+        };
+
+        check();
+      });
+    });
   });
 
   ipcMain.handle('rename-file', async (event, { filePath, newName }) => {
@@ -597,54 +682,6 @@ app.whenReady().then(() => {
     } catch (err) {
       return { success: false, error: err.message };
     }
-  });
-
-  ipcMain.handle('run-python-retrieve', async (event, filePath) => {
-    const id = crypto.randomUUID();
-
-    return new Promise((resolve, reject) => {
-      const exePath = path.join(__dirname, 'inner', 'dist', 'main.exe');
-      console.log(`'retrieve' '${filePath}' '${id}'`)
-      const pythonProcess = spawn(exePath, ['retrieve', filePath, id]);
-
-      pythonProcess.on('close', (code) => {
-        if (code !== 0) {
-          reject({ success: false, error: `Python exited with code ${code}` });
-          return;
-        }
-
-        // Wait for file to contain matching ID
-        const maxWaitMs = 10000;
-        const intervalMs = 100;
-        let waited = 0;
-
-        const check = () => {
-          if (!fs.existsSync(RETRIEVE_OUTPUT_PATH)) {
-            waited += intervalMs;
-            if (waited >= maxWaitMs) {
-              reject({ success: false, error: 'Timeout waiting for response.json' });
-            } else {
-              setTimeout(check, intervalMs);
-            }
-            return;
-          }
-          //console.log(RETRIEVE_OUTPUT_PATH);
-          const data = JSON.parse(fs.readFileSync(RETRIEVE_OUTPUT_PATH, 'utf-8'));
-          if (data.id === id) {
-            resolve(data);
-          } else {
-            waited += intervalMs;
-            if (waited >= maxWaitMs) {
-              reject({ success: false, error: 'ID mismatch or timeout' });
-            } else {
-              setTimeout(check, intervalMs);
-            }
-          }
-        };
-
-        check();
-      });
-    });
   });
 });
 

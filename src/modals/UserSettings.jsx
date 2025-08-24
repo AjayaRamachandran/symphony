@@ -41,7 +41,7 @@ function UserSettings({ onComplete }) {
   return (
     <>
       <div className='modal-title' text-style='display' style={{ marginBottom: '15px' }}><Settings size={20}/>User Settings</div>
-      <div className='modal-paragraph' style={{width: '100%', color: '#939393'}}>Configure your Symphony to work best for you. These settings can be reversed at any time.</div>
+      <div className='modal-paragraph' style={{width: '100%', color: '#939393'}}>Configure your Symphony to work best for you. These settings can be reverted at any time.</div>
 
       <div className='scrollable' style={{ height: '400px', width: '550px', overflowY: 'auto', overflowX: 'hidden', outline: '1px solid #434343', padding: '15px 20px 0px 20px', borderRadius: '6px' }}>
         <div className='setting-row'>
@@ -127,7 +127,7 @@ function UserSettings({ onComplete }) {
         </div>
         <div className='modal-subtext wide'>Disables the confirmation upon deleting files, and removing folders.</div>
 
-        {window.electronAPI.platform.startsWith('win') && (
+        {window.electronAPI.platform.startsWith('win') && (1 === 2) && (
           <>
             <div className='setting-row'>
               <div text-style='display' className='modal-body2'><TriangleAlert size={14} style={{marginRight: '5px'}}/>Show Console</div>
