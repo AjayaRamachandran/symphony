@@ -3,3 +3,6 @@ src/assets/directory.json
 src/assets/recently-viewed.json
 src/assets/starred.json
 src/assets/user-settings.json
+dist/
+build/
+venv/
