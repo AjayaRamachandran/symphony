@@ -30,7 +30,10 @@
             "buildResources": "src/assets"
         },
         "win": {
-            "icon": "src/assets/icon.ico"
+            "icon": "src/assets/icon.ico",
+            "target": ["nsis"],
+            "forceCodeSigning": false,
+            "signAndEditExecutable": false
         }
         ,
         "mac": {
