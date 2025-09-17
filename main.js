@@ -63,6 +63,8 @@ app.whenReady().then(() => {
   } else {
     mainWindow.loadFile('dist/index.html');
   }
+  mainWindow.webContents.openDevTools();
+
 
   // Respond to frontend window control events
   ipcMain.on('minimize', () => mainWindow.minimize());

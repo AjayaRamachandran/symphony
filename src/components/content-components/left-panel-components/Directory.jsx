@@ -20,7 +20,7 @@ function Directory() {
   const sections = ['Projects', 'Exports', 'Symphony Auto-Save'];
   const { globalDirectory, setGlobalDirectory, setSelectedFile, setGlobalUpdateTimestamp, showSplashScreen, setShowSplashScreen } = useDirectory();
   const [openSection, setOpenSection] = useState(null);
-  const [directory, setDirectory] = useState(null);
+  const [directory, setDirectory] = useState({});
   const [showAddAutoSave, setShowAddAutoSave] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [reload, setReload] = useState(0);
@@ -57,10 +57,13 @@ function Directory() {
 
   const reloadDirectory = () => setReload(r => r + 1);
 
-  const toTuples = arr => arr.map(obj => {
-    const key = Object.keys(obj)[0];
-    return [key, obj[key]];
-  });
+  const toTuples = (arr) => {
+    if (!Array.isArray(arr)) return [];
+    return arr.map(obj => {
+      const key = Object.keys(obj)[0];
+      return [key, obj[key]];
+    })
+  };
 
   const callSetGlobalDirectory = (directory) => {
     console.log('Set global directory to ' + directory);
