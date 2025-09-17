@@ -9,6 +9,7 @@ const RECENTLY_VIEWED_PATH = path.join(userDataPath, 'recently-viewed.json');
 const RETRIEVE_OUTPUT_PATH = path.join(userDataPath, 'response.json');
 const STARRED_PATH = path.join(userDataPath, 'starred.json');
 const USER_SETTINGS_PATH = path.join(userDataPath, 'user-settings.json');
+const EXECUTABLE_NAME = process.platform === 'win32' ? 'main.exe' : 'main';
 
 const DEFAULT_SETTINGS = {
   "needs_onboarding": true,
@@ -361,8 +362,8 @@ app.whenReady().then(() => {
       argsArray.push(absAutoSave, absUserSettings);
     }
 
-    // Always use main.exe in asar.unpacked
-    const exePath = path.join(process.resourcesPath, 'app.asar.unpacked', 'inner', 'dist', 'main.exe');
+    // Always use main/main.exe in asar.unpacked
+    const exePath = path.join(process.resourcesPath, 'app.asar.unpacked', 'inner', 'dist', EXECUTABLE_NAME);
     console.log(`${argsArray.map(arg => `'${arg}'`).join(' ')}`)
 
     if (closeManager) {
@@ -409,7 +410,7 @@ app.whenReady().then(() => {
     const id = crypto.randomUUID();
 
     return new Promise((resolve, reject) => {
-      const exePath = path.join(process.resourcesPath, 'app.asar.unpacked', 'inner', 'dist', 'main.exe');
+      const exePath = path.join(process.resourcesPath, 'app.asar.unpacked', 'inner', 'dist', EXECUTABLE_NAME);
       const absSourcePath = path.join(process.resourcesPath, 'app.asar.unpacked', 'inner', 'dist');
       //argsArray.push(userDataPath);
       console.log(`'retrieve' '${filePath}' '${id}' '${absSourcePath}' '${userDataPath}'`)
