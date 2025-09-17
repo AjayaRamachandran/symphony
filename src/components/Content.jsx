@@ -12,7 +12,7 @@ import "./content.css"
 function Content() {
   const [showOnboardingModal, setShowOnboardingModal] = useState(false);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
-  useState(() => {
+  useEffect(() => {
     window.electronAPI.getUserSettings().then((result) => {
       setNeedsOnboarding(result['needs_onboarding']);
       setShowOnboardingModal(result['needs_onboarding'])

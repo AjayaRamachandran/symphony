@@ -87,7 +87,7 @@ app.whenReady().then(() => {
     if (mainWindow.webContents.isDevToolsOpened()) {
       mainWindow.webContents.closeDevTools();
     } else {
-      mainWindow.webContents.openDevTools();
+      if (!isDev) mainWindow.webContents.openDevTools();
     }
   });
   ipcMain.on('start-drag', (event, filePath) => {

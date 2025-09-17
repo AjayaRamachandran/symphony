@@ -8,6 +8,7 @@
         "productName": "Symphony",
         "asarUnpack": [
             "inner/dist/main.exe",
+            "inner/dist/main",
             "inner/dist/workingfile.symphony",
             "inner/dist/assets/*.png",
             "inner/dist/assets/*.ttf"
@@ -18,6 +19,7 @@
             "preload.js",
             "index.html",
             "inner/dist/main.exe",
+            "inner/dist/main",
             "inner/dist/assets/*.png",
             "inner/dist/assets/*.ttf",
             "src/assets/*.json",
@@ -29,6 +31,13 @@
         },
         "win": {
             "icon": "src/assets/icon.ico"
+        }
+        ,
+        "mac": {
+            "icon": "src/assets/icon.icns",
+            "target": ["dmg", "zip"],
+            "category": "public.app-category.music",
+            "hardenedRuntime": true
         }
     },
     "scripts": {

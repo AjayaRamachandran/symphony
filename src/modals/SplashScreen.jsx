@@ -114,19 +114,19 @@ function SplashScreen({onComplete}) {
         </>}
         <div className='modal-body' text-style='display' style={{fontSize: '18px', marginBottom: '8px', marginTop: '15px'}}>Resources</div>
         <div className="quick-launch scrollable med-bg">
-          <button className="quick-launch-medium tooltip" onClick={() => openExternal('https://symphony.nimbialapps.com/docs')}>
+          <button className="quick-launch-medium tooltip" onClick={() => openExternal('https://symphony.nimbial.com/docs')}>
             <BookMarked style={{ flexShrink: 0 }} size={16} strokeWidth={1.5} />
             <div className="truncated-text" style={{ marginLeft: '6px' }}>
               Learn how to use Symphony <span style={{opacity: '0.5', fontStyle: 'italic'}}>(recommended)</span>
             </div>
           </button>
-          <button className="quick-launch-medium tooltip" onClick={() => openExternal('https://symphony.nimbialapps.com/download')}>
+          <button className="quick-launch-medium tooltip" onClick={() => openExternal('https://symphony.nimbial.com/download')}>
             <GitBranch style={{ flexShrink: 0 }} size={16} strokeWidth={1.5} />
             <div className="truncated-text" style={{ marginLeft: '6px' }}>
               See the latest Release Notes
             </div>
           </button>
-          <button className="quick-launch-medium tooltip" onClick={() => openExternal('https://symphony.nimbialapps.com')}>
+          <button className="quick-launch-medium tooltip" onClick={() => openExternal('https://symphony.nimbial.com')}>
             <Play style={{ flexShrink: 0 }} size={16} strokeWidth={1.5} />
             <div className="truncated-text" style={{ marginLeft: '6px' }}>
               Watch the launch video
