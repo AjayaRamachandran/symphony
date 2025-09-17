@@ -63,7 +63,7 @@ app.whenReady().then(() => {
   } else {
     mainWindow.loadFile('dist/index.html');
   }
-  mainWindow.webContents.openDevTools();
+  // mainWindow.webContents.openDevTools();
 
 
   // Respond to frontend window control events
