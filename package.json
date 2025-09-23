@@ -3,6 +3,7 @@
     "private": true,
     "version": "0.0.0",
     "main": "main.js",
+    "forceCodeSigning": false,
     "build": {
         "appId": "com.ajayarsymphony.app",
         "productName": "Symphony",
@@ -24,21 +25,20 @@
             "inner/dist/assets/*.ttf",
             "src/assets/*.json",
             "src/assets/*.png",
-            "src/assets/*.svg"
+            "src/assets/*.svg",
+            "build/"
         ],
-        "directories": {
-            "buildResources": "src/assets"
-        },
         "win": {
-            "icon": "src/assets/icon.ico",
-            "target": ["nsis"],
-            "forceCodeSigning": false,
-            "signAndEditExecutable": false
-        }
-        ,
+            "icon": "build/icon.ico",
+            "target": "nsis",
+            "signAndEditExecutable": true
+        },
         "mac": {
-            "icon": "src/assets/icon.icns",
-            "target": ["dmg", "zip"],
+            "icon": "build/icon.icns",
+            "target": [
+                "dmg",
+                "zip"
+            ],
             "category": "public.app-category.music",
             "hardenedRuntime": true
         }
@@ -71,7 +71,7 @@
         "@vitejs/plugin-react": "^4.3.1",
         "concurrently": "^9.2.0",
         "electron": "^34.5.8",
-        "electron-builder": "^26.0.12",
+        "electron-builder": "^25.1.8",
         "eslint": "^9.9.0",
         "eslint-plugin-react": "^7.35.0",
         "eslint-plugin-react-hooks": "^5.1.0-rc.0",

@@ -4,6 +4,6 @@ src/assets/recently-viewed.json
 src/assets/starred.json
 src/assets/user-settings.json
 dist/
-build/
+# build/
 venv/
 inner/src/build/main
