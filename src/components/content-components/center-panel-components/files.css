@@ -2,8 +2,8 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, 120px);
   gap: 15px 25px;
-  padding: 35px 50px 30px 0px;
-  margin: 10px 0px 0px 0px;
+  padding: 45px 50px 30px 0px;
+  margin: 0px 0px 0px 0px;
   border-radius: 5px;
   overflow-y: auto;
   height: 100%;
