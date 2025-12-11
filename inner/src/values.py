@@ -7,6 +7,20 @@ import pygame
 
 ###### VARIABLES INITIALIZE ######
 
+autoSaveDirectory = None
+user_settings_path = None
+directory_json_path = None
+
+key = 0
+mode = 0
+
+autoSave = None
+titleText = "My Track 1"
+sessionID = None
+process = None
+
+ps = None
+
 SAMPLE_RATE = 44100
 
 play_obj = None # global to hold the last Channel/Sound so it doesn't get garbage-collected
@@ -32,6 +46,8 @@ modesIntervals = [
     ["Phrygian",      [0, 1, 3, 5, 7, 8, 10]],
     ["Locrian",       [0, 1, 3, 5, 6, 8, 10]]
 ]
+modeIntervals = set()
+keyIndex = 0
 colors = {
     "orange" : (168, 136, 49),
     "purple" : (134, 48, 156),

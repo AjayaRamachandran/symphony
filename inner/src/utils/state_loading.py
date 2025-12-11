@@ -8,6 +8,7 @@ import copy
 
 from console_controls.console import *
 from gui_pygame import Note
+import values as v
 
 ###### METHODS / CLASSES ######
 
@@ -75,6 +76,23 @@ def toProgramState(state : ProgramState):
 
     return ProgramState(state.ticksPerTile, newNoteMap, stateMkey, statemode, stateWaves)
 
+def convertNoteMapToStrikeList(noteMap):
+    '''
+    fields:
+        noteMap (hash map) - note map in standard encoding
+    outputs: list
+
+    Converts the noteMap into a list of notes encoded by their duration and time of strike.
+    '''
+    strikeList = []
+    for el, note in noteMap.items():
+        if note.lead:
+            offset = 1
+            while (note.key, note.time + offset, note.color) in noteMap:
+                offset += 1
+            strikeList.append({"pitch": note.key + 35, "startTime": ((note.time - 1) / 4), "duration": (offset / 4)})
+    
+    return strikeList
 
 def migrate_to_1_1(ProgramState):
     None

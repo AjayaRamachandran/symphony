@@ -26,6 +26,7 @@ from gui_pygame import *
 from console_controls.console import *
 import values as v
 import utils.state_loading as sl
+import utils.file_io as fio
 
 ###### PLATFORM DETECTION ######
 
@@ -58,7 +59,7 @@ except ImportError:
 
 '''
 SET ARGUMENTS:
-"main.py" "open" "filename" "folder" [src_folder] [autosave_dir_path] [user_settings_path]: starts program, opening file and establishing autosave bridge. Only 'open' requires autosave_dir_path and user_settings_path.
+"main.py" "open" "filename" "folder" [src_folder] [autosave_dir_path] [v.user_settings_path]: starts program, opening file and establishing autosave bridge. Only 'open' requires autosave_dir_path and v.user_settings_path.
 "main.py" "instantiate" "filename" "folder" [src_folder]: does not start pygame, simply creates the file in the provided folder and exits
 "main.py" "retrieve" "filepath" "id" [src_folder] [user_data_path]: gets all information about program and puts it into the json with the id, writes response.json to user_data_path if provided, else to src_folder
 "main.py" "export" "filepath" "folder" [src_folder]: exports the file into the provided folder as a .wav
@@ -68,7 +69,7 @@ SET ARGUMENTS:
 "main.py": starts program without autosave (NOT RECOMMENDED)
 
 autosave_dir_path: absolute path to the autosave directory.json file (required only for 'open')
-user_settings_path: absolute path to the user-settings.json file (required only for 'open')
+v.user_settings_path: absolute path to the user-settings.json file (required only for 'open')
 user_data_path: absolute path to the user data directory (used for retrieve)
 '''
 def cleanse(string):
@@ -98,38 +99,33 @@ def get_arg_path(arg_index, default_relative):
         return sys.argv[arg_index]
     return os.path.abspath(default_relative)
 
-autoSaveDirectory = None
-user_settings_path = None
-directory_json_path = None
-
-titleText = 'My Track 1'
-process = ''
-autoSave = True
+v.process = ''
+v.autoSave = True
 globalUUID = 0
 sessionID = time.strftime('%Y-%m-%d %H%M%S')
 console.log(f'Running with sysargv: {sys.argv}')
 
-process = 'open'
+v.process = 'open'
 
 if len(sys.argv) > 7:
     console.error("Wrong usage: Too many arguments!")
     sys.exit(1)
 if len(sys.argv) >= 5:
     if sys.argv[1] == 'export' or sys.argv[1] == 'convert':
-        process = sys.argv[1]
+        v.process = sys.argv[1]
         workingFile = sys.argv[2]
         destination = sys.argv[3]
     elif sys.argv[1] == 'retrieve':
-        process = sys.argv[1]
+        v.process = sys.argv[1]
         workingFile = sys.argv[2]
         globalUUID = sys.argv[3]
     else:
-        process = sys.argv[1]
+        v.process = sys.argv[1]
         workingFile = sys.argv[3] + '/' + sys.argv[2] # used to cleanse sysargv 2, but realized this can actually cause errors
-        titleText = sys.argv[2][:-9]
-        if process == 'open':
-            if process == 'open' and user_settings_path:
-                autoSave = not json.load(open(user_settings_path))["disable_auto_save"]
+        v.titleText = sys.argv[2][:-9]
+        if v.process == 'open':
+            if v.process == 'open' and v.user_settings_path:
+                v.autoSave = not json.load(open(v.user_settings_path))["disable_auto_save"]
             #import threading
 elif len(sys.argv) == 2:
     #import threading
@@ -141,25 +137,25 @@ else:
     console.warn('You are running Symphony without the Project Manager. This can lead to poor file safety and potential project loss.')
     console.warn('You are running Symphony without a designated autosave destination. We highly recommend against this.')
 
-if process == 'open' and len(sys.argv) == 7:
+if v.process == 'open' and len(sys.argv) == 7:
     v.source_path = get_arg_path(4, 'assets/directory.json')
     directory_json_path = get_arg_path(5, 'assets/directory.json')
-    user_settings_path = get_arg_path(6, 'assets/user-settings.json')
+    v.user_settings_path = get_arg_path(6, 'assets/user-settings.json')
     autoSaveDirectory = json.load(open(directory_json_path))['Symphony Auto-Save'][0]['Auto-Save']
 
 show_console = False
-if process == 'open' and user_settings_path:
-    show_console = json.load(open(user_settings_path))["show_console"]
+if v.process == 'open' and v.user_settings_path:
+    show_console = json.load(open(v.user_settings_path))["show_console"]
     if show_console:
         try:
-            userName = json.load(open(user_settings_path))["user_name"].split(sep=' ')[0]
+            userName = json.load(open(v.user_settings_path))["user_name"].split(sep=' ')[0]
         except Exception:
             userName = 'User'
         console.message(f'Hey, {userName}! This console can be safely closed at any time, and your editor will remain active.')
 
 ###### PYGAME & WINDOW INITIALIZE ######
 
-if process in ['instantiate', 'retrieve', 'export', 'convert']:
+if v.process in ['instantiate', 'retrieve', 'export', 'convert']:
     os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 console.log("Initialized Args "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
@@ -183,11 +179,11 @@ pygame.mixer.init()
 console.log("Initialized Pygame "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
 lastTime = time.time()
 
-pygame.display.set_caption(f"{titleText} - Symphony v1.0 Beta")
+pygame.display.set_caption(f"{v.titleText} - Symphony v1.0 Beta")
 #pygame.display.set_icon(pygame.image.load(f"{v.source_path}/icon.png"))
 v.screen = pygame.display.set_mode((v.width, v.height), pygame.RESIZABLE, pygame.NOFRAME)
 
-if (process == 'instantiate') or (process == 'retrieve'):
+if (v.process == 'instantiate') or (v.process == 'retrieve'):
     None
 else:
     pygame.display.flip()
@@ -214,29 +210,10 @@ fps = 60
 
 ###### ASSETS ######
 
-if process == 'open':
-
+if v.process == 'open':
     bytes_io = BytesIO()
-
     console.log("Initialized Classes "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
     lastTime = time.time()
-
-
-    playImage = pygame.image.load(f"{v.source_path}/assets/play.png")
-    pauseImage = pygame.image.load(f"{v.source_path}/assets/pause.png")
-    headImage = pygame.image.load(f"{v.source_path}/assets/head.png")
-    brushImage = pygame.image.load(f"{v.source_path}/assets/brush.png")
-    eraserImage = pygame.image.load(f"{v.source_path}/assets/eraser.png")
-    negaterImage = pygame.image.load(f"{v.source_path}/assets/negater.png")
-    rainbowImage = pygame.image.load(f"{v.source_path}/assets/rainbow.png")
-
-    squareWaveImage = pygame.image.load(f"{v.source_path}/assets/square.png")
-    sawtoothWaveImage = pygame.image.load(f"{v.source_path}/assets/sawtooth.png")
-    triangleWaveImage = pygame.image.load(f"{v.source_path}/assets/triangle.png")
-    waveImages = [squareWaveImage, triangleWaveImage, sawtoothWaveImage]
-
-    upChevronImage = pygame.image.load(f"{v.source_path}/assets/up.png")
-    downChevronImage = pygame.image.load(f"{v.source_path}/assets/down.png")
 else:
     v.TITLE1 = ''
     v.HEADING1 = ''
@@ -249,14 +226,14 @@ lastTime = time.time()
 
 ###### PROGRAM STATE INITIALIZE ######
 
-if workingFile == "" or process == 'instantiate': # if the workingfile is not provided or we are creating a new file, initialize a new program state
-    ps = sl.ProgramState(10, v.noteMap, "Eb", "Lydian", v.waveMap)
+if workingFile == "" or v.process == 'instantiate': # if the workingfile is not provided or we are creating a new file, initialize a new program state
+    v.ps = sl.ProgramState(10, v.noteMap, "Eb", "Lydian", v.waveMap)
     console.log('Creating new programState...')
 else:
-    ps = sl.toProgramState(pkl.load(open(workingFile, "rb")))
+    v.ps = sl.toProgramState(pkl.load(open(workingFile, "rb")))
     console.log('Loading existing programState...')
 
-if process == 'retrieve' and len(sys.argv) >= 5:
+if v.process == 'retrieve' and len(sys.argv) >= 5:
     filepath = sys.argv[2]
     id_val = sys.argv[3]
     src_folder = sys.argv[4]
@@ -266,14 +243,14 @@ if process == 'retrieve' and len(sys.argv) >= 5:
     with open(response_path, 'w') as f:
         console.log('DUMPING INTO RESPONSE.JSON')
         console.log(os.path.join(user_data_path, 'response.json'))
-        #console.log(ps.noteMap)
-        tpm = round(3600 / ps.ticksPerTile, 2)
-        tiles = int((max(ps.noteMap.items(), key=lambda x : x[0][1]))[0][1]) if (len(ps.noteMap.items()) > 0) else 0
+        #console.log(v.ps.noteMap)
+        tpm = round(3600 / v.ps.ticksPerTile, 2)
+        tiles = int((max(v.ps.noteMap.items(), key=lambda x : x[0][1]))[0][1]) if (len(v.ps.noteMap.items()) > 0) else 0
         json.dump({ 'fileInfo' : {
-                    'Key' : ps.key,
-                    'Mode' : ps.mode,
+                    'Key' : v.ps.key,
+                    'Mode' : v.ps.mode,
                     'Tempo (tpm)' : tpm,
-                    #'Empty?' : (ps.noteMap == {}),
+                    #'Empty?' : (v.ps.noteMap == {}),
                     'Length (tiles)' : tiles,
                     'Duration' : ("0" if len(str(floor(tiles / tpm))) == 1 else '') + str(floor(tiles / tpm)) + ':' + ("0" if len(str(round(((tiles / tpm) % 1) * 60))) == 1 else '') + str(round(((tiles / tpm) % 1) * 60))
                     }, 'id': globalUUID
@@ -286,75 +263,23 @@ lastTime = time.time()
 
 ###### VARIABLE & GUI ELEMENT SETUP ######
 
-v.noteMap = ps.noteMap
-v.ticksPerTile = ps.ticksPerTile
-v.waveMap = ps.waveMap
-key = ps.key
-if "b" in key:
-    keyIndex = v.NOTES_FLAT.index(key)
+v.noteMap = v.ps.noteMap
+v.ticksPerTile = v.ps.ticksPerTile
+v.waveMap = v.ps.waveMap
+v.key = v.ps.key
+if "b" in v.key:
+    v.keyIndex = v.NOTES_FLAT.index(v.key)
     v.accidentals = "flats"
 else:
-    keyIndex = v.NOTES_SHARP.index(key)
+    v.keyIndex = v.NOTES_SHARP.index(v.key)
     v.accidentals = "sharps"
-mode = ps.mode
-modeIntervals = set(v.modesIntervals[0][1])
-
-playPauseButton = Button(pos=(33, 40), width=60, height=28)
-accidentalsButton = Button(pos=(120, 40), width=60, height=28)
-playheadButton = Button(pos=(207, 40), width=60, height=28)
-keyButton = Button(pos=(v.width - 260, 40), width=40, height=28)
-modeButton = Button(pos=(v.width - 220, 40), width=100, height=28)
-brushButton = Button(pos=(v.width - 93, 40), width=60, height=28)
-waveButton = Button(pos=(v.width - 317, 40), width=28, height=28)
-
-timeSigDownButton = Button(pos=(v.width - 420, 40), width=20, height=28)
-timeSigTextBox = TextBox(pos=(v.width - 400, 40), width=30, height=28, text='4')
-timeSigUpButton = Button(pos=(v.width - 370, 40), width=20, height=28)
-tempoDownButton = Button(pos=(300, 40), width=20, height=28)
-tempoTextBox = TextBox(pos=(320, 40), width=105, height=28, text='360', endBarOffset=4)
-tempoUpButton = Button(pos=(425, 40), width=20, height=28)
+v.mode = v.ps.mode
+v.modeIntervals = set(v.modesIntervals[0][1])
 
 ###### FUNCTIONS ######
 
-def dumpToFile(file, directory):
-    '''
-    fields:
-        file (string) - path of the working file
-        directory (string) - path of the destination file
-    outputs: nothing
-
-    Saves data to the working file, used in many places in the code
-    '''
-
-    # when saving, repair any discrepancies between hashmap key and obj data (rare but fatal)
-    delQ, addQ = [], []
-    for thing in v.noteMap.items():
-        if (thing[1].key, thing[1].time, thing[1].color) != thing[0]:
-            console.log("A discrepancy was found between hashmap and obj data. Repairing (prioritizing obj data) now...")
-            console.log(f"Discrepancy details -- HM Key: {thing[0]}, Obj Data: {(thing[1].key, thing[1].time, thing[1].color)}")
-            addQ.append([(thing[1].key, thing[1].time, thing[1].color), thing[1]])
-            delQ.append(thing[0])
-        
-        if (thing[1].key < 2):
-            delQ.append(thing[0])
-    for item in delQ:
-        del v.noteMap[item]
-    for item in addQ:
-        v.noteMap[item[0]] = item[1]
-
-    epochSeconds = time.time() # get current time in epoch seconds
-    localTime = time.localtime(epochSeconds)
-    readableTime = time.strftime('%Y-%m-%d at %H:%M:%S', localTime)
-
-    ps.updateAttributes(v.noteMap, v.ticksPerTile, key, mode, v.waveMap)
-    pkl.dump(ps, file, -1)
-    if autoSave and process == 'open' and (autoSaveDirectory != None):
-        pkl.dump(ps, open(autoSaveDirectory + '/' + titleText + ' Backup ' + sessionID + '.symphony', 'wb'), -1)
-
-    v.worldMessage = (f"Last Saved {readableTime} to " + directory) if directory != f"{v.source_path}/assets/workingfile.symphony" else "You have unsaved changes - Please save to a file on your PC."
-
-if process == 'instantiate':
-    dumpToFile(open(workingFile, 'wb'), workingFile)
+if v.process == 'instantiate':
+    fio.dumpToFile(open(workingFile, 'wb'), workingFile)
     sys.exit()
 
 def inBounds(coords1, coords2, point) -> bool:
@@ -369,25 +294,7 @@ def inBounds(coords1, coords2, point) -> bool:
     '''
     return point[0] > min(coords1[0], coords2[0]) and point[1] > min(coords1[1], coords2[1]) and point[0] < max(coords1[0], coords2[0]) and point[1] < max(coords1[1], coords2[1])
 
-def processImage(imageBytes):
-    '''
-    fields:
-        imageBytes (buffer) - input image
-    output: BytesIO object/buffer
-
-    Takes in an image bytes and blurs it.
-    '''
-    image = cv2.imdecode(np.frombuffer(imageBytes, np.uint8), cv2.IMREAD_COLOR)
-    blurredImage = cv2.GaussianBlur(image, (51, 51), 0) # apply a heavy blur to the image
-    
-    v.height, v.width = blurredImage.shape[:2]
-    croppedImage = blurredImage[:, :300]
-    
-    _, buffer = cv2.imencode('.jpg', croppedImage) # encode the image to a BytesIO object
-    imageIO = BytesIO(buffer)
-    return imageIO
-
-if process == 'export':
+if v.process == 'export':
     phases = {}
     finalWave = np.array([], dtype=np.int16)
 
@@ -407,26 +314,9 @@ if process == 'export':
     arr2d = sp.toSound(finalWave, returnType='2DArray')
     sp.exportToWav(arr2d, destination + '/' + os.path.splitext(os.path.basename(workingFile))[0] + '.wav', sample_rate=44100)
     sys.exit()
-
-def convertNoteMapToStrikeList():
-    '''
-    fields: none
-    outputs: nothing
-
-    Converts the noteMap into a list of notes encoded by their duration and time of strike.
-    '''
-    strikeList = []
-    for el, note in v.noteMap.items():
-        if note.lead:
-            offset = 1
-            while (note.key, note.time + offset, note.color) in v.noteMap:
-                offset += 1
-            strikeList.append({"pitch": note.key + 35, "startTime": ((note.time - 1) / 4), "duration": (offset / 4)})
-    
-    return strikeList
         
-if process == 'convert':
-    sp.createMidiFromNotes(convertNoteMapToStrikeList(), destination)
+if v.process == 'convert':
+    sp.createMidiFromNotes(sl.convertNoteMapToStrikeList(v.noteMap), destination)
     sys.exit()
 
 def mouseBounds(rect):
@@ -450,16 +340,6 @@ def reevaluateLeads():
         if v.colorName == note[1].color:
             if not ((note[0][0], note[0][1] - 1, v.colorName) in v.noteMap):
                 v.noteMap[note[0]].lead = True
-
-def unselectTextBoxes():
-    '''
-    fields: none
-    outputs: nothing
-
-    Loops through all text boxes and unselects them.
-    '''
-    for tb in v.globalTextBoxes:
-        tb.selected = False
 
 def sameNoteMaps(noteMap1, noteMap2):
     '''
@@ -489,8 +369,7 @@ console.log("Startup complete in " + str(round(time.time() - START_TIME, 5)) + '
 
 ###### MAINLOOP ######
 running = True
-playHead = Head(0, 1, 0)
-v.tempo = int(round(3600 / ps.ticksPerTile))
+v.tempo = int(round(3600 / v.ps.ticksPerTile))
 lastNoteTime = 0
 ctrlZTime = 59
 noteMapVersionTracker = []
@@ -500,8 +379,8 @@ root = None
 last_update = time.time()
 
 # Setup Tkinter console window (only if setting allows it)
-if (process == 'open' and len(sys.argv) == 7) or (len(sys.argv) == 1):
-    if (len(sys.argv) == 1) or json.load(open(user_settings_path))["show_console"]:
+if (v.process == 'open' and len(sys.argv) == 7) or (len(sys.argv) == 1):
+    if (len(sys.argv) == 1) or json.load(open(v.user_settings_path))["show_console"]:
         try:
             root = cw.ConsoleWindow(consoleMessages)
         except Exception as e:
@@ -525,7 +404,7 @@ while running:
     if v.saveFrame > 1200: # Saves every 20 seconds
         v.saveFrame = 0
         myPath = open(workingFile if workingFile != "" else f"{v.source_path}/assets/workingfile.symphony", "wb")
-        dumpToFile(myPath, workingFile if workingFile != "" else f"{v.source_path}/assets/workingfile.symphony")
+        fio.dumpToFile(myPath, workingFile if workingFile != "" else f"{v.source_path}/assets/workingfile.symphony")
         myPath.close()
     # checks if new changes have been made, if so adds them to the version history for Ctrl+Z
     ctrlZTime += 1
@@ -551,7 +430,7 @@ while running:
         headerX = v.leftColumn - (v.viewColumn%1 * (v.width - v.leftColumn)/v.viewScaleX) - (v.width - v.leftColumn)/v.viewScaleX
         for column in range(ceil(v.viewScaleX) + 2):
             cm = (floor((column+v.viewColumn)%v.timeInterval) == 1) * 8
-            pygame.draw.rect(v.screen, ((28 + cm, 28 + cm, 28 + cm) if not (-(floor(row - v.viewRow) + keyIndex + 1) % 12) in modeIntervals else (43 + cm, 43 + cm, 43 + cm)),
+            pygame.draw.rect(v.screen, ((28 + cm, 28 + cm, 28 + cm) if not (-(floor(row - v.viewRow) + v.keyIndex + 1) % 12) in v.modeIntervals else (43 + cm, 43 + cm, 43 + cm)),
                          (headerX, headerY, (v.width - v.leftColumn)/v.viewScaleX, v.innerHeight/v.viewScaleY), border_radius=3)
             pygame.draw.rect(v.screen, (0, 0, 0),
                          (headerX, headerY, (v.width - v.leftColumn)/v.viewScaleX, v.innerHeight/v.viewScaleY), 1, 3)
@@ -754,7 +633,7 @@ while running:
     for row in range(ceil(v.viewScaleY) + 1):
         headerX, headerY = 0, row * v.innerHeight / v.viewScaleY + v.toolbarHeight + (v.viewRow%1 * v.innerHeight / v.viewScaleY) - v.innerHeight / v.viewScaleY
         note = f"{(v.NOTES_SHARP if v.accidentals == 'sharps' else v.NOTES_FLAT)[floor((v.viewRow - row) % 12)]} {floor((v.viewRow - row) / 12) + 1}"
-        pygame.draw.rect(v.screen, ((26, 26, 26) if not (-(floor(row - v.viewRow) + keyIndex + 1) % 12) in modeIntervals else (34, 34, 34)),
+        pygame.draw.rect(v.screen, ((26, 26, 26) if not (-(floor(row - v.viewRow) + v.keyIndex + 1) % 12) in v.modeIntervals else (34, 34, 34)),
                          (headerX, headerY, v.leftColumn, v.innerHeight / v.viewScaleY), border_radius=3)
         pygame.draw.rect(v.screen, (0, 0, 0),
                          (headerX, headerY, v.leftColumn, v.innerHeight / v.viewScaleY), 1, 3)
@@ -764,199 +643,6 @@ while running:
             # mouse is clicking the note labels
             v.mouseTask = True
             sp.playNotes([floor(v.viewRow - row + 1)], duration=0.25, waves=v.waveMap[v.colorName])
-
-    def renderScrollBar():
-        '''
-        fields: none
-        outputs: nothing
-
-        Function to draw the bottom scroll bar on the screen for navigating horizontally.
-        '''
-        scrollBarHeight = 15
-        scrollBarColor = (100, 100, 100)
-        progressLeft = v.viewColumn / v.noteCount
-        progressRight = (v.viewColumn + v.viewScaleX) / v.noteCount
-        mouseDel = pygame.mouse.get_rel()[0]/(v.width - v.leftColumn) * v.noteCount
-
-        if pygame.mouse.get_pos()[1] > v.height - 80:
-            if ((v.width - v.leftColumn) * progressLeft) + v.leftColumn < pygame.mouse.get_pos()[0] < ((v.width - v.leftColumn) * progressRight) + v.leftColumn and pygame.mouse.get_pos()[1] > v.height - scrollBarHeight - 15:
-                # mouse is touching scroll bar
-                if pygame.mouse.get_pressed()[0]:
-                    # mouse is dragging scroll bar
-                    scrollBarColor = (255, 255, 255)
-                    if not v.mouseTask:
-                        v.viewColumn += mouseDel
-                else:
-                    scrollBarColor = (150, 150, 150)
-            else:
-                # mouse is close to screen bottom
-                scrollBarColor = (100, 100, 100)
-        else:
-            scrollBarHeight = 10
-
-        pygame.draw.rect(v.screen, scrollBarColor, (((v.width - v.leftColumn) * progressLeft) + v.leftColumn,
-                                                  v.height - scrollBarHeight - 3,
-                                                  (v.width - v.leftColumn) * (progressRight - progressLeft),
-                                                  scrollBarHeight), 1, 3)
-
-    def renderToolBar():
-        '''
-        fields: none
-        outputs: nothing
-
-        Renders the top toolbar, and all of the elements inside of it.
-        '''
-        global key, keyIndex, mode, modeIntervals
-        pygame.draw.rect(v.screen, (43, 43, 43), (0, 0, v.width, v.toolbarHeight))
-        pygame.draw.line(v.screen, (0, 0, 0), (0, v.toolbarHeight), (v.width, v.toolbarHeight))
-        pygame.draw.line(v.screen, (30, 30, 30), (0, v.toolbarHeight - 1), (v.width, v.toolbarHeight - 1))
-        pygame.draw.line(v.screen, (49, 49, 49), (0, v.toolbarHeight - 2), (v.width, v.toolbarHeight - 2))
-        pygame.draw.line(v.screen, (45, 45, 45), (0, v.toolbarHeight - 3), (v.width, v.toolbarHeight - 3))
-
-        ### TRACK TITLE BAR
-        if (v.width >= 1100):
-            pygame.draw.rect(v.screen, (0, 0, 0), (475, v.toolbarHeight/2 - 14, v.width - 950, 28), 1, 3)
-            if len(titleText) < (v.width - 950) / 10:
-                stamp(titleText, v.SUBHEADING1, v.width/2, 40, 0.4, "center")
-            else:
-                stamp(titleText[:int((v.width - 950) / 10)] + '...', v.SUBHEADING1, v.width/2, 40, 0.4, "center")
-        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
-
-        ### PLAY/PAUSE BUTTON
-        playPauseButton.x = 33
-        if playPauseButton.mouseClicked():
-            v.playing = not v.playing
-            if v.playing:
-                playHead.play()
-                v.lastPlayTime = time.time()
-            else:
-                v.play_obj.stop()
-            v.mouseTask = True
-            playHead.tick = playHead.home
-        playPauseButton.draw(pauseImage if v.playing else playImage)
-
-        ### ACCIDENTALS BUTTON
-        accidentalsButton.x = 120
-        if accidentalsButton.mouseClicked():
-            keyIndex = (v.NOTES_SHARP if v.accidentals == "sharps" else v.NOTES_FLAT).index(key)
-            key = (v.NOTES_FLAT if v.accidentals == "sharps" else v.NOTES_SHARP)[keyIndex]
-            v.accidentals = ("sharps" if v.accidentals == "flats" else "flats")
-            v.mouseTask = True
-        accidentalsButton.draw(v.accidentals)
-        
-        ### PLAYHEAD BUTTON
-        playheadButton.x = 207
-        if playheadButton.mouseClicked():
-            v.head = not v.head
-            v.mouseTask = True
-        if v.head:
-            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_IBEAM)
-            playheadButton.draw(headImage, overrideDark=True)
-        else:
-            playheadButton.draw(headImage)
-
-        ### COLOR BUTTON
-        colorButton.x = v.width - 345
-        if colorButton.mouseClicked():
-            colorButton.nextColor()
-            v.mouseTask = True
-        if colorButton.getColorName() == "all":
-            colorButton.draw(rainbowImage)
-        else:
-           colorButton.draw()
-
-        ### WAVE BUTTON
-        waveButton.x = v.width - 317
-        if waveButton.mouseClicked():
-            v.waveMap[v.colorName] = (v.waveMap[v.colorName] + 1) % len(v.waveTypes)
-            v.mouseTask = True
-        if v.colorName != 'all': # doesn't render the wave type for 'all' since it is irrelevant
-            waveButton.draw(waveImages[v.waveMap[v.colorName]])
-
-        ### KEY BUTTON
-        keyButton.x = v.width - 260
-        if keyButton.mouseClicked():
-            keyIndex = (v.NOTES_SHARP if v.accidentals == "sharps" else v.NOTES_FLAT).index(key)
-            key = (v.NOTES_SHARP if v.accidentals == "sharps" else v.NOTES_FLAT)[keyIndex + 1 if keyIndex != 11 else 0]
-            keyIndex = keyIndex + 1 if keyIndex != 11 else 0
-            v.mouseTask = True
-        keyButton.draw(key)
-
-        ### MODE BUTTON
-        modeButton.x = v.width - 220
-        if modeButton.mouseClicked():
-            modeIndex = next(i for i, (x, _) in enumerate(v.modesIntervals) if x == mode)
-            mode = v.modesIntervals[modeIndex + 1 if modeIndex != 6 else 0][0]
-            modeIntervals = set(v.modesIntervals[modeIndex + 1 if modeIndex != 6 else 0][1])
-            v.mouseTask = True
-        modeButton.draw(mode)
-
-        ### BRUSH/ERASER/NEGATER BUTTON
-        brushButton.x = v.width - 93
-        if brushButton.mouseClicked():
-            if v.brushType == "brush":
-                v.brushType = "eraser"
-            elif v.brushType == "eraser":
-                v.brushType = "select"
-            else:
-                v.brushType = "brush"
-                for note in v.noteMap.items():
-                    note[1].selected = False
-            v.mouseTask = True
-        brushButton.draw("select" if v.brushType == "select" else brushImage if v.brushType == "brush" else eraserImage)
-
-        ### TIME SIGNATURE CONTROLS
-        timeSigUpButton.x = v.width - 395
-        timeSigUpButton.draw(upChevronImage)
-        if timeSigUpButton.mouseClicked():
-            v.timeInterval += 1
-            v.mouseTask = True
-        timeSigTextBox.x = v.width - 425
-        if timeSigTextBox.mouseBounds():
-            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_IBEAM)
-        if timeSigTextBox.mouseClicked():
-            if not pygame.key.get_pressed()[pygame.K_LSHIFT]:
-                unselectTextBoxes()
-            timeSigTextBox.selected = True
-        timeSigTextBox.draw(str(timeSigTextBox.text))
-        if timeSigTextBox.selected:
-            v.timeInterval = 1 if (timeSigTextBox.text == '' or int(timeSigTextBox.text) == 0) else int(timeSigTextBox.text)
-        else:
-            timeSigTextBox.text = str(v.timeInterval)
-
-        timeSigDownButton.x = v.width - 445
-        timeSigDownButton.draw(downChevronImage)
-        if timeSigDownButton.mouseClicked():
-            v.timeInterval = max(1, v.timeInterval - 1)
-            v.mouseTask = True
-
-        ### TEMPO CONTROLS
-        tempoUpButton.x = 425
-        tempoUpButton.draw(upChevronImage)
-        if tempoUpButton.mouseClicked():
-            v.tempo += 1
-            v.mouseTask = True
-
-        tempoTextBox.x = 320
-        if tempoTextBox.mouseBounds():
-            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_IBEAM)
-        if tempoTextBox.mouseClicked():
-            if not pygame.key.get_pressed()[pygame.K_LSHIFT]:
-                unselectTextBoxes()
-            tempoTextBox.text = ''
-            tempoTextBox.selected = True
-        if tempoTextBox.selected:
-            v.ticksPerTile = 3600 / v.tempo
-            v.tempo = 1 if (tempoTextBox.text == '' or int(tempoTextBox.text) == 0) else int(tempoTextBox.text)
-        else:
-            tempoTextBox.text = str(v.tempo)
-        tempoTextBox.draw(str(tempoTextBox.text) + ' tpm')
-
-        tempoDownButton.x = 300
-        tempoDownButton.draw(downChevronImage)
-        if tempoDownButton.mouseClicked():
-            v.tempo = max(1, v.tempo - 1)
-            v.mouseTask = True
 
     renderScrollBar()
     renderToolBar()
@@ -976,19 +662,19 @@ while running:
         '''
         noteExists = False
         deviation = 0
-        while (key, time + deviation, v.colorName) in v.noteMap:
+        while (v.key, time + deviation, v.colorName) in v.noteMap:
             noteExists = True
-            v.noteMap[(key, time + deviation, v.colorName)].selected = True
-            if v.noteMap[(key, time + deviation, v.colorName)].lead == True:
-                v.noteMap[(key, time + deviation, v.colorName)].selected = True
+            v.noteMap[(v.key, time + deviation, v.colorName)].selected = True
+            if v.noteMap[(v.key, time + deviation, v.colorName)].lead == True:
+                v.noteMap[(v.key, time + deviation, v.colorName)].selected = True
                 break
             deviation -= 1
         deviation = 1
-        while (key, time + deviation, v.colorName) in v.noteMap:
+        while (v.key, time + deviation, v.colorName) in v.noteMap:
             noteExists = True
-            if v.noteMap[(key, time + deviation, v.colorName)].lead == True:
+            if v.noteMap[(v.key, time + deviation, v.colorName)].lead == True:
                 break
-            v.noteMap[(key, time + deviation, v.colorName)].selected = True
+            v.noteMap[(v.key, time + deviation, v.colorName)].selected = True
             deviation += 1
         return noteExists
 
@@ -1117,7 +803,7 @@ while running:
                         if filename != None:
                             filestring = filename.name
                             myPath = open(f"{v.source_path}/assets/workingfile.symphony", "wb")
-                            dumpToFile(myPath, directory=filestring)
+                            fio.dumpToFile(myPath, directory=filestring)
                             myPath = open(f"{v.source_path}/assets/workingfile.symphony", "rb")
 
                             pathBytes = bytearray(myPath.read())
@@ -1126,10 +812,10 @@ while running:
                             workingFile = filestring
                         else:
                             myPath = open(f"{v.source_path}/assets/workingfile.symphony", "wb")
-                            dumpToFile(myPath, f"{v.source_path}/assets/workingfile.symphony")
+                            fio.dumpToFile(myPath, f"{v.source_path}/assets/workingfile.symphony")
                     else: # save to workspace file
                         myPath = open(workingFile, "wb")
-                        dumpToFile(myPath, workingFile)
+                        fio.dumpToFile(myPath, workingFile)
                     v.saveFrame = 0
             elif event.key == pygame.K_z or event.key == pygame.K_y:
                 if pygame.key.get_pressed()[CMD_KEY]:
@@ -1198,19 +884,10 @@ while running:
     pygame.display.flip()  # Update the display
 
 if workingFile == "": # file dialog to show up if the user has unsaved changes (they have not attached the workspace to a file)
-    filename = asksaveasfile(initialfile = 'Untitled.symphony', mode='wb',defaultextension=".symphony", filetypes=[("Symphony Musical Composition","*.symphony")])
-    if filename != None:
-        myPath = open(f"{v.source_path}/assets/workingfile.symphony", "wb")
-
-        dumpToFile(myPath, directory=f"{v.source_path}/assets/workingfile.symphony")
-        myPath = open(f"{v.source_path}/assets/workingfile.symphony", "rb")
-
-        pathBytes = bytearray(myPath.read())
-        filename.write(pathBytes)
-        filename.close()
+    fio.promptSave()
 else: # save all changes upon closing that have happened since the last autosave
     myPath = open(workingFile, "wb")
-    dumpToFile(myPath, directory=workingFile)
+    fio.dumpToFile(myPath, directory=workingFile)
     
 # quit loop
 pygame.quit()

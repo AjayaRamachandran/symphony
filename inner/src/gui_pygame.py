@@ -6,12 +6,32 @@ import pygame
 import time
 import numpy as np
 from math import *
+import cv2
+from io import BytesIO
 
 ###### INTERNAL MODULES ######
 
 from console_controls.console import *
 import utils.sound_processing as sp
 import values as v
+
+###### IMAGES ######
+
+playImage = pygame.image.load(f"{v.source_path}/assets/play.png")
+pauseImage = pygame.image.load(f"{v.source_path}/assets/pause.png")
+headImage = pygame.image.load(f"{v.source_path}/assets/head.png")
+brushImage = pygame.image.load(f"{v.source_path}/assets/brush.png")
+eraserImage = pygame.image.load(f"{v.source_path}/assets/eraser.png")
+negaterImage = pygame.image.load(f"{v.source_path}/assets/negater.png")
+rainbowImage = pygame.image.load(f"{v.source_path}/assets/rainbow.png")
+
+squareWaveImage = pygame.image.load(f"{v.source_path}/assets/square.png")
+sawtoothWaveImage = pygame.image.load(f"{v.source_path}/assets/sawtooth.png")
+triangleWaveImage = pygame.image.load(f"{v.source_path}/assets/triangle.png")
+waveImages = [squareWaveImage, triangleWaveImage, sawtoothWaveImage]
+
+upChevronImage = pygame.image.load(f"{v.source_path}/assets/up.png")
+downChevronImage = pygame.image.load(f"{v.source_path}/assets/down.png")
 
 ###### METHODS ######
 
@@ -34,6 +54,226 @@ def stamp(text, style, x, y, luminance, justification = "left"):
     else:
         textRect = (x - (text.get_rect()[2]/2), y - (text.get_rect()[3]/2), text.get_rect()[2], text.get_rect()[3])
     v.screen.blit(text, textRect)
+
+def unselectTextBoxes():
+    '''
+    fields: none
+    outputs: nothing
+
+    Loops through all text boxes and unselects them.
+    '''
+    for tb in v.globalTextBoxes:
+        tb.selected = False
+
+def processImage(imageBytes):
+    '''
+    fields:
+        imageBytes (buffer) - input image
+    output: BytesIO object/buffer
+
+    Takes in an image bytes and blurs it.
+    '''
+    image = cv2.imdecode(np.frombuffer(imageBytes, np.uint8), cv2.IMREAD_COLOR)
+    blurredImage = cv2.GaussianBlur(image, (51, 51), 0) # apply a heavy blur to the image
+    
+    v.height, v.width = blurredImage.shape[:2]
+    croppedImage = blurredImage[:, :300]
+    
+    _, buffer = cv2.imencode('.jpg', croppedImage) # encode the image to a BytesIO object
+    imageIO = BytesIO(buffer)
+    return imageIO
+
+def renderScrollBar():
+    '''
+    fields: none
+    outputs: nothing
+
+    Function to draw the bottom scroll bar on the screen for navigating horizontally.
+    '''
+    scrollBarHeight = 15
+    scrollBarColor = (100, 100, 100)
+    progressLeft = v.viewColumn / v.noteCount
+    progressRight = (v.viewColumn + v.viewScaleX) / v.noteCount
+    mouseDel = pygame.mouse.get_rel()[0]/(v.width - v.leftColumn) * v.noteCount
+
+    if pygame.mouse.get_pos()[1] > v.height - 80:
+        if ((v.width - v.leftColumn) * progressLeft) + v.leftColumn < pygame.mouse.get_pos()[0] < ((v.width - v.leftColumn) * progressRight) + v.leftColumn and pygame.mouse.get_pos()[1] > v.height - scrollBarHeight - 15:
+            # mouse is touching scroll bar
+            if pygame.mouse.get_pressed()[0]:
+                # mouse is dragging scroll bar
+                scrollBarColor = (255, 255, 255)
+                if not v.mouseTask:
+                    v.viewColumn += mouseDel
+            else:
+                scrollBarColor = (150, 150, 150)
+        else:
+            # mouse is close to screen bottom
+            scrollBarColor = (100, 100, 100)
+    else:
+        scrollBarHeight = 10
+
+    pygame.draw.rect(v.screen, scrollBarColor, (((v.width - v.leftColumn) * progressLeft) + v.leftColumn,
+                                                v.height - scrollBarHeight - 3,
+                                                (v.width - v.leftColumn) * (progressRight - progressLeft),
+                                                scrollBarHeight), 1, 3)
+
+def renderToolBar():
+    '''
+    fields: none
+    outputs: nothing
+
+    Renders the top toolbar, and all of the elements inside of it.
+    '''
+    pygame.draw.rect(v.screen, (43, 43, 43), (0, 0, v.width, v.toolbarHeight))
+    pygame.draw.line(v.screen, (0, 0, 0), (0, v.toolbarHeight), (v.width, v.toolbarHeight))
+    pygame.draw.line(v.screen, (30, 30, 30), (0, v.toolbarHeight - 1), (v.width, v.toolbarHeight - 1))
+    pygame.draw.line(v.screen, (49, 49, 49), (0, v.toolbarHeight - 2), (v.width, v.toolbarHeight - 2))
+    pygame.draw.line(v.screen, (45, 45, 45), (0, v.toolbarHeight - 3), (v.width, v.toolbarHeight - 3))
+
+    ### TRACK TITLE BAR
+    if (v.width >= 1100):
+        pygame.draw.rect(v.screen, (0, 0, 0), (475, v.toolbarHeight/2 - 14, v.width - 950, 28), 1, 3)
+        if len(v.titleText) < (v.width - 950) / 10:
+            stamp(v.titleText, v.SUBHEADING1, v.width/2, 40, 0.4, "center")
+        else:
+            stamp(v.titleText[:int((v.width - 950) / 10)] + '...', v.SUBHEADING1, v.width/2, 40, 0.4, "center")
+    pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
+
+    ### PLAY/PAUSE BUTTON
+    playPauseButton.x = 33
+    if playPauseButton.mouseClicked():
+        v.playing = not v.playing
+        if v.playing:
+            playHead.play()
+            v.lastPlayTime = time.time()
+        else:
+            v.play_obj.stop()
+        v.mouseTask = True
+        playHead.tick = playHead.home
+    playPauseButton.draw(pauseImage if v.playing else playImage)
+
+    ### ACCIDENTALS BUTTON
+    accidentalsButton.x = 120
+    if accidentalsButton.mouseClicked():
+        v.keyIndex = (v.NOTES_SHARP if v.accidentals == "sharps" else v.NOTES_FLAT).index(v.key)
+        v.key = (v.NOTES_FLAT if v.accidentals == "sharps" else v.NOTES_SHARP)[v.keyIndex]
+        v.accidentals = ("sharps" if v.accidentals == "flats" else "flats")
+        v.mouseTask = True
+    accidentalsButton.draw(v.accidentals)
+    
+    ### PLAYHEAD BUTTON
+    playheadButton.x = 207
+    if playheadButton.mouseClicked():
+        v.head = not v.head
+        v.mouseTask = True
+    if v.head:
+        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_IBEAM)
+        playheadButton.draw(headImage, overrideDark=True)
+    else:
+        playheadButton.draw(headImage)
+
+    ### COLOR BUTTON
+    colorButton.x = v.width - 345
+    if colorButton.mouseClicked():
+        colorButton.nextColor()
+        v.mouseTask = True
+    if colorButton.getColorName() == "all":
+        colorButton.draw(rainbowImage)
+    else:
+        colorButton.draw()
+
+    ### WAVE BUTTON
+    waveButton.x = v.width - 317
+    if waveButton.mouseClicked():
+        v.waveMap[v.colorName] = (v.waveMap[v.colorName] + 1) % len(v.waveTypes)
+        v.mouseTask = True
+    if v.colorName != 'all': # doesn't render the wave type for 'all' since it is irrelevant
+        waveButton.draw(waveImages[v.waveMap[v.colorName]])
+
+    ### KEY BUTTON
+    keyButton.x = v.width - 260
+    if keyButton.mouseClicked():
+        v.keyIndex = (v.NOTES_SHARP if v.accidentals == "sharps" else v.NOTES_FLAT).index(v.key)
+        v.key = (v.NOTES_SHARP if v.accidentals == "sharps" else v.NOTES_FLAT)[v.keyIndex + 1 if v.keyIndex != 11 else 0]
+        v.keyIndex = v.keyIndex + 1 if v.keyIndex != 11 else 0
+        v.mouseTask = True
+    keyButton.draw(v.key)
+
+    ### MODE BUTTON
+    modeButton.x = v.width - 220
+    if modeButton.mouseClicked():
+        modeIndex = next(i for i, (x, _) in enumerate(v.modesIntervals) if x == v.mode)
+        v.mode = v.modesIntervals[modeIndex + 1 if modeIndex != 6 else 0][0]
+        v.modeIntervals = set(v.modesIntervals[modeIndex + 1 if modeIndex != 6 else 0][1])
+        v.mouseTask = True
+    modeButton.draw(v.mode)
+
+    ### BRUSH/ERASER/NEGATER BUTTON
+    brushButton.x = v.width - 93
+    if brushButton.mouseClicked():
+        if v.brushType == "brush":
+            v.brushType = "eraser"
+        elif v.brushType == "eraser":
+            v.brushType = "select"
+        else:
+            v.brushType = "brush"
+            for note in v.noteMap.items():
+                note[1].selected = False
+        v.mouseTask = True
+    brushButton.draw("select" if v.brushType == "select" else brushImage if v.brushType == "brush" else eraserImage)
+
+    ### TIME SIGNATURE CONTROLS
+    timeSigUpButton.x = v.width - 395
+    timeSigUpButton.draw(upChevronImage)
+    if timeSigUpButton.mouseClicked():
+        v.timeInterval += 1
+        v.mouseTask = True
+    timeSigTextBox.x = v.width - 425
+    if timeSigTextBox.mouseBounds():
+        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_IBEAM)
+    if timeSigTextBox.mouseClicked():
+        if not pygame.key.get_pressed()[pygame.K_LSHIFT]:
+            unselectTextBoxes()
+        timeSigTextBox.selected = True
+    timeSigTextBox.draw(str(timeSigTextBox.text))
+    if timeSigTextBox.selected:
+        v.timeInterval = 1 if (timeSigTextBox.text == '' or int(timeSigTextBox.text) == 0) else int(timeSigTextBox.text)
+    else:
+        timeSigTextBox.text = str(v.timeInterval)
+
+    timeSigDownButton.x = v.width - 445
+    timeSigDownButton.draw(downChevronImage)
+    if timeSigDownButton.mouseClicked():
+        v.timeInterval = max(1, v.timeInterval - 1)
+        v.mouseTask = True
+
+    ### TEMPO CONTROLS
+    tempoUpButton.x = 425
+    tempoUpButton.draw(upChevronImage)
+    if tempoUpButton.mouseClicked():
+        v.tempo += 1
+        v.mouseTask = True
+
+    tempoTextBox.x = 320
+    if tempoTextBox.mouseBounds():
+        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_IBEAM)
+    if tempoTextBox.mouseClicked():
+        if not pygame.key.get_pressed()[pygame.K_LSHIFT]:
+            unselectTextBoxes()
+        tempoTextBox.text = ''
+        tempoTextBox.selected = True
+    if tempoTextBox.selected:
+        v.ticksPerTile = 3600 / v.tempo
+        v.tempo = 1 if (tempoTextBox.text == '' or int(tempoTextBox.text) == 0) else int(tempoTextBox.text)
+    else:
+        tempoTextBox.text = str(v.tempo)
+    tempoTextBox.draw(str(tempoTextBox.text) + ' tpm')
+
+    tempoDownButton.x = 300
+    tempoDownButton.draw(downChevronImage)
+    if tempoDownButton.mouseClicked():
+        v.tempo = max(1, v.tempo - 1)
+        v.mouseTask = True
 
 ###### CLASSES ######
 
@@ -270,3 +510,20 @@ class Note():
             
 
 colorButton = Button(pos=(v.width - 345, 40), width=28, height=28, colorCycle=v.justColors)
+
+playPauseButton = Button(pos=(33, 40), width=60, height=28)
+accidentalsButton = Button(pos=(120, 40), width=60, height=28)
+playheadButton = Button(pos=(207, 40), width=60, height=28)
+keyButton = Button(pos=(v.width - 260, 40), width=40, height=28)
+modeButton = Button(pos=(v.width - 220, 40), width=100, height=28)
+brushButton = Button(pos=(v.width - 93, 40), width=60, height=28)
+waveButton = Button(pos=(v.width - 317, 40), width=28, height=28)
+
+timeSigDownButton = Button(pos=(v.width - 420, 40), width=20, height=28)
+timeSigTextBox = TextBox(pos=(v.width - 400, 40), width=30, height=28, text='4')
+timeSigUpButton = Button(pos=(v.width - 370, 40), width=20, height=28)
+tempoDownButton = Button(pos=(300, 40), width=20, height=28)
+tempoTextBox = TextBox(pos=(320, 40), width=105, height=28, text='360', endBarOffset=4)
+tempoUpButton = Button(pos=(425, 40), width=20, height=28)
+
+playHead = Head(0, 1, 0)

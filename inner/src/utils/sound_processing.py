@@ -17,7 +17,13 @@ from console_controls.console import *
 ###### METHODS ######
 
 def notesToFreq(notes):
-    '''Converts a set of notes (as ints from C2) to frequencies'''
+    '''
+    fields:
+        notes (list) - notes to convert
+    outputs: list
+
+    Converts a set of notes (as ints from C2) to frequencies
+    '''
     freqs = []
     C1 = 65.41 / 2
     ratio = 1.05946309436
@@ -26,8 +32,30 @@ def notesToFreq(notes):
         freqs.append(noteFreq)
     return freqs
 
+def noteToMagnitude(note, waves):
+    '''
+    fields:
+        note (number) - input note pitch
+        waves (number) - wave type
+    outputs: number
+
+    Gets a relative magnitude based on an input note and type, to keep perceived volume the same
+    '''
+    if waves != 1:
+        mag = (1.8 - 1.4 * (note / 72))
+    else:
+        mag = 6 * exp(-(1/20) * note)
+    return mag
+
 def toSound(array_1d: np.ndarray, returnType='Sound'):# -> pygame.mixer.Sound:
-    '''Convert a 1-D int16 numpy array into a 2-D array matching mixer channels, then wrap into a Sound.'''
+    '''
+    fields:
+        array_1d (np.ndarray) - 1-dimensional int16 array of waves
+        returnType (string) - what to return the sound as
+    outputs: pygame sound
+    
+    Convert a 1-D int16 numpy array into a 2-D array matching mixer channels, then wrap into a Sound.
+    '''
     freq, fmt, nchan = pygame.mixer.get_init()
     if nchan == 1:
         arr2d = array_1d.reshape(-1, 1)
@@ -37,7 +65,15 @@ def toSound(array_1d: np.ndarray, returnType='Sound'):# -> pygame.mixer.Sound:
     return pygame.sndarray.make_sound(arr2d) if returnType == 'Sound' else arr2d
 
 def exportToWav(arr2d: np.ndarray, filename: str, sample_rate: int = 44100): # filename is actually the filepath
-    '''Take a 2-D array and write it to a WAV file using soundfile library. If file exists, appends an incrementing number to the filename.'''
+    '''
+    fields:
+        arr2d (np.ndarray) - sound data
+        filename (str) - the output file name
+        sample_rate (number) - the sample rate of the audio
+    outputs: nothing
+    
+    Take a 2-D array and write it to a WAV file using soundfile library. If file exists, appends an incrementing number to the filename.
+    '''
     base, ext = path.splitext(filename)
     candidate = filename
     counter = 1
@@ -47,27 +83,38 @@ def exportToWav(arr2d: np.ndarray, filename: str, sample_rate: int = 44100): # f
     sfwrite(candidate, arr2d, sample_rate, subtype='PCM_16')
 
 def playNotes(notes, duration=1, waves=0, volume=0.2, sample_rate=v.SAMPLE_RATE):
-    '''Single set of notes playback, does not keep track of phase.'''
+    '''
+    fields:
+        notes (list) - list of notes to play
+        duration (number) - duration of the sound, in seconds
+        waves (number) - list of wave types for the notes
+        volume (number) - volume of the sound
+        sample_rate (number) - the sample rate of the audio
+    outputs: nothing
+    
+    Single set of notes playback, does not keep track of phase. Doesn't return, just plays the sound.
+    '''
     try:
         freqs = notesToFreq(notes)
         counts = {}
-        for f in freqs:
-            counts[f] = counts.get(f, 0) + 1
+        for index, f in enumerate(freqs):
+            counts[(notes[index], f)] = counts.get((notes[index], f), 0) + 1
 
         t = np.linspace(0, duration, int(sample_rate * duration), False)
         wave = np.zeros_like(t)
 
-        for freq, mag in counts.items():
+        for freqt, mag in counts.items():
+            note, freq = freqt
             if waves == 0:
                 part = np.sign(np.sin(2 * np.pi * freq * t)) * mag
             elif waves == 1:
-                part = (2 / np.pi) * np.arcsin(np.sin(2 * np.pi * freq * t)) * mag
+                part = (2 / np.pi) * np.arcsin(np.sin(2 * np.pi * freq * t)) * mag * 3
             else:
                 part = 2 * (t * freq - np.floor(0.5 + t * freq)) * mag
-            wave += part
+            wave += part * noteToMagnitude(note, waves)
 
         # normalize + volume
-        wave = wave/np.max(np.abs(wave)) - (0.6*wave/(np.max(np.abs(wave))**2))
+        #wave = wave/np.max(np.abs(wave)) - (0.6*wave/(np.max(np.abs(wave))**2))
         wave *= volume * v.globalVolume
 
         audio = (wave * 32767).astype(np.int16)
@@ -77,7 +124,17 @@ def playNotes(notes, duration=1, waves=0, volume=0.2, sample_rate=v.SAMPLE_RATE)
         console.error(f"NoteError: {e}")
 
 def assembleNotes(notes, phases, duration=1, volume=0.2, sample_rate=v.SAMPLE_RATE):
-    '''Compound notes playback, tracks phase to keep continuous notes'''
+    '''
+    fields:
+        notes (list) - list of notes to play
+        phases (list) - phases of the notes (to avoid phase mismatch)
+        duration (number) - duration of the sound
+        volume (number) - volume of the sound
+        sample_rate (number) - the sample rate of the audio
+    outputs: np.array, list
+
+    Compound notes playback, tracks phase to keep continuous notes.
+    '''
     freqs = notesToFreq([n[0] for n in notes])
     inColors = [n[2] for n in notes]
 
@@ -108,7 +165,7 @@ def assembleNotes(notes, phases, duration=1, volume=0.2, sample_rate=v.SAMPLE_RA
         if typ == 0: # square wave
             part = np.sign(np.sin(2 * np.pi * freq * t + phase)) * counts[(freq, typ)]
         elif typ == 1: # triangle wave
-            part = (2 / np.pi) * np.arcsin(np.sin(2 * np.pi * freq * t + phase)) * counts[(freq, typ)]
+            part = (2 / np.pi) * np.arcsin(np.sin(2 * np.pi * freq * t + phase)) * counts[(freq, typ)] * 2
         else: # sawtooth wave
             part = 2 * (t * freq + (phase / (2 * pi)) - np.floor(0.5 + t * freq + (phase / (2 * pi)))) * counts[(freq, typ)]
 
@@ -124,7 +181,16 @@ def assembleNotes(notes, phases, duration=1, volume=0.2, sample_rate=v.SAMPLE_RA
     return audio, newPhases
 
 def createMidiFromNotes(noteData, outputFolderPath, instrumentName="Acoustic Grand Piano"):
-    global tpm
+    '''
+    fields:
+        noteData (list) - list of notes, containing timing, pitch, and duration
+        outputFolderPath (string) - path of output folder
+        instrumentName (string) - instrument type to use
+    outputs: nothing
+
+    Generates a MIDI file from a strike list and saves it to a file.
+    '''
+
     baseName = path.splitext(path.basename(v.workingFile))[0]
     ext = ".mid"
     candidate = path.join(outputFolderPath, baseName + ext)
