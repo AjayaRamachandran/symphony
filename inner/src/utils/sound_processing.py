@@ -11,8 +11,11 @@ from math import *
 
 ###### INTERNAL MODULES ######
 
-import values as v
 from console_controls.console import *
+
+###### INITIALIZE ######
+
+SAMPLE_RATE = 44100
 
 ###### METHODS ######
 
@@ -35,7 +38,7 @@ def notesToFreq(notes):
 def noteToMagnitude(note, waves):
     '''
     fields:
-        note (number) - input note pitch
+        note (number) - input note pitch\n
         waves (number) - wave type
     outputs: number
 
@@ -50,7 +53,7 @@ def noteToMagnitude(note, waves):
 def toSound(array_1d: np.ndarray, returnType='Sound'):# -> pygame.mixer.Sound:
     '''
     fields:
-        array_1d (np.ndarray) - 1-dimensional int16 array of waves
+        array_1d (np.ndarray) - 1-dimensional int16 array of waves\n
         returnType (string) - what to return the sound as
     outputs: pygame sound
     
@@ -67,8 +70,8 @@ def toSound(array_1d: np.ndarray, returnType='Sound'):# -> pygame.mixer.Sound:
 def exportToWav(arr2d: np.ndarray, filename: str, sample_rate: int = 44100): # filename is actually the filepath
     '''
     fields:
-        arr2d (np.ndarray) - sound data
-        filename (str) - the output file name
+        arr2d (np.ndarray) - sound data\n
+        filename (str) - the output file name\n
         sample_rate (number) - the sample rate of the audio
     outputs: nothing
     
@@ -82,13 +85,13 @@ def exportToWav(arr2d: np.ndarray, filename: str, sample_rate: int = 44100): # f
         counter += 1
     sfwrite(candidate, arr2d, sample_rate, subtype='PCM_16')
 
-def playNotes(notes, duration=1, waves=0, volume=0.2, sample_rate=v.SAMPLE_RATE):
+def playNotes(play_obj, notes, duration=1, waves=0, volume=0.2, sample_rate=SAMPLE_RATE):
     '''
     fields:
-        notes (list) - list of notes to play
-        duration (number) - duration of the sound, in seconds
-        waves (number) - list of wave types for the notes
-        volume (number) - volume of the sound
+        notes (list) - list of notes to play\n
+        duration (number) - duration of the sound, in seconds\n
+        waves (number) - list of wave types for the notes\n
+        volume (number) - volume of the sound\n
         sample_rate (number) - the sample rate of the audio
     outputs: nothing
     
@@ -115,21 +118,23 @@ def playNotes(notes, duration=1, waves=0, volume=0.2, sample_rate=v.SAMPLE_RATE)
 
         # normalize + volume
         #wave = wave/np.max(np.abs(wave)) - (0.6*wave/(np.max(np.abs(wave))**2))
-        wave *= volume * v.globalVolume
+        wave *= volume * 0.3
 
         audio = (wave * 32767).astype(np.int16)
         sound = toSound(audio)
-        v.play_obj = sound.play()
+        play_obj = sound.play()
+        return play_obj
     except Exception as e:
         console.error(f"NoteError: {e}")
+        return None
 
-def assembleNotes(notes, phases, duration=1, volume=0.2, sample_rate=v.SAMPLE_RATE):
+def assembleNotes(notes, phases, waveMap, duration=1, volume=0.2, sample_rate=SAMPLE_RATE):
     '''
     fields:
-        notes (list) - list of notes to play
-        phases (list) - phases of the notes (to avoid phase mismatch)
-        duration (number) - duration of the sound
-        volume (number) - volume of the sound
+        notes (list) - list of notes to play\n
+        phases (list) - phases of the notes (to avoid phase mismatch)\n
+        duration (number) - duration of the sound\n
+        volume (number) - volume of the sound\n
         sample_rate (number) - the sample rate of the audio
     outputs: np.array, list
 
@@ -140,7 +145,7 @@ def assembleNotes(notes, phases, duration=1, volume=0.2, sample_rate=v.SAMPLE_RA
 
     counts = {}
     for idx, f in enumerate(freqs):
-        typ = v.waveMap[inColors[idx]]
+        typ = waveMap[inColors[idx]]
         counts[(f, typ)] = counts.get((f, typ), 0) + 1
 
     t = np.linspace(0, duration, int(sample_rate * duration), False)
@@ -151,7 +156,7 @@ def assembleNotes(notes, phases, duration=1, volume=0.2, sample_rate=v.SAMPLE_RA
     phasesOfFreqs = {}
 
     for idx, freq in enumerate(freqs):
-        typ = v.waveMap[inColors[idx]]
+        typ = waveMap[inColors[idx]]
         phase = phases.get(freq, 0.0)
         if notes[idx][1]:
             phase += pi
@@ -175,23 +180,23 @@ def assembleNotes(notes, phases, duration=1, volume=0.2, sample_rate=v.SAMPLE_RA
 
     # normalize + volume
     wave = wave / np.max(np.abs(wave)) - (0.6 * wave / (np.max(np.abs(wave)) ** 2))
-    wave *= volume * v.globalVolume
+    wave *= volume * 0.3
 
     audio = (wave * 32767).astype(np.int16)
     return audio, newPhases
 
-def createMidiFromNotes(noteData, outputFolderPath, instrumentName="Acoustic Grand Piano"):
+def createMidiFromNotes(noteData, workingFile, outputFolderPath, instrumentName="Acoustic Grand Piano"):
     '''
     fields:
-        noteData (list) - list of notes, containing timing, pitch, and duration
-        outputFolderPath (string) - path of output folder
+        noteData (list) - list of notes, containing timing, pitch, and duration\n
+        outputFolderPath (string) - path of output folder\n
         instrumentName (string) - instrument type to use
     outputs: nothing
 
     Generates a MIDI file from a strike list and saves it to a file.
     '''
 
-    baseName = path.splitext(path.basename(v.workingFile))[0]
+    baseName = path.splitext(path.basename(workingFile))[0]
     ext = ".mid"
     candidate = path.join(outputFolderPath, baseName + ext)
     # Resolve name conflicts

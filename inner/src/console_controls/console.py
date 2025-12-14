@@ -1,8 +1,9 @@
-# console.py
+# console_controls/console.py
 # module for operating the pseudo-console's data.
 ###### IMPORT ######
 
 import time
+import sys
 
 ###### METHODS / CLASSES ######
 

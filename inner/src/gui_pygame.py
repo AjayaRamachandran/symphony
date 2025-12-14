@@ -13,25 +13,6 @@ from io import BytesIO
 
 from console_controls.console import *
 import utils.sound_processing as sp
-import values as v
-
-###### IMAGES ######
-
-playImage = pygame.image.load(f"{v.source_path}/assets/play.png")
-pauseImage = pygame.image.load(f"{v.source_path}/assets/pause.png")
-headImage = pygame.image.load(f"{v.source_path}/assets/head.png")
-brushImage = pygame.image.load(f"{v.source_path}/assets/brush.png")
-eraserImage = pygame.image.load(f"{v.source_path}/assets/eraser.png")
-negaterImage = pygame.image.load(f"{v.source_path}/assets/negater.png")
-rainbowImage = pygame.image.load(f"{v.source_path}/assets/rainbow.png")
-
-squareWaveImage = pygame.image.load(f"{v.source_path}/assets/square.png")
-sawtoothWaveImage = pygame.image.load(f"{v.source_path}/assets/sawtooth.png")
-triangleWaveImage = pygame.image.load(f"{v.source_path}/assets/triangle.png")
-waveImages = [squareWaveImage, triangleWaveImage, sawtoothWaveImage]
-
-upChevronImage = pygame.image.load(f"{v.source_path}/assets/up.png")
-downChevronImage = pygame.image.load(f"{v.source_path}/assets/down.png")
 
 ###### METHODS ######
 
@@ -44,7 +25,7 @@ def mouseFunction(rect):
     isInside = rect[0] < pygame.mouse.get_pos()[0] < rect[0] + rect[2] and rect[1] < pygame.mouse.get_pos()[1] < rect[1] + rect[3]
     return isInside, ((20, 20, 20) if isInside and pygame.mouse.get_pressed()[0] else ((30, 30, 30) if isInside else (35, 35, 35)))
 
-def stamp(text, style, x, y, luminance, justification = "left"):
+def stamp(screen, text, style, x, y, luminance, justification = "left"):
     '''Function to draw text to the screen abstracted, makes text drawing easy.'''
     text = style.render(text, True, (round(luminance*255), round(luminance*255), round(luminance*255)))
     if justification == "left":
@@ -53,16 +34,16 @@ def stamp(text, style, x, y, luminance, justification = "left"):
         textRect = (x - text.get_rect()[2], y, text.get_rect()[2], text.get_rect()[3])
     else:
         textRect = (x - (text.get_rect()[2]/2), y - (text.get_rect()[3]/2), text.get_rect()[2], text.get_rect()[3])
-    v.screen.blit(text, textRect)
+    screen.blit(text, textRect)
 
-def unselectTextBoxes():
+def unselectTextBoxes(globalTextBoxes):
     '''
     fields: none
     outputs: nothing
 
     Loops through all text boxes and unselects them.
     '''
-    for tb in v.globalTextBoxes:
+    for tb in globalTextBoxes:
         tb.selected = False
 
 def processImage(imageBytes):
@@ -76,7 +57,7 @@ def processImage(imageBytes):
     image = cv2.imdecode(np.frombuffer(imageBytes, np.uint8), cv2.IMREAD_COLOR)
     blurredImage = cv2.GaussianBlur(image, (51, 51), 0) # apply a heavy blur to the image
     
-    v.height, v.width = blurredImage.shape[:2]
+    height, width = blurredImage.shape[:2]
     croppedImage = blurredImage[:, :300]
     
     _, buffer = cv2.imencode('.jpg', croppedImage) # encode the image to a BytesIO object
@@ -92,18 +73,18 @@ def renderScrollBar():
     '''
     scrollBarHeight = 15
     scrollBarColor = (100, 100, 100)
-    progressLeft = v.viewColumn / v.noteCount
-    progressRight = (v.viewColumn + v.viewScaleX) / v.noteCount
-    mouseDel = pygame.mouse.get_rel()[0]/(v.width - v.leftColumn) * v.noteCount
+    progressLeft = viewColumn / noteCount
+    progressRight = (viewColumn + viewScaleX) / noteCount
+    mouseDel = pygame.mouse.get_rel()[0]/(width - leftColumn) * noteCount
 
-    if pygame.mouse.get_pos()[1] > v.height - 80:
-        if ((v.width - v.leftColumn) * progressLeft) + v.leftColumn < pygame.mouse.get_pos()[0] < ((v.width - v.leftColumn) * progressRight) + v.leftColumn and pygame.mouse.get_pos()[1] > v.height - scrollBarHeight - 15:
+    if pygame.mouse.get_pos()[1] > height - 80:
+        if ((width - leftColumn) * progressLeft) + leftColumn < pygame.mouse.get_pos()[0] < ((width - leftColumn) * progressRight) + leftColumn and pygame.mouse.get_pos()[1] > height - scrollBarHeight - 15:
             # mouse is touching scroll bar
             if pygame.mouse.get_pressed()[0]:
                 # mouse is dragging scroll bar
                 scrollBarColor = (255, 255, 255)
-                if not v.mouseTask:
-                    v.viewColumn += mouseDel
+                if not mouseTask:
+                    viewColumn += mouseDel
             else:
                 scrollBarColor = (150, 150, 150)
         else:
@@ -112,9 +93,9 @@ def renderScrollBar():
     else:
         scrollBarHeight = 10
 
-    pygame.draw.rect(v.screen, scrollBarColor, (((v.width - v.leftColumn) * progressLeft) + v.leftColumn,
-                                                v.height - scrollBarHeight - 3,
-                                                (v.width - v.leftColumn) * (progressRight - progressLeft),
+    pygame.draw.rect(screen, scrollBarColor, (((width - leftColumn) * progressLeft) + leftColumn,
+                                                height - scrollBarHeight - 3,
+                                                (width - leftColumn) * (progressRight - progressLeft),
                                                 scrollBarHeight), 1, 3)
 
 def renderToolBar():
@@ -124,111 +105,111 @@ def renderToolBar():
 
     Renders the top toolbar, and all of the elements inside of it.
     '''
-    pygame.draw.rect(v.screen, (43, 43, 43), (0, 0, v.width, v.toolbarHeight))
-    pygame.draw.line(v.screen, (0, 0, 0), (0, v.toolbarHeight), (v.width, v.toolbarHeight))
-    pygame.draw.line(v.screen, (30, 30, 30), (0, v.toolbarHeight - 1), (v.width, v.toolbarHeight - 1))
-    pygame.draw.line(v.screen, (49, 49, 49), (0, v.toolbarHeight - 2), (v.width, v.toolbarHeight - 2))
-    pygame.draw.line(v.screen, (45, 45, 45), (0, v.toolbarHeight - 3), (v.width, v.toolbarHeight - 3))
+    pygame.draw.rect(screen, (43, 43, 43), (0, 0, width, toolbarHeight))
+    pygame.draw.line(screen, (0, 0, 0), (0, toolbarHeight), (width, toolbarHeight))
+    pygame.draw.line(screen, (30, 30, 30), (0, toolbarHeight - 1), (width, toolbarHeight - 1))
+    pygame.draw.line(screen, (49, 49, 49), (0, toolbarHeight - 2), (width, toolbarHeight - 2))
+    pygame.draw.line(screen, (45, 45, 45), (0, toolbarHeight - 3), (width, toolbarHeight - 3))
 
     ### TRACK TITLE BAR
-    if (v.width >= 1100):
-        pygame.draw.rect(v.screen, (0, 0, 0), (475, v.toolbarHeight/2 - 14, v.width - 950, 28), 1, 3)
-        if len(v.titleText) < (v.width - 950) / 10:
-            stamp(v.titleText, v.SUBHEADING1, v.width/2, 40, 0.4, "center")
+    if (width >= 1100):
+        pygame.draw.rect(screen, (0, 0, 0), (475, toolbarHeight/2 - 14, width - 950, 28), 1, 3)
+        if len(titleText) < (width - 950) / 10:
+            stamp(titleText, SUBHEADING1, width/2, 40, 0.4, "center")
         else:
-            stamp(v.titleText[:int((v.width - 950) / 10)] + '...', v.SUBHEADING1, v.width/2, 40, 0.4, "center")
+            stamp(titleText[:int((width - 950) / 10)] + '...', SUBHEADING1, width/2, 40, 0.4, "center")
     pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
 
     ### PLAY/PAUSE BUTTON
     playPauseButton.x = 33
     if playPauseButton.mouseClicked():
-        v.playing = not v.playing
-        if v.playing:
+        playing = not playing
+        if playing:
             playHead.play()
-            v.lastPlayTime = time.time()
+            lastPlayTime = time.time()
         else:
-            v.play_obj.stop()
-        v.mouseTask = True
+            play_obj.stop()
+        mouseTask = True
         playHead.tick = playHead.home
-    playPauseButton.draw(pauseImage if v.playing else playImage)
+    playPauseButton.draw(pauseImage if playing else playImage)
 
     ### ACCIDENTALS BUTTON
     accidentalsButton.x = 120
     if accidentalsButton.mouseClicked():
-        v.keyIndex = (v.NOTES_SHARP if v.accidentals == "sharps" else v.NOTES_FLAT).index(v.key)
-        v.key = (v.NOTES_FLAT if v.accidentals == "sharps" else v.NOTES_SHARP)[v.keyIndex]
-        v.accidentals = ("sharps" if v.accidentals == "flats" else "flats")
-        v.mouseTask = True
-    accidentalsButton.draw(v.accidentals)
+        keyIndex = (NOTES_SHARP if accidentals == "sharps" else NOTES_FLAT).index(key)
+        key = (NOTES_FLAT if accidentals == "sharps" else NOTES_SHARP)[keyIndex]
+        accidentals = ("sharps" if accidentals == "flats" else "flats")
+        mouseTask = True
+    accidentalsButton.draw(accidentals)
     
     ### PLAYHEAD BUTTON
     playheadButton.x = 207
     if playheadButton.mouseClicked():
-        v.head = not v.head
-        v.mouseTask = True
-    if v.head:
+        head = not head
+        mouseTask = True
+    if head:
         pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_IBEAM)
         playheadButton.draw(headImage, overrideDark=True)
     else:
         playheadButton.draw(headImage)
 
     ### COLOR BUTTON
-    colorButton.x = v.width - 345
+    colorButton.x = width - 345
     if colorButton.mouseClicked():
         colorButton.nextColor()
-        v.mouseTask = True
+        mouseTask = True
     if colorButton.getColorName() == "all":
         colorButton.draw(rainbowImage)
     else:
         colorButton.draw()
 
     ### WAVE BUTTON
-    waveButton.x = v.width - 317
+    waveButton.x = width - 317
     if waveButton.mouseClicked():
-        v.waveMap[v.colorName] = (v.waveMap[v.colorName] + 1) % len(v.waveTypes)
-        v.mouseTask = True
-    if v.colorName != 'all': # doesn't render the wave type for 'all' since it is irrelevant
-        waveButton.draw(waveImages[v.waveMap[v.colorName]])
+        waveMap[colorName] = (waveMap[colorName] + 1) % len(waveTypes)
+        mouseTask = True
+    if colorName != 'all': # doesn't render the wave type for 'all' since it is irrelevant
+        waveButton.draw(waveImages[waveMap[colorName]])
 
     ### KEY BUTTON
-    keyButton.x = v.width - 260
+    keyButton.x = width - 260
     if keyButton.mouseClicked():
-        v.keyIndex = (v.NOTES_SHARP if v.accidentals == "sharps" else v.NOTES_FLAT).index(v.key)
-        v.key = (v.NOTES_SHARP if v.accidentals == "sharps" else v.NOTES_FLAT)[v.keyIndex + 1 if v.keyIndex != 11 else 0]
-        v.keyIndex = v.keyIndex + 1 if v.keyIndex != 11 else 0
-        v.mouseTask = True
-    keyButton.draw(v.key)
+        keyIndex = (NOTES_SHARP if accidentals == "sharps" else NOTES_FLAT).index(key)
+        key = (NOTES_SHARP if accidentals == "sharps" else NOTES_FLAT)[keyIndex + 1 if keyIndex != 11 else 0]
+        keyIndex = keyIndex + 1 if keyIndex != 11 else 0
+        mouseTask = True
+    keyButton.draw(key)
 
     ### MODE BUTTON
-    modeButton.x = v.width - 220
+    modeButton.x = width - 220
     if modeButton.mouseClicked():
-        modeIndex = next(i for i, (x, _) in enumerate(v.modesIntervals) if x == v.mode)
-        v.mode = v.modesIntervals[modeIndex + 1 if modeIndex != 6 else 0][0]
-        v.modeIntervals = set(v.modesIntervals[modeIndex + 1 if modeIndex != 6 else 0][1])
-        v.mouseTask = True
-    modeButton.draw(v.mode)
+        modeIndex = next(i for i, (x, _) in enumerate(modesIntervals) if x == mode)
+        mode = modesIntervals[modeIndex + 1 if modeIndex != 6 else 0][0]
+        modeIntervals = set(modesIntervals[modeIndex + 1 if modeIndex != 6 else 0][1])
+        mouseTask = True
+    modeButton.draw(mode)
 
     ### BRUSH/ERASER/NEGATER BUTTON
-    brushButton.x = v.width - 93
+    brushButton.x = width - 93
     if brushButton.mouseClicked():
-        if v.brushType == "brush":
-            v.brushType = "eraser"
-        elif v.brushType == "eraser":
-            v.brushType = "select"
+        if brushType == "brush":
+            brushType = "eraser"
+        elif brushType == "eraser":
+            brushType = "select"
         else:
-            v.brushType = "brush"
-            for note in v.noteMap.items():
+            brushType = "brush"
+            for note in noteMap.items():
                 note[1].selected = False
-        v.mouseTask = True
-    brushButton.draw("select" if v.brushType == "select" else brushImage if v.brushType == "brush" else eraserImage)
+        mouseTask = True
+    brushButton.draw("select" if brushType == "select" else brushImage if brushType == "brush" else eraserImage)
 
     ### TIME SIGNATURE CONTROLS
-    timeSigUpButton.x = v.width - 395
+    timeSigUpButton.x = width - 395
     timeSigUpButton.draw(upChevronImage)
     if timeSigUpButton.mouseClicked():
-        v.timeInterval += 1
-        v.mouseTask = True
-    timeSigTextBox.x = v.width - 425
+        timeInterval += 1
+        mouseTask = True
+    timeSigTextBox.x = width - 425
     if timeSigTextBox.mouseBounds():
         pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_IBEAM)
     if timeSigTextBox.mouseClicked():
@@ -237,22 +218,22 @@ def renderToolBar():
         timeSigTextBox.selected = True
     timeSigTextBox.draw(str(timeSigTextBox.text))
     if timeSigTextBox.selected:
-        v.timeInterval = 1 if (timeSigTextBox.text == '' or int(timeSigTextBox.text) == 0) else int(timeSigTextBox.text)
+        timeInterval = 1 if (timeSigTextBox.text == '' or int(timeSigTextBox.text) == 0) else int(timeSigTextBox.text)
     else:
-        timeSigTextBox.text = str(v.timeInterval)
+        timeSigTextBox.text = str(timeInterval)
 
-    timeSigDownButton.x = v.width - 445
+    timeSigDownButton.x = width - 445
     timeSigDownButton.draw(downChevronImage)
     if timeSigDownButton.mouseClicked():
-        v.timeInterval = max(1, v.timeInterval - 1)
-        v.mouseTask = True
+        timeInterval = max(1, timeInterval - 1)
+        mouseTask = True
 
     ### TEMPO CONTROLS
     tempoUpButton.x = 425
     tempoUpButton.draw(upChevronImage)
     if tempoUpButton.mouseClicked():
-        v.tempo += 1
-        v.mouseTask = True
+        tempo += 1
+        mouseTask = True
 
     tempoTextBox.x = 320
     if tempoTextBox.mouseBounds():
@@ -263,24 +244,24 @@ def renderToolBar():
         tempoTextBox.text = ''
         tempoTextBox.selected = True
     if tempoTextBox.selected:
-        v.ticksPerTile = 3600 / v.tempo
-        v.tempo = 1 if (tempoTextBox.text == '' or int(tempoTextBox.text) == 0) else int(tempoTextBox.text)
+        ticksPerTile = 3600 / tempo
+        tempo = 1 if (tempoTextBox.text == '' or int(tempoTextBox.text) == 0) else int(tempoTextBox.text)
     else:
-        tempoTextBox.text = str(v.tempo)
+        tempoTextBox.text = str(tempo)
     tempoTextBox.draw(str(tempoTextBox.text) + ' tpm')
 
     tempoDownButton.x = 300
     tempoDownButton.draw(downChevronImage)
     if tempoDownButton.mouseClicked():
-        v.tempo = max(1, v.tempo - 1)
-        v.mouseTask = True
+        tempo = max(1, tempo - 1)
+        mouseTask = True
 
 ###### CLASSES ######
 
 class TextBox():
     '''Class to contain text boxes, which are used for interactivity.'''
 
-    def __init__(self, pos, width, height, text, textSize = v.SUBHEADING1, endBarOffset=0):
+    def __init__(self, pos, width, height, text, textSize = SUBHEADING1, endBarOffset=0):
         self.x = pos[0]
         self.y = pos[1]
         self.width = width
@@ -289,30 +270,30 @@ class TextBox():
         self.selected = False
         self.text = text
         self.endBarOffset = endBarOffset
-        v.globalTextBoxes.append(self)
+        globalTextBoxes.append(self)
 
     def mouseClicked(self):
         '''Method to return whether the textbox has been clicked'''
-        return mouseFunction((self.x, v.toolbarHeight/2 - 14, self.width, self.height))[0] and pygame.mouse.get_pressed()[0] and not v.mouseTask
+        return mouseFunction((self.x, toolbarHeight/2 - 14, self.width, self.height))[0] and pygame.mouse.get_pressed()[0] and not mouseTask
     
     def mouseBounds(self):
         '''Returns whether the mouse is in the bounds of the textbox'''
-        return mouseFunction((self.x, v.toolbarHeight/2 - 14, self.width, self.height))[0]
+        return mouseFunction((self.x, toolbarHeight/2 - 14, self.width, self.height))[0]
 
     def draw(self, text):
         '''Method to draw a textbox.'''
-        pygame.draw.rect(v.screen, mouseFunction((self.x, v.toolbarHeight/2 - self.height/2, self.width, self.height))[1], (self.x, v.toolbarHeight/2 - self.height/2, self.width, self.height), border_radius=3)
+        pygame.draw.rect(screen, mouseFunction((self.x, toolbarHeight/2 - self.height/2, self.width, self.height))[1], (self.x, toolbarHeight/2 - self.height/2, self.width, self.height), border_radius=3)
         if self.selected:
             showBar = round(time.time())%2 == 0 #  + showBar*2.5 for xOffset
             stamp((text[:(-self.endBarOffset)] if self.endBarOffset != 0 else text) + ("|" if showBar else " ") + (text[-self.endBarOffset+1:] if self.endBarOffset != 0 else ''), self.textSize, self.x + self.width/2, self.y - showBar*1, 0.4, "center")
         else:
             stamp(text, self.textSize, self.x + self.width/2, self.y, 0.4, "center")
-        pygame.draw.rect(v.screen, (self.selected * 80, self.selected * 80, self.selected * 80), (self.x, v.toolbarHeight/2 - self.height/2, self.width, self.height), 1, 3)
+        pygame.draw.rect(screen, (self.selected * 80, self.selected * 80, self.selected * 80), (self.x, toolbarHeight/2 - self.height/2, self.width, self.height), 1, 3)
 
 class Button():
     '''Class to contain buttons, which are used for interactivity.'''
 
-    def __init__(self, pos, width, height, textSize = v.SUBHEADING1, color = (30, 30, 30), colorCycle = None):
+    def __init__(self, pos, width, height, textSize = SUBHEADING1, color = (30, 30, 30), colorCycle = None):
         self.x = pos[0]
         self.y = pos[1]
         self.width = width
@@ -324,11 +305,11 @@ class Button():
 
     def mouseBounds(self):
         '''Returns whether the mouse is in the bounds of the textbox'''
-        return mouseFunction((self.x, v.toolbarHeight/2 - 14, self.width, self.height))[0]
+        return mouseFunction((self.x, toolbarHeight/2 - 14, self.width, self.height))[0]
 
     def mouseClicked(self):
         '''Method to return whether the button has been clicked'''
-        return mouseFunction((self.x, v.toolbarHeight/2 - 14, self.width, self.height))[0] and pygame.mouse.get_pressed()[0] and not v.mouseTask
+        return mouseFunction((self.x, toolbarHeight/2 - 14, self.width, self.height))[0] and pygame.mouse.get_pressed()[0] and not mouseTask
     
     def draw(self, itemToDraw = None, overrideDark = False):
         '''Method to draw a button.'''
@@ -336,38 +317,38 @@ class Button():
             pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
 
         if self.colorCycle != None:
-            pygame.draw.rect(v.screen, self.color, (self.x, v.toolbarHeight/2 - self.height/2, self.width, self.height), border_radius=3)
+            pygame.draw.rect(screen, self.color, (self.x, toolbarHeight/2 - self.height/2, self.width, self.height), border_radius=3)
             stamp(str(self.colorIndex + 1), self.textSize, self.x + self.width/2, self.y, 0.1, "center")
         else:
-            pygame.draw.rect(v.screen, (25, 25, 25) if overrideDark else mouseFunction((self.x, v.toolbarHeight/2 - self.height/2, self.width, self.height))[1], (self.x, v.toolbarHeight/2 - self.height/2, self.width, self.height), border_radius=3)
-        pygame.draw.rect(v.screen, (0, 0, 0), (self.x, v.toolbarHeight/2 - self.height/2, self.width, self.height), 1, 3)
+            pygame.draw.rect(screen, (25, 25, 25) if overrideDark else mouseFunction((self.x, toolbarHeight/2 - self.height/2, self.width, self.height))[1], (self.x, toolbarHeight/2 - self.height/2, self.width, self.height), border_radius=3)
+        pygame.draw.rect(screen, (0, 0, 0), (self.x, toolbarHeight/2 - self.height/2, self.width, self.height), 1, 3)
     
         if self.colorCycle == None:
             if type(itemToDraw) == str:
                 stamp(itemToDraw, self.textSize, self.x + self.width/2, self.y, 0.4, "center")
             else:
-                v.screen.blit(itemToDraw, (self.x + self.width/2 - 8, self.y - 8))
+                screen.blit(itemToDraw, (self.x + self.width/2 - 8, self.y - 8))
         else:
             if type(itemToDraw) == pygame.Surface:
-                v.screen.blit(itemToDraw, (self.x + self.width/2 - 14, self.y - 14))
-                pygame.draw.rect(v.screen, (0, 0, 0), (self.x, v.toolbarHeight/2 - self.height/2, self.width, self.height), 1, 3)
+                screen.blit(itemToDraw, (self.x + self.width/2 - 14, self.y - 14))
+                pygame.draw.rect(screen, (0, 0, 0), (self.x, toolbarHeight/2 - self.height/2, self.width, self.height), 1, 3)
                 stamp(str(self.colorIndex + 1), self.textSize, self.x + self.width/2, self.y, 0.1, "center")
 
     def setColor(self, index):
         '''Sets to given color'''
-        self.color = v.justColors[index]
+        self.color = justColors[index]
         self.colorIndex = index
 
     def nextColor(self):
         '''Switches to next color (color switcher)'''
-        nextIndex = (v.justColors.index(self.color) + 1) % (len(v.colors.items()))
-        self.color = v.justColors[nextIndex]
+        nextIndex = (justColors.index(self.color) + 1) % (len(colors.items()))
+        self.color = justColors[nextIndex]
         self.colorIndex = (self.colorIndex + 1) % 7
 
     def getColorName(self):
         '''Returns the color in string form of the Button (used for color switching)'''
-        i = v.justColors.index(self.color)
-        return v.justColorNames[i]
+        i = justColors.index(self.color)
+        return justColorNames[i]
 
 class Head():
     '''Class to contain the playhead, which plays the music.'''
@@ -380,33 +361,36 @@ class Head():
     def draw(self, screen, viewRow, viewColumn, leftColW, tileW, drawHead=False): # by default, only draws home
         '''Method to draw the playhead.'''
         if drawHead:
-            top = [((((time.time() - v.lastPlayTime) * 60)/v.ticksPerTile + self.home) * tileW) - (viewColumn * tileW) + leftColW, v.toolbarHeight]
-            bottom = [((((time.time() - v.lastPlayTime) * 60)/v.ticksPerTile + self.home) * tileW) - (viewColumn * tileW) + leftColW, v.height]
+            top = [((((time.time() - lastPlayTime) * 60)/ticksPerTile + self.home) * tileW) - (viewColumn * tileW) + leftColW, toolbarHeight]
+            bottom = [((((time.time() - lastPlayTime) * 60)/ticksPerTile + self.home) * tileW) - (viewColumn * tileW) + leftColW, height]
 
             pygame.draw.line(screen, (0, 255, 255), top, bottom, 1)
 
         if self.home != 0:
-            top = [(self.home * tileW) - (viewColumn * tileW) + leftColW, v.toolbarHeight]
-            bottom = [(self.home * tileW) - (viewColumn * tileW) + leftColW, v.height]
+            top = [(self.home * tileW) - (viewColumn * tileW) + leftColW, toolbarHeight]
+            bottom = [(self.home * tileW) - (viewColumn * tileW) + leftColW, height]
 
             pygame.draw.line(screen, (255, 255, 0), top, bottom, 1)
 
-    def play(self):
-        '''Method to play the playhead -- contains audio playback'''
+    def play(self, ps : dict):
+        '''
+        Method to play the playhead -- contains audio playback
+        '''
+
         phases = {}
         finalWave = np.array([], dtype=np.int16)
 
-        for tempTick in range(floor(self.home) + 1, v.noteCount):
+        for tempTick in range(floor(self.home) + 1, noteCount):
             playingNotes = [
                 (note.key, note.lead, note.color)
-                for note in v.noteMap.values()
-                if note.time == tempTick and (note.color == v.colorName or v.colorName == 'all')
+                for note in ps["noteMap"].values()
+                if note.time == tempTick and (note.color == colorName or colorName == 'all')
             ]
-            chunk, phases = sp.assembleNotes(playingNotes, phases, duration=v.ticksPerTile/60)
+            chunk, phases = sp.assembleNotes(playingNotes, phases, ps["waveMap"], duration=ps["ticksPerTile"]/60)
             finalWave = np.concatenate([finalWave, chunk])
 
         sound = sp.toSound(finalWave)
-        v.play_obj = sound.play()
+        play_obj = sound.play()
 
 class Note():
     '''Class to contain the Note, which represents a grid element that *does* have a sound when played.'''
@@ -437,7 +421,7 @@ class Note():
         def darkenColor(init, amt):
             return [init[n] - (amt * (n!=3)) for n in range(len(init))] # darkens a tuple by a constant n, if init is a quadtuple with opacity, alpha is untouched.
         if self.color == colorButton.getColorName() or colorButton.getColorName() == "all":
-            leadColor = v.colors[self.color] if not transparent else (*v.colors[self.color], opacity)
+            leadColor = colors[self.color] if not transparent else (*colors[self.color], opacity)
             outlineColor = (255, 255, 255) if not transparent else (0, 0, 0, 0)
             tailsDarkness = 20
         else:
@@ -449,81 +433,61 @@ class Note():
 
         numToOffset = 0
         nextKeyNumToOffset = 0
-        if v.colorName == 'all':
-            colorsToSearch = v.justColorNames[:v.justColorNames.index(self.color)]
+        if colorName == 'all':
+            colorsToSearch = justColorNames[:justColorNames.index(self.color)]
             for colorI in colorsToSearch:
                 if (self.key, self.time, colorI) in noteMap:
                     numToOffset += 1
                 if (self.key, self.time, colorI) in noteMap:
                     nextKeyNumToOffset += 1
 
-        headerY = v.toolbarHeight + ((viewRow - self.key) * v.innerHeight/v.viewScaleY) - numToOffset * 3
-        headerX = v.leftColumn + ((self.time - viewColumn - 1) * (v.width - v.leftColumn)/v.viewScaleX) - numToOffset * 3
-        self.setSScoords(headerX + (v.width - v.leftColumn)/v.viewScaleX/2, headerY + v.innerHeight/v.viewScaleY/2)
+        headerY = toolbarHeight + ((viewRow - self.key) * innerHeight/viewScaleY) - numToOffset * 3
+        headerX = leftColumn + ((self.time - viewColumn - 1) * (width - leftColumn)/viewScaleX) - numToOffset * 3
+        self.setSScoords(headerX + (width - leftColumn)/viewScaleX/2, headerY + innerHeight/viewScaleY/2)
 
         if self.lead:
             pygame.draw.rect(screen, leadColor,
-                         (headerX - 1, headerY - 1, (v.width - v.leftColumn)/v.viewScaleX + 2, v.innerHeight/v.viewScaleY + 2), border_radius=3)
+                         (headerX - 1, headerY - 1, (width - leftColumn)/viewScaleX + 2, innerHeight/viewScaleY + 2), border_radius=3)
             pygame.draw.rect(screen, black,
-                         (headerX - 1, headerY - 1, (v.width - v.leftColumn)/v.viewScaleX + 2, v.innerHeight/v.viewScaleY + 2), 1, 3)
+                         (headerX - 1, headerY - 1, (width - leftColumn)/viewScaleX + 2, innerHeight/viewScaleY + 2), 1, 3)
             if self.selected:
                 pygame.draw.line(screen, outlineColor, # top edge
-                         (headerX - 1, headerY - 1), (headerX + (v.width - v.leftColumn)/v.viewScaleX + 1, headerY - 1), 2)
+                         (headerX - 1, headerY - 1), (headerX + (width - leftColumn)/viewScaleX + 1, headerY - 1), 2)
                 pygame.draw.line(screen, outlineColor, # left edge
-                         (headerX - 1, headerY - 1), (headerX - 1, headerY + v.innerHeight/v.viewScaleY - 1), 2)
+                         (headerX - 1, headerY - 1), (headerX - 1, headerY + innerHeight/viewScaleY - 1), 2)
                 pygame.draw.line(screen, outlineColor, # bottom edge
-                         (headerX - 1, headerY + v.innerHeight/v.viewScaleY - 1), (headerX + (v.width - v.leftColumn)/v.viewScaleX + 1, headerY + v.innerHeight/v.viewScaleY - 1), 2)
+                         (headerX - 1, headerY + innerHeight/viewScaleY - 1), (headerX + (width - leftColumn)/viewScaleX + 1, headerY + innerHeight/viewScaleY - 1), 2)
                 if not (self.key, self.time + 1, self.color) in noteMap:
                     pygame.draw.line(screen, outlineColor, # right edge
-                            (headerX + (v.width - v.leftColumn)/v.viewScaleX, headerY + 1), (headerX + (v.width - v.leftColumn)/v.viewScaleX, headerY + v.innerHeight/v.viewScaleY - 1), 2)
+                            (headerX + (width - leftColumn)/viewScaleX, headerY + 1), (headerX + (width - leftColumn)/viewScaleX, headerY + innerHeight/viewScaleY - 1), 2)
         else:
             pygame.draw.rect(screen, tailColor,
-                         (headerX - 1, headerY, (v.width - v.leftColumn)/v.viewScaleX + 1, v.innerHeight/v.viewScaleY))
+                         (headerX - 1, headerY, (width - leftColumn)/viewScaleX + 1, innerHeight/viewScaleY))
             pygame.draw.line(screen, black, # top edge
-                        (headerX - 1, headerY - 1), (headerX + (v.width - v.leftColumn)/v.viewScaleX - 1, headerY - 1), 1)
+                        (headerX - 1, headerY - 1), (headerX + (width - leftColumn)/viewScaleX - 1, headerY - 1), 1)
             pygame.draw.line(screen, black, # bottom edge
-                        (headerX - 1, headerY + floor(v.innerHeight/v.viewScaleY)), (headerX + (v.width - v.leftColumn)/v.viewScaleX - 1, headerY + floor(v.innerHeight/v.viewScaleY)), 1)
+                        (headerX - 1, headerY + floor(innerHeight/viewScaleY)), (headerX + (width - leftColumn)/viewScaleX - 1, headerY + floor(innerHeight/viewScaleY)), 1)
             if (self.key, self.time + 1, self.color) in noteMap and noteMap[(self.key, self.time + 1, self.color)].lead == False:
                 if self.selected:
                     pygame.draw.line(screen, outlineColor, # top edge
-                            (headerX - 1, headerY - 1), (headerX + (v.width - v.leftColumn)/v.viewScaleX - 1, headerY - 1), 2)
+                            (headerX - 1, headerY - 1), (headerX + (width - leftColumn)/viewScaleX - 1, headerY - 1), 2)
                     pygame.draw.line(screen, outlineColor, # bottom edge
-                            (headerX - 1, headerY + v.innerHeight/v.viewScaleY - 1), (headerX + (v.width - v.leftColumn)/v.viewScaleX - 1, headerY + v.innerHeight/v.viewScaleY - 1), 2)
+                            (headerX - 1, headerY + innerHeight/viewScaleY - 1), (headerX + (width - leftColumn)/viewScaleX - 1, headerY + innerHeight/viewScaleY - 1), 2)
                 if nextKeyNumToOffset < numToOffset:
                     pygame.draw.line(screen, black, # right edge
-                        (headerX + (v.width - v.leftColumn)/v.viewScaleX - 1, headerY - 1), (headerX + (v.width - v.leftColumn)/v.viewScaleX - 1, headerY + v.innerHeight/v.viewScaleY - 1), 1)
+                        (headerX + (width - leftColumn)/viewScaleX - 1, headerY - 1), (headerX + (width - leftColumn)/viewScaleX - 1, headerY + innerHeight/viewScaleY - 1), 1)
             else:
                 if self.selected:
                     pygame.draw.line(screen, outlineColor, # top edge
-                            (headerX - 1, headerY - 1), (headerX + (v.width - v.leftColumn)/v.viewScaleX + 1, headerY - 1), 2)
+                            (headerX - 1, headerY - 1), (headerX + (width - leftColumn)/viewScaleX + 1, headerY - 1), 2)
                     pygame.draw.line(screen, outlineColor, # right edge
-                            (headerX + (v.width - v.leftColumn)/v.viewScaleX, headerY + 1), (headerX + (v.width - v.leftColumn)/v.viewScaleX, headerY + v.innerHeight/v.viewScaleY - 1), 2)
+                            (headerX + (width - leftColumn)/viewScaleX, headerY + 1), (headerX + (width - leftColumn)/viewScaleX, headerY + innerHeight/viewScaleY - 1), 2)
                     pygame.draw.line(screen, outlineColor, # bottom edge
-                            (headerX - 1, headerY + v.innerHeight/v.viewScaleY - 1), (headerX + (v.width - v.leftColumn)/v.viewScaleX + 1, headerY + v.innerHeight/v.viewScaleY - 1), 2)
+                            (headerX - 1, headerY + innerHeight/viewScaleY - 1), (headerX + (width - leftColumn)/viewScaleX + 1, headerY + innerHeight/viewScaleY - 1), 2)
                 else:
                     pygame.draw.line(screen, black, # right edge
-                        (headerX + (v.width - v.leftColumn)/v.viewScaleX - 1, headerY - 1), (headerX + (v.width - v.leftColumn)/v.viewScaleX - 1, headerY + v.innerHeight/v.viewScaleY - 1), 1)
+                        (headerX + (width - leftColumn)/viewScaleX - 1, headerY - 1), (headerX + (width - leftColumn)/viewScaleX - 1, headerY + innerHeight/viewScaleY - 1), 1)
         
         if self.extending:
             pygame.draw.line(screen, (0, 255, 0), # right edge
-                            (headerX + (v.width - v.leftColumn)/v.viewScaleX, headerY + 1), (headerX + (v.width - v.leftColumn)/v.viewScaleX, headerY + v.innerHeight/v.viewScaleY - 1), 2)
-            
-
-colorButton = Button(pos=(v.width - 345, 40), width=28, height=28, colorCycle=v.justColors)
-
-playPauseButton = Button(pos=(33, 40), width=60, height=28)
-accidentalsButton = Button(pos=(120, 40), width=60, height=28)
-playheadButton = Button(pos=(207, 40), width=60, height=28)
-keyButton = Button(pos=(v.width - 260, 40), width=40, height=28)
-modeButton = Button(pos=(v.width - 220, 40), width=100, height=28)
-brushButton = Button(pos=(v.width - 93, 40), width=60, height=28)
-waveButton = Button(pos=(v.width - 317, 40), width=28, height=28)
-
-timeSigDownButton = Button(pos=(v.width - 420, 40), width=20, height=28)
-timeSigTextBox = TextBox(pos=(v.width - 400, 40), width=30, height=28, text='4')
-timeSigUpButton = Button(pos=(v.width - 370, 40), width=20, height=28)
-tempoDownButton = Button(pos=(300, 40), width=20, height=28)
-tempoTextBox = TextBox(pos=(320, 40), width=105, height=28, text='360', endBarOffset=4)
-tempoUpButton = Button(pos=(425, 40), width=20, height=28)
-
-playHead = Head(0, 1, 0)
+                            (headerX + (width - leftColumn)/viewScaleX, headerY + 1), (headerX + (width - leftColumn)/viewScaleX, headerY + innerHeight/viewScaleY - 1), 2)

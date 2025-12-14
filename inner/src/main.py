@@ -12,7 +12,7 @@ import time
 import os
 import sys
 import dill as pkl
-from tkinter.filedialog import asksaveasfile #, asksaveasfilename
+from tkinter.filedialog import asksaveasfile, asksaveasfilename
 import json
 
 lastTime = time.time()
@@ -22,9 +22,10 @@ START_TIME = lastTime
 
 import console_controls.console_window as cw
 import utils.sound_processing as sp
-from gui_pygame import *
+import gui.element as gui
+import gui.frame as frame
+import gui.custom as custom
 from console_controls.console import *
-import values as v
 import utils.state_loading as sl
 import utils.file_io as fio
 
@@ -59,7 +60,7 @@ except ImportError:
 
 '''
 SET ARGUMENTS:
-"main.py" "open" "filename" "folder" [src_folder] [autosave_dir_path] [v.user_settings_path]: starts program, opening file and establishing autosave bridge. Only 'open' requires autosave_dir_path and v.user_settings_path.
+"main.py" "open" "filename" "folder" [src_folder] [autosave_dir_path] [user_settings_path]: starts program, opening file and establishing autosave bridge. Only 'open' requires autosave_dir_path and user_settings_path.
 "main.py" "instantiate" "filename" "folder" [src_folder]: does not start pygame, simply creates the file in the provided folder and exits
 "main.py" "retrieve" "filepath" "id" [src_folder] [user_data_path]: gets all information about program and puts it into the json with the id, writes response.json to user_data_path if provided, else to src_folder
 "main.py" "export" "filepath" "folder" [src_folder]: exports the file into the provided folder as a .wav
@@ -69,7 +70,7 @@ SET ARGUMENTS:
 "main.py": starts program without autosave (NOT RECOMMENDED)
 
 autosave_dir_path: absolute path to the autosave directory.json file (required only for 'open')
-v.user_settings_path: absolute path to the user-settings.json file (required only for 'open')
+user_settings_path: absolute path to the user-settings.json file (required only for 'open')
 user_data_path: absolute path to the user data directory (used for retrieve)
 '''
 def cleanse(string):
@@ -99,33 +100,41 @@ def get_arg_path(arg_index, default_relative):
         return sys.argv[arg_index]
     return os.path.abspath(default_relative)
 
-v.process = ''
-v.autoSave = True
+autoSaveDirectory = None
+user_settings_path = None
+directory_json_path = None
+source_path = 'inner/src'
+
+SAMPLE_RATE = 44100
+
+titleText = "My Track 1"
+process = ''
+autoSave = None
 globalUUID = 0
 sessionID = time.strftime('%Y-%m-%d %H%M%S')
 console.log(f'Running with sysargv: {sys.argv}')
 
-v.process = 'open'
+process = 'open'
 
 if len(sys.argv) > 7:
     console.error("Wrong usage: Too many arguments!")
     sys.exit(1)
 if len(sys.argv) >= 5:
     if sys.argv[1] == 'export' or sys.argv[1] == 'convert':
-        v.process = sys.argv[1]
+        process = sys.argv[1]
         workingFile = sys.argv[2]
         destination = sys.argv[3]
     elif sys.argv[1] == 'retrieve':
-        v.process = sys.argv[1]
+        process = sys.argv[1]
         workingFile = sys.argv[2]
         globalUUID = sys.argv[3]
     else:
-        v.process = sys.argv[1]
+        process = sys.argv[1]
         workingFile = sys.argv[3] + '/' + sys.argv[2] # used to cleanse sysargv 2, but realized this can actually cause errors
-        v.titleText = sys.argv[2][:-9]
-        if v.process == 'open':
-            if v.process == 'open' and v.user_settings_path:
-                v.autoSave = not json.load(open(v.user_settings_path))["disable_auto_save"]
+        titleText = sys.argv[2][:-9]
+        if process == 'open':
+            if process == 'open' and user_settings_path:
+                autoSave = not json.load(open(user_settings_path))["disable_auto_save"]
             #import threading
 elif len(sys.argv) == 2:
     #import threading
@@ -137,32 +146,50 @@ else:
     console.warn('You are running Symphony without the Project Manager. This can lead to poor file safety and potential project loss.')
     console.warn('You are running Symphony without a designated autosave destination. We highly recommend against this.')
 
-if v.process == 'open' and len(sys.argv) == 7:
-    v.source_path = get_arg_path(4, 'assets/directory.json')
+if process == 'open' and len(sys.argv) == 7:
+    source_path = get_arg_path(4, 'assets/directory.json')
     directory_json_path = get_arg_path(5, 'assets/directory.json')
-    v.user_settings_path = get_arg_path(6, 'assets/user-settings.json')
+    user_settings_path = get_arg_path(6, 'assets/user-settings.json')
     autoSaveDirectory = json.load(open(directory_json_path))['Symphony Auto-Save'][0]['Auto-Save']
 
 show_console = False
-if v.process == 'open' and v.user_settings_path:
-    show_console = json.load(open(v.user_settings_path))["show_console"]
+if process == 'open' and user_settings_path:
+    show_console = json.load(open(user_settings_path))["show_console"]
     if show_console:
         try:
-            userName = json.load(open(v.user_settings_path))["user_name"].split(sep=' ')[0]
+            userName = json.load(open(user_settings_path))["user_name"].split(sep=' ')[0]
         except Exception:
             userName = 'User'
         console.message(f'Hey, {userName}! This console can be safely closed at any time, and your editor will remain active.')
 
+###### IMAGES ######
+
+playImage = pygame.image.load(f"{source_path}/assets/play.png")
+pauseImage = pygame.image.load(f"{source_path}/assets/pause.png")
+headImage = pygame.image.load(f"{source_path}/assets/head.png")
+brushImage = pygame.image.load(f"{source_path}/assets/brush.png")
+eraserImage = pygame.image.load(f"{source_path}/assets/eraser.png")
+negaterImage = pygame.image.load(f"{source_path}/assets/negater.png")
+
+squareWaveImage = pygame.image.load(f"{source_path}/assets/square.png")
+sawtoothWaveImage = pygame.image.load(f"{source_path}/assets/sawtooth.png")
+triangleWaveImage = pygame.image.load(f"{source_path}/assets/triangle.png")
+waveImages = [squareWaveImage, triangleWaveImage, sawtoothWaveImage]
+
+upChevronImage = pygame.image.load(f"{source_path}/assets/up.png")
+downChevronImage = pygame.image.load(f"{source_path}/assets/down.png")
+
 ###### PYGAME & WINDOW INITIALIZE ######
 
-if v.process in ['instantiate', 'retrieve', 'export', 'convert']:
+if process in ['instantiate', 'retrieve', 'export', 'convert']:
     os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 console.log("Initialized Args "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
 lastTime = time.time()
 
+width, height = (1100, 592)
 minWidth, minHeight = (925, 592)
-iconPath = f'{v.source_path}/assets/icon32x32.png'
+iconPath = f'{source_path}/assets/icon32x32.png'
 if os.path.exists(iconPath):
     gameIcon = pygame.image.load(iconPath)
     pygame.display.set_icon(gameIcon)
@@ -179,11 +206,11 @@ pygame.mixer.init()
 console.log("Initialized Pygame "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
 lastTime = time.time()
 
-pygame.display.set_caption(f"{v.titleText} - Symphony v1.0 Beta")
-#pygame.display.set_icon(pygame.image.load(f"{v.source_path}/icon.png"))
-v.screen = pygame.display.set_mode((v.width, v.height), pygame.RESIZABLE, pygame.NOFRAME)
+pygame.display.set_caption(f"{titleText} - Symphony v1.0 Beta")
+#pygame.display.set_icon(pygame.image.load(f"{source_path}/icon.png"))
+screen = pygame.display.set_mode((width, height), pygame.RESIZABLE, pygame.NOFRAME)
 
-if (v.process == 'instantiate') or (v.process == 'retrieve'):
+if (process == 'instantiate') or (process == 'retrieve'):
     None
 else:
     pygame.display.flip()
@@ -193,47 +220,196 @@ else:
 console.log("Initialized Window "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
 lastTime = time.time()
 
-pygame.mixer.init(frequency=v.SAMPLE_RATE, size=-16, channels=2)  # initialize pygame. mixer at module import
+pygame.mixer.init(frequency=SAMPLE_RATE, size=-16, channels=2)  # initialize pygame. mixer at module import
 
-transparentScreen = pygame.Surface((v.width, v.height), pygame.SRCALPHA)
-otherNotes = pygame.Surface((v.width, v.height), pygame.SRCALPHA)
-thisNote = pygame.Surface((v.width, v.height), pygame.SRCALPHA)
-scrOrange = pygame.Surface((v.width, v.height), pygame.SRCALPHA)
-scrPurple = pygame.Surface((v.width, v.height), pygame.SRCALPHA)
-scrCyan = pygame.Surface((v.width, v.height), pygame.SRCALPHA)
-scrLime = pygame.Surface((v.width, v.height), pygame.SRCALPHA)
-scrBlue = pygame.Surface((v.width, v.height), pygame.SRCALPHA)
-scrPink = pygame.Surface((v.width, v.height), pygame.SRCALPHA)
+transparentScreen = pygame.Surface((width, height), pygame.SRCALPHA)
+otherNotes = pygame.Surface((width, height), pygame.SRCALPHA)
+thisNote = pygame.Surface((width, height), pygame.SRCALPHA)
+scrOrange = pygame.Surface((width, height), pygame.SRCALPHA)
+scrPurple = pygame.Surface((width, height), pygame.SRCALPHA)
+scrCyan = pygame.Surface((width, height), pygame.SRCALPHA)
+scrLime = pygame.Surface((width, height), pygame.SRCALPHA)
+scrBlue = pygame.Surface((width, height), pygame.SRCALPHA)
+scrPink = pygame.Surface((width, height), pygame.SRCALPHA)
 scrList = [scrOrange, scrPurple, scrCyan, scrLime, scrBlue, scrPink]
 clock = pygame.time.Clock()
 fps = 60
 
+###### VARIABLE & GUI ELEMENT SETUP ######
+
+worldMessage = ""
+
+key = 0
+mode = 0
+
+play_obj = None # global to hold the last Channel/Sound so it doesn't get garbage-collected
+
+page = "Editor"
+noteMap = {}
+
+tick = 0
+tickInterval = 10
+
+NOTES_SHARP = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+NOTES_FLAT =  ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"]
+noteCount = 128 # horizontal count of notes (beats) in the grid
+noteRange = 72 # vertical count of notes (keys) in the grid
+modesIntervals = [
+    ["Lydian",        [0, 2, 4, 6, 7, 9, 11]],
+    ["Ionian (maj.)", [0, 2, 4, 5, 7, 9, 11]],
+    ["Mixolydian",    [0, 2, 4, 5, 7, 9, 10]],
+    ["Dorian",        [0, 2, 3, 5, 7, 9, 10]],
+    ["Aeolian (min.)",[0, 2, 3, 5, 7, 8, 10]],
+    ["Phrygian",      [0, 1, 3, 5, 7, 8, 10]],
+    ["Locrian",       [0, 1, 3, 5, 6, 8, 10]]
+]
+modes = [item[0] for item in modesIntervals]
+modeIntervals = set()
+keyIndex = 0
+colors = {
+    "orange" : (168, 136, 49),
+    "purple" : (134, 48, 156),
+    "cyan" : (20, 128, 150),
+    "lime" : (102, 150, 20),
+    "blue" : (61, 80, 156),
+    "pink" : (168, 49, 94),
+    "all" : (255, 255, 255)
+}
+colorsInd = {
+    "orange" : 0,
+    "purple" : 1,
+    "cyan" : 2,
+    "lime" : 3,
+    "blue" : 4,
+    "pink" : 5,
+    "all" : 6
+}
+colorsList = colors.items()
+justColors = [n[1] for n in colorsList]
+justColorNames = [n[0] for n in colorsList]
+
+waveTypes = ['square', 'triangle', 'sawtooth']
+
+waveMap = {}
+for index, color in enumerate(colorsList):
+    waveMap[color[0]] = 0
+
+accidentals = "flats"
+head = False
+playing = False
+brushType = "brush"
+
+toolbarHeight = 80
+leftColumn = 60
+innerHeight = height - toolbarHeight
+
+viewRow = 50.01
+viewColumn = 0.01
+
+viewScaleX = (width - leftColumn) / 32 # old value = 32
+viewScaleY = innerHeight // 32 # old value = 16
+dRow = 0
+dCol = 0
+timeInterval = 4
+
+notes = []
+duplicatedNoteMap = {}
+currentDraggingKey = 0
+initialDraggingTime = 0
+
+mouseTask = False
+mouseDownTime = time.time()
+mouseWOTask = True
+mouseHoldStart = []
+lastPlayTime = time.time()
+
+timeOffset = 0
+keyOffset = 0
+oldKeyOffset = 0
+
+saveFrame = 0
+
+drawSelectBox = False
+
+ticksPerTile = 10
+globalTextBoxes = []
+
+colorName = ""
+
+pygame.font.init()
+
+mainFont = f'{source_path}/assets/InterVariable.ttf'
+
+tempo = int(round(3600 / ticksPerTile))
+gui.init(source_path)
+
 ###### ASSETS ######
 
-if v.process == 'open':
+if process == 'open':
     bytes_io = BytesIO()
     console.log("Initialized Classes "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
     lastTime = time.time()
+
+    TITLE1 = pygame.font.Font(mainFont, 60)
+    HEADING1 = pygame.font.Font(mainFont, 24)
+    SUBHEADING1 = pygame.font.Font(mainFont, 14)
+    BODY = pygame.font.Font(mainFont, 14)
+    SUBSCRIPT1 = pygame.font.Font(mainFont, 11)
 else:
-    v.TITLE1 = ''
-    v.HEADING1 = ''
-    v.SUBHEADING1 = ''
-    v.BODY = ''
-    v.SUBSCRIPT1 = ''
+    TITLE1 = ''
+    HEADING1 = ''
+    SUBHEADING1 = ''
+    BODY = ''
+    SUBSCRIPT1 = ''
 
 console.log("Initialized Assets "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
 lastTime = time.time()
 
+colorStates = custom.getColorStates(28, 28, source_path)
+colorButton = gui.Button(pos=(width - 345, 40), width=28, height=28, states=colorStates)
+
+keyButton = gui.Button(pos=(width - 260, 40), width=40, height=28, states=NOTES_FLAT)
+modeButton = gui.Button(pos=(width - 220, 40), width=100, height=28, states=modes)
+brushButton = gui.Button(pos=(width - 93, 40), width=60, height=28, states=[brushImage, eraserImage, 'select'])
+waveButton = gui.Button(pos=(width - 317, 40), width=28, height=28, states=[squareWaveImage, triangleWaveImage, sawtoothWaveImage])
+rightToolbar = frame.Panel((0, 0, width, height), gui.EMPTY_COLOR,
+                           [keyButton, modeButton, brushButton, waveButton, colorButton])
+
+
+playPauseButton = gui.Button(pos=(33, 40), width=60, height=28, states=[playImage, pauseImage])
+accidentalsButton = gui.Button(pos=(120, 40), width=60, height=28, states=["sharps", "flats"])
+playheadButton = gui.Button(pos=(207, 40), width=60, height=28, states=[headImage])
+leftToolbar = frame.Panel((0, 0, width, height), gui.EMPTY_COLOR,
+                           [playPauseButton, accidentalsButton, playheadButton])
+
+timeSigDownButton = gui.Button(pos=(width - 420, 40), width=20, height=28, states=[downChevronImage])
+timeSigTextBox = gui.TextBox(pos=(width - 400, 40), width=30, height=28, text='4')
+timeSigUpButton = gui.Button(pos=(width - 370, 40), width=20, height=28, states=[upChevronImage])
+timeSignatureControls = frame.Panel((0, 0, width, height), gui.EMPTY_COLOR,
+                                    [timeSigDownButton, timeSigTextBox, timeSigUpButton])
+
+tempoDownButton = gui.Button(pos=(300, 40), width=20, height=28, states=[downChevronImage])
+tempoTextBox = gui.TextBox(pos=(320, 40), width=105, height=28, text='360')
+tempoUpButton = gui.Button(pos=(425, 40), width=20, height=28, states=[upChevronImage])
+tempoControls = frame.Panel((0, 0, width, height), gui.EMPTY_COLOR,
+                            [tempoDownButton, tempoTextBox, tempoUpButton])
+
+masterPanel = frame.Panel((0, 0, width, height), gui.BG_COLOR,
+                          [rightToolbar, leftToolbar, timeSignatureControls, tempoControls])
+
+masterPanel.render(screen)
+#playHead = Head(0, 1, 0)
+
 ###### PROGRAM STATE INITIALIZE ######
 
-if workingFile == "" or v.process == 'instantiate': # if the workingfile is not provided or we are creating a new file, initialize a new program state
-    v.ps = sl.ProgramState(10, v.noteMap, "Eb", "Lydian", v.waveMap)
+if workingFile == "" or process == 'instantiate': # if the workingfile is not provided or we are creating a new file, initialize a new program state
+    ps = sl.newProgramState("Eb", "Lydian", 10, noteMap, waveMap)
     console.log('Creating new programState...')
 else:
-    v.ps = sl.toProgramState(pkl.load(open(workingFile, "rb")))
+    ps = sl.toProgramState(pkl.load(open(workingFile, "rb")))
     console.log('Loading existing programState...')
 
-if v.process == 'retrieve' and len(sys.argv) >= 5:
+if process == 'retrieve' and len(sys.argv) >= 5:
     filepath = sys.argv[2]
     id_val = sys.argv[3]
     src_folder = sys.argv[4]
@@ -243,14 +419,14 @@ if v.process == 'retrieve' and len(sys.argv) >= 5:
     with open(response_path, 'w') as f:
         console.log('DUMPING INTO RESPONSE.JSON')
         console.log(os.path.join(user_data_path, 'response.json'))
-        #console.log(v.ps.noteMap)
-        tpm = round(3600 / v.ps.ticksPerTile, 2)
-        tiles = int((max(v.ps.noteMap.items(), key=lambda x : x[0][1]))[0][1]) if (len(v.ps.noteMap.items()) > 0) else 0
+        #console.log(ps["noteMap"])
+        tpm = round(3600 / ps["ticksPerTile"], 2)
+        tiles = int((max(ps["noteMap"].items(), key=lambda x : x[0][1]))[0][1]) if (len(ps["noteMap"].items()) > 0) else 0
         json.dump({ 'fileInfo' : {
-                    'Key' : v.ps.key,
-                    'Mode' : v.ps.mode,
+                    'Key' : ps["key"],
+                    'Mode' : ps["mode"],
                     'Tempo (tpm)' : tpm,
-                    #'Empty?' : (v.ps.noteMap == {}),
+                    #'Empty?' : (ps["noteMap"] == {}),
                     'Length (tiles)' : tiles,
                     'Duration' : ("0" if len(str(floor(tiles / tpm))) == 1 else '') + str(floor(tiles / tpm)) + ':' + ("0" if len(str(round(((tiles / tpm) % 1) * 60))) == 1 else '') + str(round(((tiles / tpm) % 1) * 60))
                     }, 'id': globalUUID
@@ -261,25 +437,29 @@ if v.process == 'retrieve' and len(sys.argv) >= 5:
 console.log("Initialized ProgramState "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
 lastTime = time.time()
 
-###### VARIABLE & GUI ELEMENT SETUP ######
-
-v.noteMap = v.ps.noteMap
-v.ticksPerTile = v.ps.ticksPerTile
-v.waveMap = v.ps.waveMap
-v.key = v.ps.key
-if "b" in v.key:
-    v.keyIndex = v.NOTES_FLAT.index(v.key)
-    v.accidentals = "flats"
+noteMap = ps["noteMap"]
+ticksPerTile = ps["ticksPerTile"]
+waveMap = ps["waveMap"]
+key = ps["key"]
+if "b" in key:
+    keyIndex = NOTES_FLAT.index(key)
+    accidentals = "flats"
 else:
-    v.keyIndex = v.NOTES_SHARP.index(v.key)
-    v.accidentals = "sharps"
-v.mode = v.ps.mode
-v.modeIntervals = set(v.modesIntervals[0][1])
+    keyIndex = NOTES_SHARP.index(key)
+    accidentals = "sharps"
+mode = ps["mode"]
+modeIntervals = set(modesIntervals[0][1])
 
 ###### FUNCTIONS ######
 
-if v.process == 'instantiate':
-    fio.dumpToFile(open(workingFile, 'wb'), workingFile)
+if process == 'instantiate':
+    worldMessage = fio.dumpToFile(workingFile,
+                                  workingFile,
+                                  sl.newProgramState(key, mode, ticksPerTile, noteMap, waveMap),
+                                  process,
+                                  autoSave,
+                                  titleText,
+                                  sessionID)
     sys.exit()
 
 def inBounds(coords1, coords2, point) -> bool:
@@ -294,29 +474,29 @@ def inBounds(coords1, coords2, point) -> bool:
     '''
     return point[0] > min(coords1[0], coords2[0]) and point[1] > min(coords1[1], coords2[1]) and point[0] < max(coords1[0], coords2[0]) and point[1] < max(coords1[1], coords2[1])
 
-if v.process == 'export':
+if process == 'export':
     phases = {}
     finalWave = np.array([], dtype=np.int16)
 
     lastNoteTime = 0
-    for note in v.noteMap.items():
+    for note in noteMap.items():
         lastNoteTime = max(lastNoteTime, note[1].time)
 
     for tempTick in range(1, lastNoteTime + 2):
         playingNotes = [
             (note.key, note.lead, note.color)
-            for note in v.noteMap.values()
+            for note in noteMap.values()
             if note.time == tempTick
         ]
-        chunk, phases = sp.assembleNotes(playingNotes, phases, duration=v.ticksPerTile/60)
+        chunk, phases = sp.assembleNotes(playingNotes, phases, waveMap, duration=ticksPerTile/60)
         finalWave = np.concatenate([finalWave, chunk])
 
     arr2d = sp.toSound(finalWave, returnType='2DArray')
     sp.exportToWav(arr2d, destination + '/' + os.path.splitext(os.path.basename(workingFile))[0] + '.wav', sample_rate=44100)
     sys.exit()
         
-if v.process == 'convert':
-    sp.createMidiFromNotes(sl.convertNoteMapToStrikeList(v.noteMap), destination)
+if process == 'convert':
+    sp.createMidiFromNotes(sl.convertNoteMapToStrikeList(noteMap), destination)
     sys.exit()
 
 def mouseBounds(rect):
@@ -336,10 +516,10 @@ def reevaluateLeads():
 
     Recalculates which notes are considered lead notes.
     '''
-    for note in v.noteMap.items():
-        if v.colorName == note[1].color:
-            if not ((note[0][0], note[0][1] - 1, v.colorName) in v.noteMap):
-                v.noteMap[note[0]].lead = True
+    for note in noteMap.items():
+        if colorName == note[1].color:
+            if not ((note[0][0], note[0][1] - 1, colorName) in noteMap):
+                noteMap[note[0]].lead = True
 
 def sameNoteMaps(noteMap1, noteMap2):
     '''
@@ -369,7 +549,7 @@ console.log("Startup complete in " + str(round(time.time() - START_TIME, 5)) + '
 
 ###### MAINLOOP ######
 running = True
-v.tempo = int(round(3600 / v.ps.ticksPerTile))
+tempo = int(round(3600 / ps["ticksPerTile"]))
 lastNoteTime = 0
 ctrlZTime = 59
 noteMapVersionTracker = []
@@ -379,10 +559,10 @@ root = None
 last_update = time.time()
 
 # Setup Tkinter console window (only if setting allows it)
-if (v.process == 'open' and len(sys.argv) == 7) or (len(sys.argv) == 1):
-    if (len(sys.argv) == 1) or json.load(open(v.user_settings_path))["show_console"]:
+if (process == 'open' and len(sys.argv) == 7) or (len(sys.argv) == 1):
+    if (len(sys.argv) == 1) or json.load(open(user_settings_path))["show_console"]:
         try:
-            root = cw.ConsoleWindow(consoleMessages)
+            root = cw.ConsoleWindow(consoleMessages, source_path)
         except Exception as e:
             print(f"Failed to open console window: {e}")
             root = None
@@ -400,80 +580,87 @@ while running:
             print(f"[Console closed or failed: {e}]")
             root = None  # Fully disable Tkinter from now on
 
-    v.saveFrame += 60 * (1 / fps)
-    if v.saveFrame > 1200: # Saves every 20 seconds
-        v.saveFrame = 0
-        myPath = open(workingFile if workingFile != "" else f"{v.source_path}/assets/workingfile.symphony", "wb")
-        fio.dumpToFile(myPath, workingFile if workingFile != "" else f"{v.source_path}/assets/workingfile.symphony")
-        myPath.close()
+    saveFrame += 60 * (1 / fps)
+    if saveFrame > 1200: # Saves every 20 seconds
+        saveFrame = 0
+        myPath = workingFile if workingFile != "" else f"{source_path}/assets/workingfile.symphony"
+        worldMessage = fio.dumpToFile(
+                                myPath,
+                                myPath,
+                                sl.newProgramState(key, mode, ticksPerTile, noteMap, waveMap),
+                                process,
+                                autoSave,
+                                titleText,
+                                sessionID)
     # checks if new changes have been made, if so adds them to the version history for Ctrl+Z
     ctrlZTime += 1
     if ctrlZTime > 60:
-        for note in v.noteMap.items():
+        for note in noteMap.items():
             lastNoteTime = max(lastNoteTime, note[1].time)
-            v.noteCount = max(v.noteCount, lastNoteTime + 20)
+            noteCount = max(noteCount, lastNoteTime + 20)
 
         if not pygame.mouse.get_pressed()[0]:
-            if noteMapVersionTracker == [] or not any(sameNoteMaps(noteMapVersionTracker[-i], v.noteMap) for i in range(1, len(noteMapVersionTracker) + 1)):
-                noteMapVersionTracker.append(copy.deepcopy(v.noteMap))
+            if noteMapVersionTracker == [] or not any(sameNoteMaps(noteMapVersionTracker[-i], noteMap) for i in range(1, len(noteMapVersionTracker) + 1)):
+                noteMapVersionTracker.append(copy.deepcopy(noteMap))
                 noteMapFutureVersionTracker = []
             if len(noteMapVersionTracker) > 32:
                 noteMapVersionTracker.pop(0)
             ctrlZTime = 0
-    v.screen.fill((0, 0, 0))
-    transparentScreen.fill((0, 0, 0, 0))
+    #screen.fill((0, 0, 0))
+    #transparentScreen.fill((0, 0, 0, 0))
 
-    v.colorName = colorButton.getColorName()
+    #colorName = colorButton.getColorName()
 
-    for row in range(ceil(v.viewScaleY) + 1):
-        headerY = row * v.innerHeight / v.viewScaleY + v.toolbarHeight + (v.viewRow%1 * v.innerHeight / v.viewScaleY) - v.innerHeight/v.viewScaleY
-        headerX = v.leftColumn - (v.viewColumn%1 * (v.width - v.leftColumn)/v.viewScaleX) - (v.width - v.leftColumn)/v.viewScaleX
-        for column in range(ceil(v.viewScaleX) + 2):
-            cm = (floor((column+v.viewColumn)%v.timeInterval) == 1) * 8
-            pygame.draw.rect(v.screen, ((28 + cm, 28 + cm, 28 + cm) if not (-(floor(row - v.viewRow) + v.keyIndex + 1) % 12) in v.modeIntervals else (43 + cm, 43 + cm, 43 + cm)),
-                         (headerX, headerY, (v.width - v.leftColumn)/v.viewScaleX, v.innerHeight/v.viewScaleY), border_radius=3)
-            pygame.draw.rect(v.screen, (0, 0, 0),
-                         (headerX, headerY, (v.width - v.leftColumn)/v.viewScaleX, v.innerHeight/v.viewScaleY), 1, 3)
-            headerX += (v.width - v.leftColumn)/v.viewScaleX
+    '''
+    for row in range(ceil(viewScaleY) + 1):
+        headerY = row * innerHeight / viewScaleY + toolbarHeight + (viewRow%1 * innerHeight / viewScaleY) - innerHeight/viewScaleY
+        headerX = leftColumn - (viewColumn%1 * (width - leftColumn)/viewScaleX) - (width - leftColumn)/viewScaleX
+        for column in range(ceil(viewScaleX) + 2):
+            cm = (floor((column+viewColumn)%timeInterval) == 1) * 8
+            pygame.draw.rect(screen, ((28 + cm, 28 + cm, 28 + cm) if not (-(floor(row - viewRow) + keyIndex + 1) % 12) in modeIntervals else (43 + cm, 43 + cm, 43 + cm)),
+                         (headerX, headerY, (width - leftColumn)/viewScaleX, innerHeight/viewScaleY), border_radius=3)
+            pygame.draw.rect(screen, (0, 0, 0),
+                         (headerX, headerY, (width - leftColumn)/viewScaleX, innerHeight/viewScaleY), 1, 3)
+            headerX += (width - leftColumn)/viewScaleX
 
             ##### BRUSH CONTROLS #####
-            if mouseBounds((headerX, headerY, (v.width - v.leftColumn)/v.viewScaleX, v.innerHeight/v.viewScaleY)) and (pygame.mouse.get_pressed()[0]) and (v.toolbarHeight < pygame.mouse.get_pos()[1] < (v.height - 50)):
-                touchedKey, touchedTime = floor(v.viewRow - row + 1), floor(column + v.viewColumn + 1)
-                if not v.mouseTask:
-                    v.mouseDownTime = time.time() # sets mouse start down time
+            if mouseBounds((headerX, headerY, (width - leftColumn)/viewScaleX, innerHeight/viewScaleY)) and (pygame.mouse.get_pressed()[0]) and (toolbarHeight < pygame.mouse.get_pos()[1] < (height - 50)):
+                touchedKey, touchedTime = floor(viewRow - row + 1), floor(column + viewColumn + 1)
+                if not mouseTask:
+                    mouseDownTime = time.time() # sets mouse start down time
 
                 ## Head - means that selecting time stamp
-                if v.head:
-                    if not v.mouseTask:
-                        playHead.home = (touchedTime - 1)
-                        v.mouseTask = True
+                if head:
+                    if not mouseTask:
+                        #playHead.home = (touchedTime - 1)
+                        mouseTask = True
                 ## Brush - unconditionally adds notes to the track
-                elif v.brushType == "brush" and v.colorName != 'all':
-                    if not v.mouseTask and not (touchedKey, touchedTime, v.colorName) in v.noteMap:
-                        sp.playNotes([touchedKey], duration=0.25, waves=v.waveMap[v.colorName])
-                        v.noteMap[(touchedKey, touchedTime, v.colorName)] = Note(touchedKey, touchedTime, True, color=v.colorName)
-                        v.currentDraggingKey = touchedKey
-                        v.initialDraggingTime = touchedTime
+                elif brushType == "brush" and colorName != 'all':
+                    if not mouseTask and not (touchedKey, touchedTime, colorName) in noteMap:
+                        play_obj = sp.playNotes([touchedKey], duration=0.25, waves=waveMap[colorName])
+                        noteMap[(touchedKey, touchedTime, colorName)] = Note(touchedKey, touchedTime, True, color=colorName)
+                        currentDraggingKey = touchedKey
+                        initialDraggingTime = touchedTime
                     #reevaluateLeads()
-                    v.mouseTask = True
-                    if (not (v.currentDraggingKey, touchedTime, v.colorName) in v.noteMap) and touchedTime > v.initialDraggingTime:
-                        v.noteMap[(v.currentDraggingKey, touchedTime, v.colorName)] = Note(v.currentDraggingKey, touchedTime, False, color=v.colorName)
+                    mouseTask = True
+                    if (not (currentDraggingKey, touchedTime, colorName) in noteMap) and touchedTime > initialDraggingTime:
+                        noteMap[(currentDraggingKey, touchedTime, colorName)] = Note(currentDraggingKey, touchedTime, False, color=colorName)
                         tempOffsetTime = touchedTime - 1
-                        while tempOffsetTime > v.initialDraggingTime + 1:
+                        while tempOffsetTime > initialDraggingTime + 1:
                             tempOffsetTime -= 1
-                            v.noteMap[(v.currentDraggingKey, tempOffsetTime, v.colorName)] = Note(v.currentDraggingKey, tempOffsetTime, False, color=v.colorName)
+                            noteMap[(currentDraggingKey, tempOffsetTime, colorName)] = Note(currentDraggingKey, tempOffsetTime, False, color=colorName)
             
                 ## Eraser - unconditionally removes notes from the track
-                elif v.brushType == "eraser" and v.colorName != 'all':
+                elif brushType == "eraser" and colorName != 'all':
                     toDelete = []
-                    for note in v.noteMap.items():
-                        if (note[1].key, note[1].time, note[1].color) == (touchedKey, touchedTime, v.colorName):
-                            toDelete.append((touchedKey, touchedTime, v.colorName))
-                        if (note[1].key, note[1].time - 1, note[1].color) == (touchedKey, touchedTime, v.colorName) and not note[1].lead:
+                    for note in noteMap.items():
+                        if (note[1].key, note[1].time, note[1].color) == (touchedKey, touchedTime, colorName):
+                            toDelete.append((touchedKey, touchedTime, colorName))
+                        if (note[1].key, note[1].time - 1, note[1].color) == (touchedKey, touchedTime, colorName) and not note[1].lead:
                             note[1].lead = True
                     for itemToDelete in toDelete:
-                        del v.noteMap[itemToDelete]
-                    v.mouseTask = True
+                        del noteMap[itemToDelete]
+                    mouseTask = True
 
                 ## Selecter - when statically pressed, selects the note. When dragged moves the note.
                 # if there is a previously selected note, it is unselected unless shift is pressed while selecting
@@ -481,14 +668,14 @@ while running:
                 # Dragging moves the note UNLESS the drag is done from the very tail end of the note, in which case
                 # all selected notes are lengthened or shortened by the drag amount.
                 
-                elif v.brushType == "select" and v.colorName != 'all':
-                    if not v.mouseTask: # mouse was just clicked
-                        for note in v.noteMap.items():
-                            v.noteMap[note[0]].originalKey = v.noteMap[note[0]].key
-                            v.noteMap[note[0]].originalTime = v.noteMap[note[0]].time
-                        v.mouseHoldStart = pygame.mouse.get_pos()
-                        mouseCellStart = (touchedKey, touchedTime, v.colorName)
-                        v.mouseTask = True
+                elif brushType == "select" and colorName != 'all':
+                    if not mouseTask: # mouse was just clicked
+                        for note in noteMap.items():
+                            noteMap[note[0]].originalKey = noteMap[note[0]].key
+                            noteMap[note[0]].originalTime = noteMap[note[0]].time
+                        mouseHoldStart = pygame.mouse.get_pos()
+                        mouseCellStart = (touchedKey, touchedTime, colorName)
+                        mouseTask = True
                     else:
                         try:
                             mouseCellStart
@@ -496,85 +683,85 @@ while running:
                             #console.log("mouseCellStart not defined -- a selection was not initialized.")
                             None
                         else:
-                            if (not mouseCellStart in v.noteMap) and (v.timeOffset, v.keyOffset) == (0,0):
-                                v.drawSelectBox = True
+                            if (not mouseCellStart in noteMap) and (timeOffset, keyOffset) == (0,0):
+                                drawSelectBox = True
                             else:
                                 if pygame.key.get_pressed()[pygame.K_LALT]:
                                     numSelected = False
-                                    v.duplicatedNoteMap = {}
-                                    for note in v.noteMap.items():
+                                    duplicatedNoteMap = {}
+                                    for note in noteMap.items():
                                         if note[1].selected:
                                             numSelected = True
-                                            v.duplicatedNoteMap[note[0]] = copy.deepcopy(note[1]) # adds the selected notemap to the duplicated notemap until alt is let go
-                                            v.duplicatedNoteMap[note[0]].color = v.colorName
-                                    if v.mouseTask and numSelected:# and dist(pygame..mouse.get_pos(), v.mouseHoldStart) > 10:
+                                            duplicatedNoteMap[note[0]] = copy.deepcopy(note[1]) # adds the selected notemap to the duplicated notemap until alt is let go
+                                            duplicatedNoteMap[note[0]].color = colorName
+                                    if mouseTask and numSelected:# and dist(pygame..mouse.get_pos(), mouseHoldStart) > 10:
                                         ### Dragging
-                                        (v.timeOffset, v.keyOffset) = (int((pygame.mouse.get_pos()[d] - v.mouseHoldStart[d]) / 
-                                                                    (((v.width - v.leftColumn) / v.viewScaleX),(-v.innerHeight / v.viewScaleY))[d])
+                                        (timeOffset, keyOffset) = (int((pygame.mouse.get_pos()[d] - mouseHoldStart[d]) / 
+                                                                    (((width - leftColumn) / viewScaleX),(-innerHeight / viewScaleY))[d])
                                                                     for d in range(2) )
                                         delQ = []
                                         addQ = []
                                         refreshQ = False
                                         consistentKey = 0
-                                        for note in v.duplicatedNoteMap.items():
-                                            if v.duplicatedNoteMap[note[0]].selected:
-                                                if consistentKey != 0 and consistentKey != v.duplicatedNoteMap[note[0]].key:
+                                        for note in duplicatedNoteMap.items():
+                                            if duplicatedNoteMap[note[0]].selected:
+                                                if consistentKey != 0 and consistentKey != duplicatedNoteMap[note[0]].key:
                                                     consistentKey = -1
                                                 else:
-                                                    consistentKey = v.duplicatedNoteMap[note[0]].key
-                                                if v.duplicatedNoteMap[note[0]].key != v.duplicatedNoteMap[note[0]].originalKey + v.keyOffset or v.duplicatedNoteMap[note[0]].time != v.duplicatedNoteMap[note[0]].originalTime + v.timeOffset:
+                                                    consistentKey = duplicatedNoteMap[note[0]].key
+                                                if duplicatedNoteMap[note[0]].key != duplicatedNoteMap[note[0]].originalKey + keyOffset or duplicatedNoteMap[note[0]].time != duplicatedNoteMap[note[0]].originalTime + timeOffset:
                                                     refreshQ = True
-                                                v.duplicatedNoteMap[note[0]].key = v.duplicatedNoteMap[note[0]].originalKey + v.keyOffset
-                                                v.duplicatedNoteMap[note[0]].time = v.duplicatedNoteMap[note[0]].originalTime + v.timeOffset
+                                                duplicatedNoteMap[note[0]].key = duplicatedNoteMap[note[0]].originalKey + keyOffset
+                                                duplicatedNoteMap[note[0]].time = duplicatedNoteMap[note[0]].originalTime + timeOffset
                                                 delQ.append(note[0])
-                                                addQ.append(((v.duplicatedNoteMap[note[0]].originalKey + v.keyOffset,
-                                                            v.duplicatedNoteMap[note[0]].originalTime + v.timeOffset, v.colorName), note[1]))
+                                                addQ.append(((duplicatedNoteMap[note[0]].originalKey + keyOffset,
+                                                            duplicatedNoteMap[note[0]].originalTime + timeOffset, colorName), note[1]))
                                         for delete in delQ:
-                                            del v.duplicatedNoteMap[delete]
+                                            del duplicatedNoteMap[delete]
                                         for add in addQ:
-                                            v.duplicatedNoteMap[add[0]] = add[1]
+                                            duplicatedNoteMap[add[0]] = add[1]
                                         if refreshQ:
                                             reevaluateLeads()
-                                        if v.oldKeyOffset != v.keyOffset and consistentKey != -1 and consistentKey != 0:
-                                            sp.playNotes([addQ[0][0][0]], duration=0.07, waves=v.waveMap[v.colorName])
+                                        if oldKeyOffset != keyOffset and consistentKey != -1 and consistentKey != 0:
+                                            play_obj = sp.playNotes([addQ[0][0][0]], duration=0.07, waves=waveMap[colorName])
                                 else:
                                     numSelected = False
-                                    for note in v.noteMap.items():
+                                    for note in noteMap.items():
                                         if note[1].selected:
                                             numSelected = True
-                                    if v.mouseTask and numSelected and dist(pygame.mouse.get_pos(), v.mouseHoldStart) > 10:
+                                    if mouseTask and numSelected and dist(pygame.mouse.get_pos(), mouseHoldStart) > 10:
                                         ### Dragging
-                                        (v.timeOffset, v.keyOffset) = (int((pygame.mouse.get_pos()[d] - v.mouseHoldStart[d]) / 
-                                                                    (((v.width - v.leftColumn) / v.viewScaleX),(-v.innerHeight / v.viewScaleY))[d])
+                                        (timeOffset, keyOffset) = (int((pygame.mouse.get_pos()[d] - mouseHoldStart[d]) / 
+                                                                    (((width - leftColumn) / viewScaleX),(-innerHeight / viewScaleY))[d])
                                                                     for d in range(2) )
                                         delQ = []
                                         addQ = []
                                         refreshQ = False
                                         consistentKey = 0
-                                        for note in v.noteMap.items():
-                                            if v.noteMap[note[0]].selected:
-                                                if consistentKey != 0 and consistentKey != v.noteMap[note[0]].key:
+                                        for note in noteMap.items():
+                                            if noteMap[note[0]].selected:
+                                                if consistentKey != 0 and consistentKey != noteMap[note[0]].key:
                                                     consistentKey = -1
                                                 else:
-                                                    consistentKey = v.noteMap[note[0]].key
-                                                if v.noteMap[note[0]].key != v.noteMap[note[0]].originalKey + v.keyOffset or v.noteMap[note[0]].time != v.noteMap[note[0]].originalTime + v.timeOffset:
+                                                    consistentKey = noteMap[note[0]].key
+                                                if noteMap[note[0]].key != noteMap[note[0]].originalKey + keyOffset or noteMap[note[0]].time != noteMap[note[0]].originalTime + timeOffset:
                                                     refreshQ = True
-                                                v.noteMap[note[0]].key = v.noteMap[note[0]].originalKey + v.keyOffset
-                                                v.noteMap[note[0]].time = v.noteMap[note[0]].originalTime + v.timeOffset
+                                                noteMap[note[0]].key = noteMap[note[0]].originalKey + keyOffset
+                                                noteMap[note[0]].time = noteMap[note[0]].originalTime + timeOffset
                                                 delQ.append(note[0])
-                                                addQ.append(((v.noteMap[note[0]].originalKey + v.keyOffset,
-                                                            v.noteMap[note[0]].originalTime + v.timeOffset, v.colorName), note[1]))
+                                                addQ.append(((noteMap[note[0]].originalKey + keyOffset,
+                                                            noteMap[note[0]].originalTime + timeOffset, colorName), note[1]))
                                         for delete in delQ:
-                                            del v.noteMap[delete]
+                                            del noteMap[delete]
                                         for add in addQ:
-                                            v.noteMap[add[0]] = add[1]
+                                            noteMap[add[0]] = add[1]
                                         if refreshQ:
                                             reevaluateLeads()
-                                        if v.oldKeyOffset != v.keyOffset and consistentKey != -1 and consistentKey != 0:
-                                            sp.playNotes([addQ[0][0][0]], duration=0.07, waves=v.waveMap[v.colorName])
-                v.mouseWOTask = False
-                v.mouseTask = True
-
+                                        if oldKeyOffset != keyOffset and consistentKey != -1 and consistentKey != 0:
+                                            play_obj = sp.playNotes([addQ[0][0][0]], duration=0.07, waves=waveMap[colorName])
+                mouseWOTask = False
+                mouseTask = True
+    
     scrOrange.fill((0, 0, 0, 0))
     scrPurple.fill((0, 0, 0, 0))
     scrLime.fill((0, 0, 0, 0))
@@ -587,68 +774,68 @@ while running:
     
     scrUsed = set()
     ### Renders noteMap to screen, based on color or "all" color
-    for note in v.noteMap.items():
-        if note[1].key > v.viewRow - v.viewScaleY and note[1].key < v.viewRow + 1:
-            if note[1].time > v.viewColumn and note[1].time < v.viewColumn + v.viewScaleX + 1:
-                if v.colorName == 'all':
+    for note in noteMap.items():
+        if note[1].key > viewRow - viewScaleY and note[1].key < viewRow + 1:
+            if note[1].time > viewColumn and note[1].time < viewColumn + viewScaleX + 1:
+                if colorName == 'all':
                     if not (note[1].color in scrUsed):
-                        scrUsed.add(scrList[v.colorsInd[note[1].color]])
-                    #note[1].draw(screen, v.viewRow, v.viewColumn, noteMap)
-                    note[1].draw(scrList[v.colorsInd[note[1].color]], v.viewRow, v.viewColumn, v.noteMap)
+                        scrUsed.add(scrList[colorsInd[note[1].color]])
+                    #note[1].draw(screen, viewRow, viewColumn, noteMap)
+                    note[1].draw(scrList[colorsInd[note[1].color]], viewRow, viewColumn, noteMap)
                 else:
-                    if note[1].color == v.colorName:
-                        note[1].draw(thisNote, v.viewRow, v.viewColumn, v.noteMap)
+                    if note[1].color == colorName:
+                        note[1].draw(thisNote, viewRow, viewColumn, noteMap)
                     else:
-                        note[1].draw(otherNotes, v.viewRow, v.viewColumn, v.noteMap)
+                        note[1].draw(otherNotes, viewRow, viewColumn, noteMap)
     
-    if v.colorName == 'all':
+    if colorName == 'all':
         # render notes in order of stack
         for scr in scrList:
             if scr in scrUsed:
-                v.screen.blit(scr, scr.get_rect())
+                screen.blit(scr, scr.get_rect())
     else:
         # always renders current color on top of gray ones
-        v.screen.blit(otherNotes, otherNotes.get_rect())
-        v.screen.blit(thisNote, thisNote.get_rect())
+        screen.blit(otherNotes, otherNotes.get_rect())
+        screen.blit(thisNote, thisNote.get_rect())
      
-    for note in v.duplicatedNoteMap.items():
-        if note[1].key > v.viewRow - v.viewScaleY and note[1].key < v.viewRow + 1:
-            if note[1].time > v.viewColumn and note[1].time < v.viewColumn + v.viewScaleX + 1:
-                note[1].draw(transparentScreen, v.viewRow, v.viewColumn, v.duplicatedNoteMap, transparent=True)
+    for note in duplicatedNoteMap.items():
+        if note[1].key > viewRow - viewScaleY and note[1].key < viewRow + 1:
+            if note[1].time > viewColumn and note[1].time < viewColumn + viewScaleX + 1:
+                note[1].draw(transparentScreen, viewRow, viewColumn, duplicatedNoteMap, transparent=True)
 
-    if v.drawSelectBox:
-        pygame.draw.rect(v.screen, (255, 255, 255), (min(v.mouseHoldStart[0], pygame.mouse.get_pos()[0]),
-                                                                       min(v.mouseHoldStart[1], pygame.mouse.get_pos()[1]),
-                                                                       abs(pygame.mouse.get_pos()[0] - v.mouseHoldStart[0]),
-                                                                       abs(pygame.mouse.get_pos()[1] - v.mouseHoldStart[1])), 1)
+    if drawSelectBox:
+        pygame.draw.rect(screen, (255, 255, 255), (min(mouseHoldStart[0], pygame.mouse.get_pos()[0]),
+                                                                       min(mouseHoldStart[1], pygame.mouse.get_pos()[1]),
+                                                                       abs(pygame.mouse.get_pos()[0] - mouseHoldStart[0]),
+                                                                       abs(pygame.mouse.get_pos()[1] - mouseHoldStart[1])), 1)
 
     # functionality to move playhead and draw it when it is moving
-    if v.playing:
-        playHead.tick += 1 * 60/fps
-        playHead.draw(v.screen, v.viewRow, v.viewColumn, v.leftColumn, (v.width - v.leftColumn) / v.viewScaleX, drawHead=True)
-    else:
-        playHead.draw(v.screen, v.viewRow, v.viewColumn, v.leftColumn, (v.width - v.leftColumn) / v.viewScaleX)
-
+    # if playing:
+    #     playHead.tick += 1 * 60/fps
+    #     playHead.draw(screen, viewRow, viewColumn, leftColumn, (width - leftColumn) / viewScaleX, drawHead=True)
+    # else:
+    #     playHead.draw(screen, viewRow, viewColumn, leftColumn, (width - leftColumn) / viewScaleX)
+    '''
     ### LEFT COLUMN
-    for row in range(ceil(v.viewScaleY) + 1):
-        headerX, headerY = 0, row * v.innerHeight / v.viewScaleY + v.toolbarHeight + (v.viewRow%1 * v.innerHeight / v.viewScaleY) - v.innerHeight / v.viewScaleY
-        note = f"{(v.NOTES_SHARP if v.accidentals == 'sharps' else v.NOTES_FLAT)[floor((v.viewRow - row) % 12)]} {floor((v.viewRow - row) / 12) + 1}"
-        pygame.draw.rect(v.screen, ((26, 26, 26) if not (-(floor(row - v.viewRow) + v.keyIndex + 1) % 12) in v.modeIntervals else (34, 34, 34)),
-                         (headerX, headerY, v.leftColumn, v.innerHeight / v.viewScaleY), border_radius=3)
-        pygame.draw.rect(v.screen, (0, 0, 0),
-                         (headerX, headerY, v.leftColumn, v.innerHeight / v.viewScaleY), 1, 3)
-        stamp(note, v.SUBHEADING1, headerX + 5, headerY + 5, 0.4)
+    for row in range(ceil(viewScaleY) + 1):
+        headerX, headerY = 0, row * innerHeight / viewScaleY + toolbarHeight + (viewRow%1 * innerHeight / viewScaleY) - innerHeight / viewScaleY
+        note = f"{(NOTES_SHARP if accidentals == 'sharps' else NOTES_FLAT)[floor((viewRow - row) % 12)]} {floor((viewRow - row) / 12) + 1}"
+        pygame.draw.rect(screen, ((26, 26, 26) if not (-(floor(row - viewRow) + keyIndex + 1) % 12) in modeIntervals else (34, 34, 34)),
+                         (headerX, headerY, leftColumn, innerHeight / viewScaleY), border_radius=3)
+        pygame.draw.rect(screen, (0, 0, 0),
+                         (headerX, headerY, leftColumn, innerHeight / viewScaleY), 1, 3)
+        gui.stamp(screen, note, SUBHEADING1, headerX + 5, headerY + 5, brightness=0.4)
 
-        if mouseBounds((0, headerY, v.leftColumn, v.innerHeight/v.viewScaleY)) and (pygame.mouse.get_pressed()[0]) and (v.toolbarHeight < pygame.mouse.get_pos()[1] < (v.height - 50)) and not v.mouseTask:
+        if mouseBounds((0, headerY, leftColumn, innerHeight/viewScaleY)) and (pygame.mouse.get_pressed()[0]) and (toolbarHeight < pygame.mouse.get_pos()[1] < (height - 50)) and not mouseTask:
             # mouse is clicking the note labels
-            v.mouseTask = True
-            sp.playNotes([floor(v.viewRow - row + 1)], duration=0.25, waves=v.waveMap[v.colorName])
+            mouseTask = True
+            play_obj = sp.playNotes([floor(viewRow - row + 1)], duration=0.25, waves=waveMap[colorName])
 
-    renderScrollBar()
-    renderToolBar()
-            
-    v.tick += 1 - (v.tick == v.tickInterval - 1) * v.tickInterval
-    if v.tick == v.tickInterval - 1:
+    masterPanel.update(screen)
+
+    """ 
+    tick += 1 - (tick == tickInterval - 1) * tickInterval
+    if tick == tickInterval - 1:
         None
 
     def selectConnected(key, time):
@@ -662,88 +849,89 @@ while running:
         '''
         noteExists = False
         deviation = 0
-        while (v.key, time + deviation, v.colorName) in v.noteMap:
+        while (key, time + deviation, colorName) in noteMap:
             noteExists = True
-            v.noteMap[(v.key, time + deviation, v.colorName)].selected = True
-            if v.noteMap[(v.key, time + deviation, v.colorName)].lead == True:
-                v.noteMap[(v.key, time + deviation, v.colorName)].selected = True
+            noteMap[(key, time + deviation, colorName)].selected = True
+            if noteMap[(key, time + deviation, colorName)].lead == True:
+                noteMap[(key, time + deviation, colorName)].selected = True
                 break
             deviation -= 1
         deviation = 1
-        while (v.key, time + deviation, v.colorName) in v.noteMap:
+        while (key, time + deviation, colorName) in noteMap:
             noteExists = True
-            if v.noteMap[(v.key, time + deviation, v.colorName)].lead == True:
+            if noteMap[(key, time + deviation, colorName)].lead == True:
                 break
-            v.noteMap[(v.key, time + deviation, v.colorName)].selected = True
+            noteMap[(key, time + deviation, colorName)].selected = True
             deviation += 1
         return noteExists
 
-    if not pygame.mouse.get_pressed()[0] and not v.mouseWOTask:
+    if not pygame.mouse.get_pressed()[0] and not mouseWOTask:
         reevaluateLeads()
         ### Unclicked
         pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
-        if v.head:
-            v.head = False
+        if head:
+            head = False
         try:
             mouseCellStart
         except NameError:
             #console.log("mouseCellStart not defined -- a selection was not initialized.")
             None
         else:
-            if (v.mouseHoldStart != pygame.mouse.get_pos()) and v.brushType == "select":
+            if (mouseHoldStart != pygame.mouse.get_pos()) and brushType == "select":
                 ### Drag Selected
-                for note in v.noteMap.items():
-                    if inBounds(v.mouseHoldStart, pygame.mouse.get_pos(), note[1].SScoords) and note[1].color == v.colorName:
+                for note in noteMap.items():
+                    if inBounds(mouseHoldStart, pygame.mouse.get_pos(), note[1].SScoords) and note[1].color == colorName:
                         note[1].selected = True
                         selectConnected(note[0][0], note[0][1])
-        if (time.time() - v.mouseDownTime) < 0.2 and v.brushType == "select":
-            v.timeOffset = 0
-            v.keyOffset = 0
+        if (time.time() - mouseDownTime) < 0.2 and brushType == "select":
+            timeOffset = 0
+            keyOffset = 0
             if not pygame.key.get_pressed()[pygame.K_LSHIFT]: # if shift is not held, unselect all elements.
-                for note in v.noteMap.items():
+                for note in noteMap.items():
                     note[1].selected = False
             
             # selected from mouse selection, opposite of dragging, only happens once mouse is lifted.
             noteExists = selectConnected(touchedKey, touchedTime)
             if noteExists:
-                sp.playNotes([touchedKey], duration=0.25, waves=v.waveMap[v.colorName])
-            v.mouseTask = True
-        v.mouseWOTask = True
+                play_obj = sp.playNotes([touchedKey], duration=0.25, waves=waveMap[colorName])
+            mouseTask = True
+        mouseWOTask = True
 
-    if v.worldMessage != "": # Renders the world message if it isn't an empty string
-        worldMessageRender = stamp(v.worldMessage, v.SUBSCRIPT1, v.width/2, 8, 0.5, "center")
+    if worldMessage != "": # Renders the world message if it isn't an empty string
+        worldMessageRender = stamp(worldMessage, SUBSCRIPT1, width/2, 8, 0.5, "center")
 
-    v.dRow *= 0.9
-    v.dCol *= 0.9
-
+    dRow *= 0.9
+    dCol *= 0.9
+    """
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
             console.warn("Pygame was quit")
+            """
         elif event.type == pygame.VIDEORESIZE:
-            v.screen = pygame.display.set_mode((max(event.w, minWidth), max(event.h, minHeight)), pygame.RESIZABLE)
-            v.width, v.height = (max(event.w, minWidth), max(event.h, minHeight))
-            transparentScreen = pygame.Surface((v.width, v.height), pygame.SRCALPHA)
-            thisNote = pygame.Surface((v.width, v.height), pygame.SRCALPHA)
-            otherNotes = pygame.Surface((v.width, v.height), pygame.SRCALPHA)
+            screen = pygame.display.set_mode((max(event.w, minWidth), max(event.h, minHeight)), pygame.RESIZABLE)
+            width, height = (max(event.w, minWidth), max(event.h, minHeight))
+            transparentScreen = pygame.Surface((width, height), pygame.SRCALPHA)
+            thisNote = pygame.Surface((width, height), pygame.SRCALPHA)
+            otherNotes = pygame.Surface((width, height), pygame.SRCALPHA)
 
-            scrOrange = pygame.Surface((v.width, v.height), pygame.SRCALPHA)
-            scrPurple = pygame.Surface((v.width, v.height), pygame.SRCALPHA)
-            scrCyan = pygame.Surface((v.width, v.height), pygame.SRCALPHA)
-            scrLime = pygame.Surface((v.width, v.height), pygame.SRCALPHA)
-            scrBlue = pygame.Surface((v.width, v.height), pygame.SRCALPHA)
-            scrPink = pygame.Surface((v.width, v.height), pygame.SRCALPHA)
+            scrOrange = pygame.Surface((width, height), pygame.SRCALPHA)
+            scrPurple = pygame.Surface((width, height), pygame.SRCALPHA)
+            scrCyan = pygame.Surface((width, height), pygame.SRCALPHA)
+            scrLime = pygame.Surface((width, height), pygame.SRCALPHA)
+            scrBlue = pygame.Surface((width, height), pygame.SRCALPHA)
+            scrPink = pygame.Surface((width, height), pygame.SRCALPHA)
 
             scrList = [scrOrange, scrPurple, scrCyan, scrLime, scrBlue, scrPink]
 
-            v.viewScaleX = (v.width - v.leftColumn) / ((1100 - v.leftColumn) // 32) # keeps the box consistent v.width even when the window is resized
-            v.viewScaleY = (v.height - v.toolbarHeight) / ((592 - v.toolbarHeight) / 16) # keeps the box consistent v.height even when the window is resized
-            v.innerHeight = v.height - v.toolbarHeight
+            viewScaleX = (width - leftColumn) / ((1100 - leftColumn) // 32) # keeps the box consistent width even when the window is resized
+            viewScaleY = (height - toolbarHeight) / ((592 - toolbarHeight) / 16) # keeps the box consistent height even when the window is resized
+            innerHeight = height - toolbarHeight
 
         elif event.type == pygame.KEYDOWN:
             ### Typing in textbox
-            if any(textBox.selected for textBox in v.globalTextBoxes):
-                selectedTextBoxes = [filter(lambda x : x.selected == True, v.globalTextBoxes)][0]
+            if any(textBox.selected for textBox in globalTextBoxes):
+                selectedTextBoxes = [filter(lambda x : x.selected == True, globalTextBoxes)][0]
                 pressedKeys = [pygame.key.get_pressed()[possKey] for possKey in [pygame.K_0, pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7, pygame.K_8, pygame.K_9, pygame.K_BACKSPACE, pygame.K_RETURN]]
                 if pressedKeys[10]:
                     for textBox in selectedTextBoxes:
@@ -759,64 +947,69 @@ while running:
                 if pygame.key.get_pressed()[pygame.K_LALT]:
                     delQ = []
                     addQ = []
-                    for note in v.duplicatedNoteMap.items():
+                    for note in duplicatedNoteMap.items():
                         newNote = copy.deepcopy(note[1])
                         newNote.color = colorButton.color
                         delQ.append((note[0]))
                         addQ.append(((note[0][0], note[0][1], colorButton.color), newNote))
                     for d in delQ:
-                        del v.duplicatedNoteMap[d]
+                        del duplicatedNoteMap[d]
                     for a in addQ:
-                        v.duplicatedNoteMap[a[0]] = a[1]
+                        duplicatedNoteMap[a[0]] = a[1]
 
             elif event.key == pygame.K_UP: # Scroll up
-                v.dRow += 0.16
+                dRow += 0.16
             elif event.key == pygame.K_DOWN: # Scroll down
-                v.dRow -= 0.16
+                dRow -= 0.16
             elif event.key == pygame.K_RIGHT: # Scrub right
-                v.dCol += 0.16
+                dCol += 0.16
             elif event.key == pygame.K_LEFT: # Scrub left
-                v.dCol -= 0.16
+                dCol -= 0.16
             elif event.key == CMD_KEY: # Switch to eraser momentarily
-                v.brushType = "eraser"
+                brushType = "eraser"
             elif event.key == pygame.K_LSHIFT: # Switch to select permanently
-                v.brushType = "select"
+                brushType = "select"
             elif event.key == pygame.K_SPACE: # Play / pause
-                v.playing = not v.playing
-                if v.playing:
+                playing = not playing
+                if playing:
                     playHead.play()
-                    v.lastPlayTime = time.time()
+                    lastPlayTime = time.time()
                 else:
-                    v.play_obj.stop()
+                    play_obj.stop()
                 playHead.tick = playHead.home
             elif event.key == pygame.K_BACKSPACE or event.key == pygame.K_DELETE: # Delete selected note
                 delQ = []
-                for index, note in v.noteMap.items():
+                for index, note in noteMap.items():
                     if note.selected:
                         delQ.append(index)
                 for q in delQ:
-                    del v.noteMap[q]
+                    del noteMap[q]
             elif event.key == pygame.K_s:
                 if pygame.key.get_pressed()[CMD_KEY]: # if the user presses Ctrl+S (to save)
                     if workingFile == "": # file dialog to show up if the user's workspace is not attached to a file
                         filename = asksaveasfile(initialfile = 'Untitled.symphony', mode='wb',defaultextension=".symphony", filetypes=[("Symphony Musical Composition","*.symphony")])
                         if filename != None:
                             filestring = filename.name
-                            myPath = open(f"{v.source_path}/assets/workingfile.symphony", "wb")
-                            fio.dumpToFile(myPath, directory=filestring)
-                            myPath = open(f"{v.source_path}/assets/workingfile.symphony", "rb")
+                            myPath = f"{source_path}/assets/workingfile.symphony"
+
+                            worldMessage = fio.dumpToFile(filestring,
+                                                        myPath,
+                                                        sl.newProgramState(key, mode, ticksPerTile, noteMap, waveMap),
+                                                        process,
+                                                        autoSave,
+                                                        titleText,
+                                                        sessionID)
 
                             pathBytes = bytearray(myPath.read())
                             filename.write(pathBytes)
                             filename.close()
                             workingFile = filestring
                         else:
-                            myPath = open(f"{v.source_path}/assets/workingfile.symphony", "wb")
-                            fio.dumpToFile(myPath, f"{v.source_path}/assets/workingfile.symphony")
+                            myPath = f"{source_path}/assets/workingfile.symphony"
+                            worldMessage = fio.dumpToFile(myPath, myPath, sl.newProgramState(key, mode, ticksPerTile, noteMap, waveMap), process, autoSave, titleText, sessionID)
                     else: # save to workspace file
-                        myPath = open(workingFile, "wb")
-                        fio.dumpToFile(myPath, workingFile)
-                    v.saveFrame = 0
+                        worldMessage = fio.dumpToFile(workingFile, myPath, sl.newProgramState(key, mode, ticksPerTile, noteMap, waveMap), process, autoSave, titleText, sessionID)
+                    saveFrame = 0
             elif event.key == pygame.K_z or event.key == pygame.K_y:
                 if pygame.key.get_pressed()[CMD_KEY]:
                     if (pygame.key.get_pressed()[pygame.K_LSHIFT] and event.key == pygame.K_z) or event.key == pygame.K_y: # user wishes to redo (Ctrl+Shift+Z or Ctrl+Y)
@@ -825,69 +1018,82 @@ while running:
                         except Exception as e:
                             console.warn("Cannot redo further")
                         if len(noteMapFutureVersionTracker) > 0:
-                            v.noteMap = copy.deepcopy(noteMapFutureVersionTracker[-1])
+                            noteMap = copy.deepcopy(noteMapFutureVersionTracker[-1])
                     elif event.key == pygame.K_z: # user wishes to undo (Ctrl+Z)
                         try:
                             noteMapFutureVersionTracker.append(copy.deepcopy(noteMapVersionTracker.pop()))
                         except Exception as e:
                             console.warn("Cannot undo further")
                         if len(noteMapVersionTracker) > 0:
-                            v.noteMap = copy.deepcopy(noteMapVersionTracker[-1])
+                            noteMap = copy.deepcopy(noteMapVersionTracker[-1])
             elif event.key == pygame.K_PERIOD:
                 addQ = []
-                for note in v.noteMap.items():
+                for note in noteMap.items():
                     if note[1].selected:
-                        if not ((note[1].key, note[1].time + 1, note[1].color) in v.noteMap) or v.noteMap[(note[1].key, note[1].time + 1, note[1].color)].lead:
+                        if not ((note[1].key, note[1].time + 1, note[1].color) in noteMap) or noteMap[(note[1].key, note[1].time + 1, note[1].color)].lead:
                             el = Note(note[1].key, note[1].time + 1, False, note[1].color)
                             el.selected = True
                             addQ.append(((note[1].key, note[1].time + 1, note[1].color), el))
                 for a in addQ:
-                    v.noteMap[a[0]] = a[1]
+                    noteMap[a[0]] = a[1]
                     selectConnected(a[0][0], a[0][1])
             elif event.key == pygame.K_COMMA:
                 delQ = []
-                for note in v.noteMap.items():
+                for note in noteMap.items():
                     if note[1].selected:
-                        if not ((note[1].key, note[1].time + 1, note[1].color) in v.noteMap) or v.noteMap[(note[1].key, note[1].time + 1, note[1].color)].lead:
+                        if not ((note[1].key, note[1].time + 1, note[1].color) in noteMap) or noteMap[(note[1].key, note[1].time + 1, note[1].color)].lead:
                             delQ.append(note[0])
                 for d in delQ:
-                    del v.noteMap[d]
+                    del noteMap[d]
         elif event.type == pygame.KEYUP:
             if event.key == CMD_KEY: # Switches away from eraser when Ctrl is let go
-                v.brushType = "brush"
-                for note in v.noteMap.items():
+                brushType = "brush"
+                for note in noteMap.items():
                     note[1].selected = False
             if event.key == pygame.K_LALT: # Duplicates selection
-                for note in v.duplicatedNoteMap.items():
-                    v.noteMap[note[0]] = copy.deepcopy(note[1])
-                v.duplicatedNoteMap.clear()
+                for note in duplicatedNoteMap.items():
+                    noteMap[note[0]] = copy.deepcopy(note[1])
+                duplicatedNoteMap.clear()
         elif event.type == pygame.MOUSEWHEEL:
             if event.y > 0: # Scroll up
-                v.dRow += 0.06
+                dRow += 0.06
             if event.y < 0: # Scroll down
-                v.dRow -= 0.06
+                dRow -= 0.06
             if event.x > 0: # Scrub right
-                v.dCol += 0.06
+                dCol += 0.06
             if event.x < 0: # Scrub left
-                v.dCol -= 0.06
-    v.viewRow = max(min(v.viewRow + v.dRow, v.noteRange + 0.01), v.viewScaleY - 0.01) # prevents overscroll
-    v.viewColumn = max(min(v.viewColumn + v.dCol, (v.noteCount - v.viewScaleX)), 0.01) # prevents overscrub
+                dCol -= 0.06
+    viewRow = max(min(viewRow + dRow, noteRange + 0.01), viewScaleY - 0.01) # prevents overscroll
+    viewColumn = max(min(viewColumn + dCol, (noteCount - viewScaleX)), 0.01) # prevents overscrub
 
-    v.oldKeyOffset = v.keyOffset
-    v.drawSelectBox = False
+    oldKeyOffset = keyOffset
+    drawSelectBox = False
 
-    v.screen.blit(transparentScreen, transparentScreen.get_rect()) # duplicated components to drag
+    screen.blit(transparentScreen, transparentScreen.get_rect()) # duplicated components to drag
 
     if not pygame.mouse.get_pressed()[0]:
-        v.mouseTask = False
+        mouseTask = False
+    """
     clock.tick(fps)
     pygame.display.flip()  # Update the display
 
 if workingFile == "": # file dialog to show up if the user has unsaved changes (they have not attached the workspace to a file)
-    fio.promptSave()
+    filename = asksaveasfile(initialfile = 'Untitled.symphony', mode='wb',defaultextension=".symphony", filetypes=[("Symphony Musical Composition","*.symphony")])
+    if filename != None:
+        filestring = filename.name
+        myPath = f"{source_path}/assets/workingfile.symphony"
+
+        worldMessage = fio.dumpToFile(filestring, myPath, sl.newProgramState(key, mode, ticksPerTile, noteMap, waveMap), process, autoSave, titleText, sessionID)
+
+        pathBytes = bytearray(myPath.read())
+        filename.write(pathBytes)
+        filename.close()
+        workingFile = filestring
+    else:
+        myPath = f"{source_path}/assets/workingfile.symphony"
+        worldMessage = fio.dumpToFile(myPath, myPath, sl.newProgramState(key, mode, ticksPerTile, noteMap, waveMap), process, autoSave, titleText, sessionID)
 else: # save all changes upon closing that have happened since the last autosave
-    myPath = open(workingFile, "wb")
-    fio.dumpToFile(myPath, directory=workingFile)
+    worldMessage = fio.dumpToFile(workingFile, workingFile, sl.newProgramState(key, mode, ticksPerTile, noteMap, waveMap), process, autoSave, titleText, sessionID)
     
 # quit loop
 pygame.quit()

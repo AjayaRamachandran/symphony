@@ -1,16 +1,15 @@
-# console_window.py
+# console_controls/console_window.py
 # module for rendering the pseudo-console.
 ###### IMPORT ######
 
 import tkinter as tk
-import values as v
 
 ###### TK CONSOLE INITIALIZE ######
 
 class ConsoleWindow(tk.Tk):
-    def __init__(self, lines, font="Consolas 10"):
+    def __init__(self, lines, source_path, font="Consolas 10"):
         super().__init__()
-        icon = tk.PhotoImage(file=f"{v.source_path}/assets/terminal-icon.png")
+        icon = tk.PhotoImage(file=f"{source_path}/assets/terminal-icon.png")
         self.iconphoto(True, icon)
         self.title("Symphony: Console")
         self.geometry("800x400")

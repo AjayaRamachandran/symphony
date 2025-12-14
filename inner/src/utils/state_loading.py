@@ -7,22 +7,27 @@ import copy
 ###### INTERNAL MODULES ######
 
 from console_controls.console import *
-from gui_pygame import Note
-import values as v
+#from gui_pygame import Note
+
+###### INITIALIZE ######
+
+DEFAULT_WAVE_MAP = {
+    "orange": 0,
+    "purple": 0,
+    "cyan": 0,
+    "lime": 0,
+    "blue": 0,
+    "pink": 0,
+    "all": 0,
+}
 
 ###### METHODS / CLASSES ######
 
-def toNote(note: Note):
-    '''Function to convert old notes (before color was added) into new color'''
-    try:
-        color = note.color
-    except:
-        console.warn('Adapting old note to have color \'orange\'.')
-        color = "orange"
-    return Note(note.key, note.time, note.lead, color)
-
 class ProgramState():
-    '''Class to contain the entire editor's state, with all relevant fields for opening and saving.'''
+    '''
+    LEGACY
+    Class to contain the entire editor's state, with all relevant fields for opening and saving.
+    '''
 
     def __init__(self, ticksPerTile, noteMap, key, mode, waves):
         self.ticksPerTile = ticksPerTile
@@ -39,42 +44,84 @@ class ProgramState():
         self.waveMap = waves
         console.log(f"Updated ProgramState with key {key} and mode {mode}.")
 
-def toProgramState(state : ProgramState):
-    '''Maps a (potentially) old program state to a new one for backwards compatibility'''
+def toNote(note):#: Note):
+    '''
+    fields:
+        note (gui.Note) - note to update
+    outputs: gui.Note
+
+    Function to convert old notes (before color was added) into new color
+    '''
     try:
-        stateMkey = state.key
+        color = note.color
     except:
-        console.warn('Adapting old file format to have key Eb.')
-        stateMkey = "Eb"
+        console.warn('Adapting old note to have color \'orange\'.')
+        color = "orange"
+    #return Note(note.key, note.time, note.lead, color)
 
-    try:
-        statemode = state.mode
-    except:
-        console.warn('Adapting old file format to have mode Lydian.')
-        statemode = "Lydian"
+def newProgramState(key : str, mode : str, ticksPerTile : int, noteMap : dict, waveMap : dict):
+    return {
+        "key" : key,
+        "mode" : mode,
+        "ticksPerTile" : ticksPerTile,
+        "noteMap" : noteMap,
+        "waveMap" : waveMap
+    }
 
-    try:
-        stateWaves = state.waveMap
-    except:
-        console.warn('Adapting old file format to have waveMap.')
-        stateWaves = {
-            "orange" : 0,
-            "purple" : 0,
-            "cyan" : 0,
-            "lime" : 0,
-            "blue" : 0,
-            "pink" : 0,
-            "all" : 0
-        }
+def toProgramState(state):
+    '''
+    fields:
+        state (ProgramState | dict) - potentially old program state
+    outputs: dict
 
-    newNoteMap = {}
-    for statekey, stateval in state.noteMap.items():
-        newKey = statekey
-        if len(statekey) != 3:
-            newKey = (*statekey, "orange")
-        newNoteMap[newKey] = toNote(stateval)
+    Maps a (potentially) old program state to a new one for backwards compatibility.
+    1.1 and beyond use a map for the program state because it is more extensible than a ProgramState object
+    Older ProgramState objects (and future objects) are converted into a dict, so all code can now treat them as such
+    '''
 
-    return ProgramState(state.ticksPerTile, newNoteMap, stateMkey, statemode, stateWaves)
+    DEFAULT_META_FIELD = {
+        "version" : "1.1",
+        "plugins" : []
+    }
+
+    if isinstance(state, ProgramState):
+        # ProgramState is older than the "meta" field -- no need to check here
+        stateMeta = DEFAULT_META_FIELD
+        stateKey = getattr(state, "key", "Eb")
+        stateMode = getattr(state, "mode", "Lydian")
+        stateWaves = state.get("waveMap", state.get("wavemap", DEFAULT_WAVE_MAP))
+        stateTicksPerTile = getattr(state, "ticksPerTile", 10)
+
+        # convert noteMap with backwards-compatibility normalization
+        rawNoteMap = getattr(state, "noteMap", {})
+        newNoteMap = {}
+        for noteKey, noteVal in rawNoteMap.items():
+            # ensure key is 3-tuple (very old format might not include color)
+            if len(noteKey) != 3:
+                noteKey = (*noteKey, "orange")
+            newNoteMap[noteKey] = toNote(noteVal)
+        # successfully in 1.0 format, now migrate to 1.1
+        newNoteMap = noteMap1_0To1_1(newNoteMap)
+
+    elif isinstance(state, dict):
+        stateMeta = state.get("meta", DEFAULT_META_FIELD)
+        stateKey = state.get("key", "Eb")
+        stateMode = state.get("mode", "Lydian")
+        stateTicksPerTile = state.get("ticksPerTile", 10)
+        stateWaves = state.get("waveMap", DEFAULT_WAVE_MAP)
+        newNoteMap = state.get("noteMap", {})
+    else:
+        raise TypeError("state must be a ProgramState or dict")
+
+    return {
+        "meta" : stateMeta,
+        "ticksPerTile": stateTicksPerTile,
+        "noteMap": newNoteMap,
+        "key": stateKey,
+        "mode": stateMode,
+        "waveMap": stateWaves,
+    }
+
 
 def convertNoteMapToStrikeList(noteMap):
     '''
@@ -90,9 +137,32 @@ def convertNoteMapToStrikeList(noteMap):
             offset = 1
             while (note.key, note.time + offset, note.color) in noteMap:
                 offset += 1
-            strikeList.append({"pitch": note.key + 35, "startTime": ((note.time - 1) / 4), "duration": (offset / 4)})
+            strikeList.append({"pitch": note.key + 23, "startTime": ((note.time - 1) / 4), "duration": (offset / 4)})
     
     return strikeList
 
-def migrate_to_1_1(ProgramState):
-    None
+def noteMap1_0To1_1(noteMap : dict):
+    '''
+    fields:
+        noteMap (hash map) - note map in 1.0 encoding
+    outputs: hash map
+
+    Converts the 1.0 noteMap into 1.1 notation (similar to a map of strike lists, but different).
+    '''
+    newNoteMap = {}
+    for color, count in DEFAULT_WAVE_MAP.items():
+        strikeList = []
+        for el, note in noteMap.items():
+            if (note.lead and note.color == color):
+                offset = 1
+                while (note.key, note.time + offset, color) in noteMap:
+                    offset += 1
+                strikeList.append({
+                    "pitch" : note.key,
+                    "time": note.time,
+                    "duration": offset,
+                    "data_fields": {}
+                })
+        newNoteMap[color] = strikeList
+        
+    return newNoteMap
