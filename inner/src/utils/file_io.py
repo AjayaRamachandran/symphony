@@ -16,6 +16,7 @@ def dumpToFile(workingFile: str, destFile: str, programState: dict, process: str
         workingFile (string) - path of the working file\n
         destFile (string) - path of the destination file\n
         programState (dict) - the existing program state to dump\n
+        process (string) - the current running process type, most likely 'open'\n
         autoSave (string) - directory to autosave, if null then don't dump to autosave\n
         titleText (string) - the title text to name auto save backups\n
         sessionID (string) - the session ID to name auto save backups
@@ -30,27 +31,13 @@ def dumpToFile(workingFile: str, destFile: str, programState: dict, process: str
     waveMap = programState["waveMap"]
     ticksPerTile = programState["ticksPerTile"]
 
-    # when saving, repair any discrepancies between hashmap key and obj data (rare but fatal)
-    delQ, addQ = [], []
-    for thing in noteMap.items():
-        if (thing[1].key, thing[1].time, thing[1].color) != thing[0]:
-            console.log("A discrepancy was found between hashmap and obj data. Repairing (prioritizing obj data) now...")
-            console.log(f"Discrepancy details -- HM Key: {thing[0]}, Obj Data: {(thing[1].key, thing[1].time, thing[1].color)}")
-            addQ.append([(thing[1].key, thing[1].time, thing[1].color), thing[1]])
-            delQ.append(thing[0])
-        
-        if (thing[1].key < 2):
-            delQ.append(thing[0])
-    for item in delQ:
-        del noteMap[item]
-    for item in addQ:
-        noteMap[item[0]] = item[1]
+    saveReadyNoteMap = sl.toSavable(noteMap)
 
     epochSeconds = time.time() # get current time in epoch seconds
     localTime = time.localtime(epochSeconds)
     readableTime = time.strftime('%Y-%m-%d at %H:%M:%S', localTime)
 
-    programState = sl.newProgramState(key, mode, ticksPerTile, noteMap, waveMap)
+    programState = sl.newProgramState(key, mode, ticksPerTile, saveReadyNoteMap, waveMap)
     pkl.dump(programState, open(workingFile, 'wb'), -1)
     if (autoSave != None) and process == 'open':
         pkl.dump(programState, open(autoSave + '/' + titleText + ' Backup ' + sessionID + '.symphony', 'wb'), -1)

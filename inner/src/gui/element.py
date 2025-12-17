@@ -363,37 +363,95 @@ class TextBox(Interactive):
 
         # text box properties
         self.text = text
-        self.textRestrict = None
+        self.temporaryText = text
+        self.inputRestrict = None
+        self.stateRestrict = None
         self.font = font if (font != None) else SUBHEADING1
         self.selected = False
 
-        self.onMouseClick(lambda: (setattr(self, "selected", True), setattr(self, "redraw", True)))
-        self.onMouseClickOut(lambda: (setattr(self, "selected", False), setattr(self, "redraw", True)))
+        self.onMouseClick(lambda: (setattr(self, "temporaryText", self.text if (self.selected == False) else self.temporaryText),
+                                   setattr(self, "selected", True),
+                                   setattr(self, "redraw", True)))
+        self.onMouseClickOut(self.deselectAndFinalizeValue)
     
     def update(self, screen):
         super().update(screen)
 
         if self.selected:
             for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_BACKSPACE:
-                        self.text = self.text[:-1]
+                        self.temporaryText = self.temporaryText[:-1]
                         self.redraw = True
                     elif event.key == pygame.K_RETURN:
-                        self.selected = False
-                        self.redraw = True
+                        self.deselectAndFinalizeValue()
                     else:
-                        self.text += event.unicode if (self.textRestrict == None) or (event.unicode in self.textRestrict) else ""
+                        self.temporaryText += event.unicode if ((self.inputRestrict == None) or (event.unicode in self.inputRestrict)) else ""
                         self.redraw = True
         
         if self.redraw:
             self.render(screen)
+    
+    def deselectAndFinalizeValue(self):
+        '''
+        Deselects the text box, and finalizes the value.
+        If the state is valid (or no state restriction is set), completes.
+        If not, reverts to previous valid state.
+        '''
+        if self.selected:
+            self.selected = False
+            if callable(self.stateRestrict) and self.stateRestrict(self.temporaryText): # field is valid
+                self.text = self.temporaryText
+            else: # field is invalid, don't update it
+                None
+            self.redraw = True
 
-    def setTextRestrictions(self, restriction: list):
-        self.textRestrict = restriction
+    def setInputRestrictions(self, restriction: list[str] | str):
+        '''
+        fields:
+            restriction (list or string) - the restrictions on the field input.
+        outputs: nothing
+
+        Imposes restrictions on what character inputs the text field can take.
+        By default, text box can take anything, restriction imposes limitations via a list or string.\n
+        ### If restriction is a list, the field can only take characters in that list as input.
+        ### If restriction is a string, it must be one of the following:
+        - `'alphanumeric'`: 'a'-'z', '0'-'9'
+        - `'alphabet'`: 'a'-'z'
+        - `'numeric'`: '0'-'9'
+        - `'decimal'`: '0'-'9', '-' and '.'
+        '''
+        if isinstance(restriction, str):
+            if restriction == 'alphanumeric':
+                self.inputRestrict = ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','1','2','3','4','5','6','7','8','9','0']
+            elif restriction == 'alphabet':
+                self.inputRestrict = ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z']
+            elif restriction == 'numeric':
+                self.inputRestrict = ['1','2','3','4','5','6','7','8','9','0']
+            elif restriction == 'decimal':
+                self.inputRestrict = ['1','2','3','4','5','6','7','8','9','0','.','-']
+            else:
+                raise ValueError('if restriction is a string, it must be "alphanumeric", "alphabet", "numeric", or "decimal".')
+        elif isinstance(restriction, list):
+            self.inputRestrict = restriction
+
+    def setStateRestrictions(self, function):
+        '''
+        fields:
+            function<string> (function or lambda) - function that defines whether or not the state is valid
+        outputs: nothing
+
+        Sets the internal state restrictions field, which determines what makes the field valid.
+        '''
+        self.stateRestrict = function
     
     def getText(self):
         return self.text
+    
+    def setText(self, text):
+        self.text = str(text)
     
     def render(self, screen: pygame.Surface):
         pygame.draw.rect(screen, BG_COLOR,
@@ -401,7 +459,7 @@ class TextBox(Interactive):
         pygame.draw.rect(screen, SELECTED_BORDER_COLOR if self.selected else BORDER_COLOR,
                          (self.x, self.y, self.width, self.height), width=1, border_radius=3)
 
-        stamp(screen, self.text, self.font, self.x + self.width/2, self.y + self.height/2, TEXT_COLOR, justification="center")
+        stamp(screen, self.temporaryText if self.selected else self.text, self.font, self.x + self.width/2, self.y + self.height/2, TEXT_COLOR, justification="center")
 
 class Button(Interactive):
     '''
@@ -437,6 +495,10 @@ class Button(Interactive):
 
     def cycleStates(self):
         self.currentStateIdx = (self.currentStateIdx + 1) % len(self.states)
+        self.currentState = self.states[self.currentStateIdx]
+    
+    def setCurrentState(self, idx):
+        self.currentStateIdx = idx
         self.currentState = self.states[self.currentStateIdx]
 
 class Scrollbar(Interactive):

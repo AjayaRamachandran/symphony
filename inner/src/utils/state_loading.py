@@ -7,7 +7,7 @@ import copy
 ###### INTERNAL MODULES ######
 
 from console_controls.console import *
-#from gui_pygame import Note
+from gui.custom import Note
 
 ###### INITIALIZE ######
 
@@ -43,21 +43,6 @@ class ProgramState():
         self.mode = mode
         self.waveMap = waves
         console.log(f"Updated ProgramState with key {key} and mode {mode}.")
-
-def toNote(note):#: Note):
-    '''
-    fields:
-        note (gui.Note) - note to update
-    outputs: gui.Note
-
-    Function to convert old notes (before color was added) into new color
-    '''
-    try:
-        color = note.color
-    except:
-        console.warn('Adapting old note to have color \'orange\'.')
-        color = "orange"
-    #return Note(note.key, note.time, note.lead, color)
 
 def newProgramState(key : str, mode : str, ticksPerTile : int, noteMap : dict, waveMap : dict):
     return {
@@ -96,10 +81,14 @@ def toProgramState(state):
         rawNoteMap = getattr(state, "noteMap", {})
         newNoteMap = {}
         for noteKey, noteVal in rawNoteMap.items():
-            # ensure key is 3-tuple (very old format might not include color)
+            # ensure key is 3-tuple (not necessary anymore, but we keep because it works)
             if len(noteKey) != 3:
                 noteKey = (*noteKey, "orange")
-            newNoteMap[noteKey] = toNote(noteVal)
+            newNoteMap[noteKey] = noteVal
+            # used to be toNote(noteVal), but we removed Note() object, so REALLY old beta files might not work
+            # however, I don't even think such beta files exist on any computer of mine
+            # so we could potentially remove "<1.0 to 1.0" conversion and just keep 1.0->1.1 migration
+
         # successfully in 1.0 format, now migrate to 1.1
         newNoteMap = noteMap1_0To1_1(newNoteMap)
 
@@ -147,7 +136,7 @@ def noteMap1_0To1_1(noteMap : dict):
         noteMap (hash map) - note map in 1.0 encoding
     outputs: hash map
 
-    Converts the 1.0 noteMap into 1.1 notation (similar to a map of strike lists, but different).
+    Converts the 1.0 noteMap into 1.1 notation.
     '''
     newNoteMap = {}
     for color, count in DEFAULT_WAVE_MAP.items():
@@ -157,12 +146,33 @@ def noteMap1_0To1_1(noteMap : dict):
                 offset = 1
                 while (note.key, note.time + offset, color) in noteMap:
                     offset += 1
-                strikeList.append({
+                strikeList.append(Note({
                     "pitch" : note.key,
                     "time": note.time,
                     "duration": offset,
                     "data_fields": {}
-                })
+                }))
         newNoteMap[color] = strikeList
         
     return newNoteMap
+
+def toSavable(noteMap: dict):
+    '''
+    fields:
+        noteMap (dict) - note map in 1.1 notation
+    
+    Converts an active noteMap into save-ready format (Note -> dict).
+    Note: this method is repeat-safe; if input is already save-ready, nothing should break.
+    '''
+    output = {}
+    for color, notes in noteMap.items():
+        channel = []
+        for note in notes:
+            if isinstance(note, Note):
+                channel.append(note.getData())
+            elif isinstance(note, dict):
+                channel.append(note)
+            else:
+                raise ValueError('invalid note type')
+        output[color] = channel
+    return output

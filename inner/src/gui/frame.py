@@ -53,7 +53,7 @@ class Panel():
         for element in self.elements:
             element.update(screen)
     
-    def render(self, screen):
+    def render(self, screen: pygame.Surface):
         '''
         fields: none\n
         outputs: nothing
@@ -61,15 +61,24 @@ class Panel():
         Callable method to force render all sub-panels and elements of this panel. This
         is to allow for remote coupling between elements ("remote control")
 
+        ## Note
+        When a panel is rendered, it renders all internal elements into a surface that is maximum size (size of window).
+        It then crops the surface at the coordinate boundaries of the panel, then blits it to the provided screen.
+
         Ex. updating the beats per measure requires the grid panel to re-render.
         '''
-        mySurface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+        mySurface = pygame.Surface((pygame.display.get_window_size()), pygame.SRCALPHA)
         mySurface.fill(self.bgColor)
 
         for element in self.elements:
             element.render(mySurface)
 
-        screen.blit(mySurface, (self.x, self.y))
+        if mySurface.get_rect() == pygame.rect.Rect(self.x, self.y, self.width, self.height):
+            # if the cropped dimensions are the same, avoid subsurface step
+            screen.blit(mySurface, (self.x, self.y))
+        else:
+            sub = mySurface.subsurface((self.x, self.y, self.width, self.height))
+            screen.blit(sub, (self.x, self.y))
     
 
 
