@@ -85,7 +85,7 @@ def exportToWav(arr2d: np.ndarray, filename: str, sample_rate: int = 44100): # f
         counter += 1
     sfwrite(candidate, arr2d, sample_rate, subtype='PCM_16')
 
-def playNotes(play_obj, notes, duration=1, waves=0, volume=0.2, sample_rate=SAMPLE_RATE):
+def playNotes(play_obj=None, notes=None, duration=1, waves=0, volume=0.2, sample_rate=SAMPLE_RATE):
     '''
     fields:
         notes (list) - list of notes to play\n

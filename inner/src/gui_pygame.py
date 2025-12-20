@@ -46,23 +46,6 @@ def unselectTextBoxes(globalTextBoxes):
     for tb in globalTextBoxes:
         tb.selected = False
 
-def processImage(imageBytes):
-    '''
-    fields:
-        imageBytes (buffer) - input image
-    output: BytesIO object/buffer
-
-    Takes in an image bytes and blurs it.
-    '''
-    image = cv2.imdecode(np.frombuffer(imageBytes, np.uint8), cv2.IMREAD_COLOR)
-    blurredImage = cv2.GaussianBlur(image, (51, 51), 0) # apply a heavy blur to the image
-    
-    height, width = blurredImage.shape[:2]
-    croppedImage = blurredImage[:, :300]
-    
-    _, buffer = cv2.imencode('.jpg', croppedImage) # encode the image to a BytesIO object
-    imageIO = BytesIO(buffer)
-    return imageIO
 
 def renderScrollBar():
     '''

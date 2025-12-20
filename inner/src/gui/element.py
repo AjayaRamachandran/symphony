@@ -13,19 +13,24 @@ from io import BytesIO
 
 from console_controls.console import *
 import utils.sound_processing as sp
+import events
 
 ###### INITIALIZE ######
 
 source_path = 'inner/src'
 DRAG_THRESHOLD = 2
 
-BG_COLOR = (34, 34, 34, 255) #1c1c1cff
-HOVERED_BG_COLOR = (40, 40, 40, 255) #282828ff
-PRESSED_BG_COLOR = (24, 24, 24, 255) #181818ff
+ALT_BG_COLOR_3 = (36, 36, 36, 255) #242424ff
+ALT_BG_COLOR_4 = (40, 40, 40, 255) #282828ff
+BG_COLOR = (34, 34, 34, 255) #222222ff
+ALT_BG_COLOR = (42, 42, 42, 255) #2a2a2aff
+ALT_BG_COLOR_1 = (50, 50, 50, 255) #323232ff
+ALT_BG_COLOR_2 = (60, 60, 60, 255) #3c3c3cff
 BORDER_COLOR = (60, 60, 60, 255) #3c3c3cff
 SELECTED_BORDER_COLOR = (197, 110, 201, 255) #c56ec9ff
 NIMBIAL_ORANGE = (234, 123, 54, 255) #ea7b36ff
 TEXT_COLOR = (217, 217, 217, 255) #d9d9d9ff
+ALT_TEXT_COLOR = (115, 115, 115, 255) #737373ff
 EMPTY_COLOR = (0, 0, 0, 0) #00000000
 
 TITLE1 = None
@@ -178,6 +183,7 @@ class Interactive(Element):
         self.onClickOut = None
         self.onUnClick = None
         self.onDrag = None
+        self.onScroll = None
 
         self.lastClickedPosition = None
         self.mouseInside = False
@@ -243,12 +249,25 @@ class Interactive(Element):
         '''
         fields:
             function (function | lambda) - an action to do.
+                ^^^ takes exactly ONE argument: `tuple(value1, value2)`
         outputs: nothing
 
         Takes in a function or lambda, and sets it internally as the action to do when the object is dragged.
         '''
 
         self.onDrag = function
+
+    def onHoverScroll(self, function):
+        '''
+        fields:
+            function (function | lambda) - an action to do.
+                ^^^ takes exactly ONE argument: `tuple(value1, value2)`
+        outputs: nothing
+
+        Takes in a function or lambda, and sets it internally as the action to do when the object is scrolled.
+        '''
+
+        self.onScroll = function
 
     def mouseEntered(self):
         '''
@@ -324,7 +343,44 @@ class Interactive(Element):
         self.isDragged = self.mouseAlrDown and pygame.mouse.get_pressed()[0] and \
            self.lastClickedPosition is not None and \
            dist(pygame.mouse.get_pos(), self.lastClickedPosition) > DRAG_THRESHOLD
-        return self.isDragged
+        return ((pygame.mouse.get_pos()[0] - self.lastClickedPosition[0],
+                 pygame.mouse.get_pos()[1] - self.lastClickedPosition[1]) if self.isDragged else False)
+    
+    def scrolled(self):
+        '''
+        fields: none\n
+        outputs: boolean
+
+        Method to return whether the interactive element has been scrolled within
+        '''
+        if not self.mouseInside:
+            return False
+        
+        xy = [0, 0]
+
+        for event in events.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_UP:
+                    xy[1] += 10
+                if event.key == pygame.K_DOWN:
+                    xy[1] -= 10
+                if event.key == pygame.K_LEFT:
+                    xy[0] -= 10
+                if event.key == pygame.K_RIGHT:
+                    xy[0] += 10
+            elif event.type == pygame.MOUSEWHEEL:
+                if event.y > 0: # Scroll up
+                    xy[1] += 5
+                if event.y < 0: # Scroll down
+                    xy[1] -= 5
+                if event.x > 0: # Scrub right
+                    xy[0] += 5
+                if event.x < 0: # Scrub left
+                    xy[0] -= 5
+
+        return False if xy == [0, 0] else xy
 
     def update(self, screen):
         '''
@@ -336,18 +392,26 @@ class Interactive(Element):
         self.mouseInside = mouseBounds((self.x, self.y, self.width, self.height))
         self.redraw = False
 
-        if self.mouseEntered() and (self.onEnter != None):
+        if self.mouseEntered() and callable(self.onEnter):
             self.onEnter()
-        if self.mouseLeft() and (self.onLeave != None):
+        if self.mouseLeft() and callable(self.onLeave):
             self.onLeave()
-        if self.mouseClicked() and (self.onClick != None):
+        if self.mouseClicked() and callable(self.onClick):
             self.onClick()
-        if self.mouseDragged() and (self.onDrag != None):
-            self.onDrag()
-        if self.mouseClickedOut() and (self.onClickOut != None):
+        if self.mouseClickedOut() and callable(self.onClickOut):
             self.onClickOut()
-        if self.mouseUnClicked() and (self.onUnClick != None):
+        if self.mouseUnClicked() and callable(self.onUnClick):
             self.onUnClick()
+
+        xy = self.mouseDragged() # dragging is False if nothing happens, contains values if something did
+        if callable(self.onDrag):
+            if xy:
+                self.onDrag(xy)
+
+        xy = self.scrolled() # scrolling is False if nothing happens, contains values if something did
+        if callable(self.onScroll):
+            if xy:
+                self.onScroll(xy)
         
         self.mouseInsideLastFrame = self.mouseInside
     
@@ -368,17 +432,48 @@ class TextBox(Interactive):
         self.stateRestrict = None
         self.font = font if (font != None) else SUBHEADING1
         self.selected = False
+        self.focus = None
+        self.blurFocus = None
 
-        self.onMouseClick(lambda: (setattr(self, "temporaryText", self.text if (self.selected == False) else self.temporaryText),
-                                   setattr(self, "selected", True),
-                                   setattr(self, "redraw", True)))
+        def tempMouseClick():
+            if callable(self.focus):
+                self.focus()
+            self.temporaryText = self.text if (self.selected == False) else self.temporaryText
+            self.selected = True
+            self.redraw = True
+
+        self.onMouseClick(tempMouseClick)
         self.onMouseClickOut(self.deselectAndFinalizeValue)
+        self.onMouseEnter(lambda: pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_IBEAM))
+        self.onMouseLeave(lambda: pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW))
+
+    def onFocus(self, function):
+        '''
+        fields:
+            function (function | lambda) - an action to do.
+        outputs: nothing
+
+        Takes in a function or lambda, and sets it internally as the action to do when the text box is focused.
+        '''
+
+        self.focus = function 
+
+    def onBlurFocus(self, function):
+        '''
+        fields:
+            function (function | lambda) - an action to do.
+        outputs: nothing
+
+        Takes in a function or lambda, and sets it internally as the action to do when the text box is unfocused (finalized).
+        '''
+
+        self.blurFocus = function 
     
     def update(self, screen):
         super().update(screen)
 
         if self.selected:
-            for event in pygame.event.get():
+            for event in events.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                 if event.type == pygame.KEYDOWN:
@@ -407,6 +502,9 @@ class TextBox(Interactive):
             else: # field is invalid, don't update it
                 None
             self.redraw = True
+        
+        if callable(self.blurFocus):
+            self.blurFocus()
 
     def setInputRestrictions(self, restriction: list[str] | str):
         '''
@@ -454,12 +552,16 @@ class TextBox(Interactive):
         self.text = str(text)
     
     def render(self, screen: pygame.Surface):
-        pygame.draw.rect(screen, BG_COLOR,
+        pygame.draw.rect(screen, ALT_BG_COLOR_4,
                          (self.x, self.y, self.width, self.height), border_radius=3)
-        pygame.draw.rect(screen, SELECTED_BORDER_COLOR if self.selected else BORDER_COLOR,
+        if self.selected:
+            pygame.draw.rect(screen, SELECTED_BORDER_COLOR,
                          (self.x, self.y, self.width, self.height), width=1, border_radius=3)
 
-        stamp(screen, self.temporaryText if self.selected else self.text, self.font, self.x + self.width/2, self.y + self.height/2, TEXT_COLOR, justification="center")
+        #pygame.draw.rect(screen, SELECTED_BORDER_COLOR if self.selected else BORDER_COLOR,
+                         #(self.x, self.y, self.width, self.height), width=1, border_radius=3)
+
+        stamp(screen, self.temporaryText if self.selected else self.text, self.font, self.x + self.width/2, self.y + self.height/2, ALT_TEXT_COLOR, justification="center")
 
 class Button(Interactive):
     '''
@@ -474,8 +576,8 @@ class Button(Interactive):
         self.currentState = self.states[self.currentStateIdx]
         self.font = font if (font != None) else SUBHEADING1
 
-        self.onMouseEnter(lambda: (setattr(self, "redraw", True)))
-        self.onMouseLeave(lambda: (setattr(self, "redraw", True)))
+        self.onMouseEnter(lambda: (setattr(self, "redraw", True), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
+        self.onMouseLeave(lambda: (setattr(self, "redraw", True), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
         self.onMouseClick(lambda: (setattr(self, "redraw", True), self.cycleStates()))
         self.onMouseUnClick(lambda: (setattr(self, "redraw", True)))
     
@@ -485,13 +587,13 @@ class Button(Interactive):
             self.render(screen)
 
     def render(self, screen: pygame.Surface):
-        pygame.draw.rect(screen, HOVERED_BG_COLOR if self.mouseInside else BG_COLOR, (self.x, self.y, self.width, self.height), border_radius=3)
+        pygame.draw.rect(screen, ALT_BG_COLOR_1 if self.mouseInside else ALT_BG_COLOR_4, (self.x, self.y, self.width, self.height), border_radius=3)
         if isinstance(self.currentState, pygame.Surface): # if it's an image (icon)
             loc = (self.x + self.width / 2 - self.currentState.get_width() / 2,
                    self.y + self.height / 2 - self.currentState.get_height() / 2)
             screen.blit(self.currentState, loc)
         else:
-            stamp(screen, self.currentState, self.font, self.x + self.width/2, self.y + self.height/2, TEXT_COLOR, justification="center")
+            stamp(screen, self.currentState, self.font, self.x + self.width/2, self.y + self.height/2, ALT_TEXT_COLOR, justification="center")
 
     def cycleStates(self):
         self.currentStateIdx = (self.currentStateIdx + 1) % len(self.states)

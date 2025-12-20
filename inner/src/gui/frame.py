@@ -14,6 +14,8 @@ from io import BytesIO
 from console_controls.console import *
 import utils.sound_processing as sp
 import gui.element as gui
+import gui.vfx as vfx
+import events
 
 ###### INITIALIZE ######
 
@@ -30,6 +32,14 @@ class Panel():
         self.height = rect[3]
         self.bgColor = bgColor
         self.elements = elements
+
+        self.selfRender = None
+
+    def setRect(self, rect):
+        self.x = rect[0]
+        self.y = rect[1]
+        self.width = rect[2]
+        self.height = rect[3]
     
     def addElement(self, el):
         '''
@@ -53,9 +63,21 @@ class Panel():
         for element in self.elements:
             element.update(screen)
     
-    def render(self, screen: pygame.Surface):
+    def onSelfRender(self, function):
         '''
-        fields: none\n
+        fields:
+            function (function | lambda) - an action to do.
+                ^^^ takes exactly ONE argument: `pygame.Surface`
+        outputs: nothing
+
+        Takes in a function or lambda, and sets it internally as how to render the panel beneath its children.
+        '''
+        self.selfRender = function
+        
+    
+    def render(self, screen: pygame.Surface, blurRadius: int = None):
+        '''
+        fields: screen (pygame.Surface) - surface to blit to\n
         outputs: nothing
 
         Callable method to force render all sub-panels and elements of this panel. This
@@ -70,15 +92,25 @@ class Panel():
         mySurface = pygame.Surface((pygame.display.get_window_size()), pygame.SRCALPHA)
         mySurface.fill(self.bgColor)
 
+        if callable(self.selfRender):
+            self.selfRender(mySurface)
+
         for element in self.elements:
             element.render(mySurface)
 
         if mySurface.get_rect() == pygame.rect.Rect(self.x, self.y, self.width, self.height):
-            # if the cropped dimensions are the same, avoid subsurface step
             screen.blit(mySurface, (self.x, self.y))
         else:
-            sub = mySurface.subsurface((self.x, self.y, self.width, self.height))
-            screen.blit(sub, (self.x, self.y))
-    
+            rect = pygame.Rect(self.x, self.y, self.width, self.height)
+            rect = rect.clip(mySurface.get_rect())
+
+            if rect.width > 0 and rect.height > 0:
+                sub = mySurface.subsurface(rect)
+                screen.blit(sub, (rect.x, rect.y))
+        
+        if blurRadius:
+            screen.blit(vfx.surfaceBlur(screen, blurRadius=blurRadius), (0, 0))
+
+        
 
 
