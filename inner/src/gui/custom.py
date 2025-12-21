@@ -46,7 +46,7 @@ def getColorStates(width, height, source_path):
     outputs.append(rainbowImage)
     return outputs
 
-def convertGridToWorld(pitch, time, tileSize: tuple[int | float], view: tuple[int | float]):
+def convertGridToWorld(pitch, time, tileSize: tuple[int | float] = None, view: tuple[int | float] = None):
     '''
     fields:
         pitch (number) - the pitch of the grid coordinate
@@ -57,11 +57,12 @@ def convertGridToWorld(pitch, time, tileSize: tuple[int | float], view: tuple[in
     
     Converts the Grid coordinates to Screen (world) coordinates.
     '''
+    global tileWidth, tileHeight, viewRow, viewCol
 
-    tileWidth, tileHeight = tileSize
-    viewCol, viewRow = view
+    _tileWidth, _tileHeight = tileSize if tileSize is not None else (tileWidth, tileHeight)
+    _viewCol, _viewRow = view if view is not None else (viewCol, viewRow)
 
-    return [(time - viewCol) * tileWidth + 80, ((112 - viewRow) - pitch) * tileHeight + 80]
+    return [(time - viewCol) * _tileWidth + 80, ((112 - viewRow) - pitch) * _tileHeight + 80]
 
 def convertWorldToGrid(mousePos, tileSize: tuple[int | float] = None, view: tuple[int | float] = None):
     '''
@@ -138,6 +139,7 @@ class NoteGrid(gui.Interactive):
         super().__init__(pos, width, height)
         self.noteMap = {}
         self.scVel = [0, 0]
+        self.interval = 4
 
         def changeView(xy):
             global viewRow, viewCol
@@ -165,6 +167,15 @@ class NoteGrid(gui.Interactive):
         '''
         self.noteMap = noteMap
 
+    def setIntervals(self, interval: int):
+        '''
+        fields:
+            interval (number) - interval between light tiles
+        
+        Updates the internal interval to match the main interval.
+        '''
+        self.interval = interval
+
     def setLinkedPanels(self, panel: frame.Panel, notes: frame.Panel):
         self.panel = panel
         self.notes = notes
@@ -185,6 +196,10 @@ class NoteGrid(gui.Interactive):
             viewRow -= self.scVel[1] / 20
             if viewCol <= 0:
                 viewCol = 0
+            if viewRow <= 12:
+                viewRow = 12
+            if viewRow >= 84:
+                viewRow = 84
             self.panel.render(screen)
             self.notes.render(screen)
     
@@ -195,7 +210,7 @@ class NoteGrid(gui.Interactive):
         x = 0
         while offsetX < pygame.display.get_window_size()[0]:
             offsetY = (ceil(viewRow) - viewRow - 1) * tileHeight + 80
-            litCol = (ceil(viewCol + x - 1) % 4 == 0)
+            litCol = (ceil(viewCol + x - 1) % self.interval == 0)
             y = 0
             while offsetY < pygame.display.get_window_size()[1]:
                 litRow = (ceil(viewRow + y - 1) % 2 == 0)
@@ -218,15 +233,53 @@ class NoteGrid(gui.Interactive):
 
 class PlayHead():
     '''
-    Class to contain the playhead, which cues music playback and
+    Class to contain the playhead, which cues music playback and displays it on the screen
     '''
     def __init__(self):
         # playhead properties
         self.time = 0
+        self.home = 0
+        self.tpm = 360
         self.playing = False
+        self.lastPlayTime = time.time()
 
-    def render(self, screen: pygame.Surface): 
-        None
+        self.panel = None
+
+    def setHome(self, home):
+        self.home = home
+        self.time = self.home
+
+    def play(self, tpm):
+        self.playing = True
+        self.tpm = tpm
+        self.lastPlayTime = time.time()
+
+    def stop(self):
+        self.playing = False
+        self.time = self.home
+
+    def setLinkedPanel(self, panel):
+        self.panel = panel
+    
+    def update(self, screen: pygame.Surface):
+        if self.playing:
+            secondsPassed = time.time() - self.lastPlayTime
+            minutesPassed = secondsPassed / 60
+            tilesPassed = minutesPassed * self.tpm
+            self.time = self.home + tilesPassed
+
+            if self.panel != None:
+                self.panel.render(screen)
+        else:
+            self.time = self.home
+
+    def render(self, screen: pygame.Surface):
+        lineX = convertGridToWorld(0, self.time)[0]
+        pygame.draw.line(screen,
+                    (0, 255, 255, 255) if self.playing else (255, 255, 0, 255),
+                    (lineX, 0),
+                    (lineX, pygame.display.get_window_size()[1]),
+                    1)
 
 class Note():
     '''
@@ -257,9 +310,11 @@ class Note():
 
     def select(self):
         self.selected = True
+        self.drag()
     
     def unselect(self):
         self.selected = False
+        self.undrag()
 
     def hide(self):
         self.visible = False
