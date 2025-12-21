@@ -76,13 +76,16 @@ def convertWorldToGrid(mousePos, tileSize: tuple[int | float] = None, view: tupl
     global tileWidth, tileHeight, viewRow, viewCol
 
     mouseX, mouseY = mousePos
+    if mouseX < 80 or mouseY < 80:
+        return None, None
+    
     _tileWidth, _tileHeight = tileSize if tileSize is not None else (tileWidth, tileHeight)
     _viewCol, _viewRow = view if view is not None else (viewCol, viewRow)
 
     time = (mouseX - 80) / _tileWidth + _viewCol
     pitch = (112 - _viewRow) - (mouseY - 80) / _tileHeight
 
-    return floor(time), floor(pitch)
+    return floor(time), ceil(pitch)
 
 
 ###### CLASSES ######
@@ -147,7 +150,8 @@ class NoteGrid(gui.Interactive):
                 viewRow = 12
             if viewRow >= 84:
                 viewRow = 84
-            self.scVel = xy
+            x, y = xy
+            self.scVel = [x * 2, y * 2]
 
         self.onMouseClick(lambda: setattr(self, 'redraw', True))
         self.onHoverScroll(changeView)
@@ -168,7 +172,17 @@ class NoteGrid(gui.Interactive):
     def update(self, screen):
         global viewCol, viewRow
         super().update(screen)
-        if self.panel and self.notes and self.redraw:
+        if self.panel and self.notes and (self.redraw or self.scVel != [0, 0]):
+            if self.scVel[0] < 0:
+                self.scVel = [self.scVel[0] + 1, self.scVel[1]]
+            if self.scVel[0] > 0:
+                self.scVel = [self.scVel[0] - 1, self.scVel[1]]
+            if self.scVel[1] < 0:
+                self.scVel = [self.scVel[0], self.scVel[1] + 1]
+            if self.scVel[1] > 0:
+                self.scVel = [self.scVel[0], self.scVel[1] - 1]
+            viewCol += self.scVel[0] / 20
+            viewRow -= self.scVel[1] / 20
             if viewCol <= 0:
                 viewCol = 0
             self.panel.render(screen)
@@ -202,6 +216,17 @@ class NoteGrid(gui.Interactive):
                 else:
                     raise ValueError(f'Invalid data type for note: {note.__class__()}')
 
+class PlayHead():
+    '''
+    Class to contain the playhead, which cues music playback and
+    '''
+    def __init__(self):
+        # playhead properties
+        self.time = 0
+        self.playing = False
+
+    def render(self, screen: pygame.Surface): 
+        None
 
 class Note():
     '''
@@ -217,6 +242,10 @@ class Note():
 
         self.selected = False
         self.visible = True
+        self.dragInitialPosition = None
+    
+    def __repr__(self):
+        return f"Note object with Pitch: {self.pitch}, Time: {self.time}, Duration: {self.duration}, Data Fields: {self.dataFields}, Selected?: {self.selected}"
 
     def getData(self):
         return {
@@ -237,6 +266,12 @@ class Note():
     
     def unhide(self):
         self.visible = True
+
+    def drag(self):
+        self.dragInitialPosition = [self.time, self.pitch]
+    
+    def undrag(self):
+        self.dragInitialPosition = None
     
     def setNoteData(self, newData: dict):
         '''
@@ -260,4 +295,6 @@ class Note():
             tileHeight
         ]
         pygame.draw.rect(drawScreen, (*color[:3], 128 if transparent else 255), rectCoords, border_radius=3)
+        if self.selected:
+            pygame.draw.rect(drawScreen, (255, 255, 255, 255), rectCoords, width=2, border_radius=3)
         screen.blit(drawScreen, [0, 0])
