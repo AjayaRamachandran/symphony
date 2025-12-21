@@ -46,11 +46,11 @@ def getColorStates(width, height, source_path):
     outputs.append(rainbowImage)
     return outputs
 
-def convertGridToWorld(pitch, time, tileSize: tuple[int | float] = None, view: tuple[int | float] = None):
+def convertGridToWorld(time, pitch, tileSize: tuple[int | float] = None, view: tuple[int | float] = None):
     '''
     fields:
-        pitch (number) - the pitch of the grid coordinate
         time (number) - the time of the grid coordinate
+        pitch (number) - the pitch of the grid coordinate
         tileSize (tuple[number]) - the coordinate dimensions of the grid tiles
         view (tuple[number]) - the coordinates of the view camera in relation to the GRID
     outputs: tuple[number]
@@ -141,6 +141,8 @@ class NoteGrid(gui.Interactive):
         self.scVel = [0, 0]
         self.interval = 4
 
+        self.selectionRect = None
+
         def changeView(xy):
             global viewRow, viewCol
             self.redraw = True
@@ -179,6 +181,9 @@ class NoteGrid(gui.Interactive):
     def setLinkedPanels(self, panel: frame.Panel, notes: frame.Panel):
         self.panel = panel
         self.notes = notes
+
+    def setSelection(self, rect):
+        self.selectionRect = rect
     
     def update(self, screen):
         global viewCol, viewRow
@@ -230,6 +235,10 @@ class NoteGrid(gui.Interactive):
                     note.render(screen, colors[colorIdx], False, [0,0])
                 else:
                     raise ValueError(f'Invalid data type for note: {note.__class__()}')
+        
+        if self.selectionRect:
+            pygame.draw.rect(screen, (255, 255, 255, 255), self.selectionRect, 1)
+            #pygame.draw.rect(screen, (255, 255, 255, 5), self.selectionRect)
 
 class PlayHead():
     '''
@@ -274,7 +283,7 @@ class PlayHead():
             self.time = self.home
 
     def render(self, screen: pygame.Surface):
-        lineX = convertGridToWorld(0, self.time)[0]
+        lineX = convertGridToWorld(self.time, 0)[0]
         pygame.draw.line(screen,
                     (0, 255, 255, 255) if self.playing else (255, 255, 0, 255),
                     (lineX, 0),
@@ -345,7 +354,7 @@ class Note():
 
         drawScreen = pygame.Surface(pygame.display.get_window_size(), pygame.SRCALPHA)
         rectCoords = [
-            *convertGridToWorld(self.pitch, self.time, (tileWidth, tileHeight), (viewCol, viewRow)),
+            *convertGridToWorld(self.time, self.pitch, (tileWidth, tileHeight), (viewCol, viewRow)),
             self.duration * tileWidth,
             tileHeight
         ]

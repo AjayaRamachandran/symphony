@@ -240,7 +240,7 @@ mode = 0
 play_obj = None # global to hold the last Channel/Sound so it doesn't get garbage-collected
 
 page = "Editor"
-noteMap = {}
+noteMap : dict[str, list[custom.Note]] = {}
 
 tick = 0
 saveFrame = 0
@@ -751,21 +751,23 @@ def handleDrag(xy):
             abs(x1 - x0),
             abs(y1 - y0)
         )
-
-        pygame.draw.rect(screen, gui.BORDER_COLOR, rect, 1)
+        NoteGrid.setSelection(rect)
+        #pygame.draw.rect(screen, gui.BORDER_COLOR, rect, 1)
 
         for note in notes:
             note_x, note_y = custom.convertGridToWorld(note.time, note.pitch)
-            if rect.collidepoint(note_x, note_y):
-                note.select()
-            else:
-                note.unselect()
+            note_rect = pygame.Rect(note_x, note_y, note.duration * custom.tileWidth, custom.tileHeight)
+
+            if rect.colliderect(note_rect): note.select()
+            else: note.unselect()
 
     NotePanel.render(screen)
 
 
 NoteGrid.onMouseClick(handleClick)
 NoteGrid.onMouseDrag(handleDrag)
+NoteGrid.onMouseUnClick(lambda: (setattr(NoteGrid, 'selectionRect', None),
+                                 NotePanel.render(screen)))
 
 
 ###### MAINLOOP ######
@@ -869,7 +871,13 @@ while running:
 
             MasterPanel.render(screen)
         elif event.type == pygame.KEYDOWN:
-            if event.key == CMD_KEY: # Switch to eraser momentarily
+            if event.key == pygame.K_BACKSPACE or event.key == pygame.K_DELETE: # Delete all selected notes
+                for colorName, colorChannel in noteMap.items():
+                    for note in colorChannel:
+                        if note.selected:
+                            colorChannel.remove(note)
+                NotePanel.render(screen)
+            elif event.key == CMD_KEY: # Switch to eraser momentarily
                 brushType = "eraser"
                 BrushButton.setCurrentState(1)
                 BrushButton.render(screen)
