@@ -743,16 +743,16 @@ def handleClick():
         dragStartGridPos = (mouseTime, mousePitch)
 
         # Shift allows multi-select
-        if not shiftHeld and not clickedNote.selected and not extendingNote:
+        if not shiftHeld and not clickedNote.selected:
             clearSelection(notes)
 
-        if clickedNote.selected or extendingNote:
+        if clickedNote.selected:
             #clickedNote.unselect()
             None
         else:
             clickedNote.select()
-            console.log(waveMap[justColorNames[ColorButton.currentStateIdx]])
-            sp.playNotes(notes=[clickedNote.pitch], waves=waveMap[justColorNames[ColorButton.currentStateIdx]], duration=0.2, volume=0.12)
+            if not extendingNote:
+                sp.playNotes(notes=[clickedNote.pitch], waves=waveMap[justColorNames[ColorButton.currentStateIdx]], duration=0.2, volume=0.12)
 
         if extendingNote:
             for note in notes:
