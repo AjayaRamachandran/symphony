@@ -15,6 +15,7 @@ import dill as pkl
 from tkinter.filedialog import asksaveasfile, asksaveasfilename
 import json
 import traceback
+from collections import defaultdict
 
 lastTime = time.time()
 START_TIME = lastTime
@@ -234,8 +235,8 @@ fps = 60
 
 worldMessage = ""
 
-key = 0
-mode = 0
+key = 'Eb'
+mode = 'Lydian'
 
 play_obj = None # global to hold the last Channel/Sound so it doesn't get garbage-collected
 
@@ -260,7 +261,10 @@ modesIntervals = [
     ["Locrian",       [0, 1, 3, 5, 6, 8, 10]]
 ]
 modes = [item[0] for item in modesIntervals]
-modeIntervals = set()
+modesMap = {}
+for modeInt in modesIntervals:
+    modesMap[modeInt[0]] = modeInt[1]
+
 keyIndex = 0
 colors = {
     "orange" : (168, 136, 49),
@@ -284,6 +288,7 @@ colorsList = list(colors.items())
 justColors = [n[1] for n in colorsList]
 justColorNames = [n[0] for n in colorsList]
 
+
 waveTypes = ['square', 'triangle', 'sawtooth']
 
 waveMap = {}
@@ -303,6 +308,17 @@ mainFont = f'{source_path}/assets/InterVariable.ttf'
 
 tempo = int(round(3600 / ticksPerTile))
 gui.init(source_path)
+
+zoomDimensions = [
+    (18, 24),
+    (22, 26),
+    (26, 28),
+    (30, 30),
+    (40, 40),
+    (60, 48),
+    (80, 54),
+    (100, 56)
+]
 
 ###### ASSETS ######
 
@@ -352,6 +368,7 @@ ToolBar.onSelfRender(toolBarGraphics)
 
 
 NoteGrid = custom.NoteGrid(pos=(0, 0), width=width, height=height)
+
 PitchList = custom.PitchList(pos=(0, 80), width=80, height=height-80, notes=NOTES_FLAT)
 PlayHead = custom.PlayHead()
 
@@ -363,25 +380,7 @@ NoteGrid.setLinkedPanels(NotePanel, PitchPanel)
 PitchList.setLinkedPanels(PitchPanel)
 
 GridPanel = frame.Panel((0, 80, width, height-80), (0, 0, 0, 0), [NotePanel, PitchPanel])
-
-def testNotes():
-    noteMap['orange'] = []
-    noteMap['orange'].append(custom.Note({
-                                          'pitch' : 50,
-                                          'time' : 0,
-                                          'duration' : 5,
-                                          'data_fields' : {}
-                                        }))
-    noteMap['orange'].append(custom.Note({
-                                          'pitch' : 51,
-                                          'time' : 1,
-                                          'duration' : 6,
-                                          'data_fields' : {}
-                                        }))
-testNotes()
-console.log(noteMap)
 NoteGrid.setNoteMap(noteMap)
-#PlayHead = Head(0, 1, 0)
 
 MasterPanel = frame.Panel((0, 0, width, height), gui.BG_COLOR, [ToolBar, GridPanel])
 
@@ -434,7 +433,8 @@ elif "b" in key:
     accidentals = "flats"
 mode = ps["mode"]
 
-modeIntervals = set(modesIntervals[0][1])
+NoteGrid.setModeKey(key = NOTES_SHARP.index(key) if ('#' in key) else NOTES_FLAT.index(key),
+                    mode = modesMap[mode])
 
 ###### GUI LOGIC ######
 
@@ -443,17 +443,19 @@ KeyButton.setCurrentState(keyIndex)
 ModeButton.setCurrentState(modes.index(mode))
 
 def playPauseToggle():
-    global playing
+    global playing, play_obj
     playing = not playing
     PlayPauseButton.cycleStates()
     PlayPauseButton.render(screen)
     if playing:
-        #sp.playFull(noteMap, PlayHead.time)
+        play_obj = sp.playFull(noteMap, waveMap, PlayHead.time, tempo, 0.2,
+                               channel='all' if ColorButton.currentStateIdx == 6 else ColorButton.currentStateIdx)
         PlayHead.play(tempo)
     else:
         PlayHead.stop()
         NotePanel.render(screen)
-    #play_obj.stop()
+        try: play_obj.stop()
+        except: None
 
 PlayPauseButton.onMouseClick(playPauseToggle)
 
@@ -530,13 +532,49 @@ MeasureLengthUpButton.onMouseClick(measureLengthUp)
 MeasureLengthDownButton.onMouseClick(measureLengthDown)
 MeasureLengthTextBox.onBlurFocus(measureLengthSync)
 
-
 def toggleAccidentals():
     AccidentalsButton.cycleStates()
     AccidentalsButton.render(screen)
     PitchList.setNotes(NOTES_FLAT if AccidentalsButton.currentState == flatsImage else NOTES_SHARP)
     PitchPanel.render(screen)
 AccidentalsButton.onMouseClick(toggleAccidentals)
+
+def cycleKey():
+    KeyButton.cycleStates()
+    NoteGrid.setModeKey(key = KeyButton.currentStateIdx)
+    PitchList.setModeKey(key = KeyButton.currentStateIdx)
+    KeyButton.render(screen)
+    NotePanel.render(screen)
+
+def cycleMode():
+    ModeButton.cycleStates()
+    NoteGrid.setModeKey(mode = modesMap[ModeButton.currentState])
+    PitchList.setModeKey(mode = modesMap[ModeButton.currentState])
+    ModeButton.render(screen)
+    NotePanel.render(screen)
+
+KeyButton.onMouseClick(cycleKey)
+ModeButton.onMouseClick(cycleMode)
+
+def cycleWave():
+    global waveMap
+    WaveButton.cycleStates()
+    waveMap[justColorNames[ColorButton.currentStateIdx]] = WaveButton.currentStateIdx
+    WaveButton.render(screen)
+
+def colorSync():
+    ColorButton.render(screen)
+    WaveButton.setCurrentState(waveMap[justColorNames[ColorButton.currentStateIdx]])
+    WaveButton.render(screen)
+    NoteGrid.color = ColorButton.currentStateIdx
+    NotePanel.render(screen)
+
+def cycleColor():
+    ColorButton.cycleStates()
+    colorSync()
+
+WaveButton.onMouseClick(cycleWave)
+ColorButton.onMouseClick(cycleColor)
 
 MasterPanel.render(screen)
 
@@ -563,6 +601,32 @@ def inBounds(coords1, coords2, point) -> bool:
     Returns whether a point is within the bounds of two other points. order of coords is arbitrary.
     '''
     return point[0] > min(coords1[0], coords2[0]) and point[1] > min(coords1[1], coords2[1]) and point[0] < max(coords1[0], coords2[0]) and point[1] < max(coords1[1], coords2[1])
+
+def trimOverlappingNotes():
+    """
+    Shortens notes so that overlapping notes of the SAME pitch
+    in the SAME color channel do not overlap.
+    """
+
+    for color, notes in noteMap.items():
+
+        # Group notes by pitch
+        notes_by_pitch = defaultdict(list)
+        for note in notes:
+            notes_by_pitch[note.pitch].append(note)
+
+        # Process each pitch independently
+        for pitch, pitch_notes in notes_by_pitch.items():
+            pitch_notes.sort(key=lambda n: n.time)
+
+            for i in range(len(pitch_notes) - 1):
+                current = pitch_notes[i]
+                next_note = pitch_notes[i + 1]
+
+                current_end = current.time + current.duration
+
+                if next_note.time < current_end:
+                    current.duration = max(0, next_note.time - current.time)
 
 if process == 'export':
     phases = {}
@@ -600,12 +664,20 @@ draggingSelection = False
 selectionStartPos = None
 dragStartGridPos = None
 drawStartPos = None
+extendingNote = False
+extendStartGridPos = None
 
 def getNoteAt(notes, time, pitch):
     for note in notes:
-        if note.pitch == pitch and note.time <= time <= note.time + note.duration:
+        if note.pitch == pitch and note.time <= time < note.time + note.duration:
             return note
     return None
+
+def getExtendingNote(notes, time, pitch):
+    for note in notes:
+        if note.pitch == pitch and (note.time + note.duration - 1) <= time < note.time + note.duration:
+            return note
+    return False
 
 def clearSelection(notes):
     for note in notes:
@@ -613,7 +685,7 @@ def clearSelection(notes):
 
 
 def handleClick():
-    global selectingAnything, draggingSelection, selectionStartPos, dragStartGridPos, drawStartPos, head
+    global selectingAnything, draggingSelection, selectionStartPos, dragStartGridPos, drawStartPos, extendingNote, extendStartGridPos, head, waveMap
 
     mouseTime, mousePitch = custom.convertWorldToGrid(pygame.mouse.get_pos())
 
@@ -630,6 +702,8 @@ def handleClick():
         return
 
     currColorName = colorsList[ColorButton.currentStateIdx][0]
+    if not (currColorName in noteMap):
+        noteMap[currColorName] = []
     notes = noteMap[currColorName]
 
     if brushType == "brush":
@@ -637,7 +711,7 @@ def handleClick():
         noteAlrExists = False
         for note in notes:
             if (mousePitch == note.pitch) and (
-                (mouseTime >= note.time) and (mouseTime <= note.time + note.duration)
+                (mouseTime >= note.time) and (mouseTime < note.time + note.duration)
                 ):
                 noteAlrExists = True
         if not noteAlrExists:
@@ -647,36 +721,58 @@ def handleClick():
                 "duration" : 1,
                 "data_fields" : {}
                 }))
+            sp.playNotes(notes=[mousePitch], waves=waveMap[justColorNames[ColorButton.currentStateIdx]], duration=0.2, volume=0.12)
     elif brushType == "eraser":
         notes: list[custom.Note] = noteMap[currColorName]
         for note in notes:
             if (mousePitch == note.pitch) and (
-                (mouseTime >= note.time) and (mouseTime <= note.time + note.duration)
+                (mouseTime >= note.time) and (mouseTime < note.time + note.duration)
                 ):
                 notes.remove(note)
 
     clickedNote = getNoteAt(notes, mouseTime, mousePitch)
     shiftHeld = pygame.key.get_pressed()[pygame.K_LSHIFT]
+    altHeld = pygame.key.get_pressed()[pygame.K_LALT]
+    extendingNote = getExtendingNote(notes, mouseTime, mousePitch)
 
     if clickedNote:
+        if extendingNote:
+            extendStartGridPos = (mouseTime, mousePitch)
         selectingAnything = True
         draggingSelection = True
         dragStartGridPos = (mouseTime, mousePitch)
 
         # Shift allows multi-select
-        if not shiftHeld and not clickedNote.selected:
+        if not shiftHeld and not clickedNote.selected and not extendingNote:
             clearSelection(notes)
 
-        if clickedNote.selected:
+        if clickedNote.selected or extendingNote:
             #clickedNote.unselect()
             None
         else:
             clickedNote.select()
+            console.log(waveMap[justColorNames[ColorButton.currentStateIdx]])
+            sp.playNotes(notes=[clickedNote.pitch], waves=waveMap[justColorNames[ColorButton.currentStateIdx]], duration=0.2, volume=0.12)
 
-        # Cache drag start positions
-        for note in notes:
-            if note.selected:
-                note.dragInitialPosition = (note.time, note.pitch)
+        if extendingNote:
+            for note in notes:
+                if note.selected:
+                    note.extendOriginalDuration = note.duration
+        else:
+            # Cache drag start positions
+            for note in notes:
+                if note.selected:
+                    note.dragInitialPosition = (note.time, note.pitch)
+            
+            if altHeld:
+                for note in notes:
+                    if note.selected:
+                        notes.append(custom.Note({
+                            "pitch" : note.pitch,
+                            "time" : note.time,
+                            "duration" : note.duration,
+                            "data_fields" : note.dataFields
+                        }))
 
     else:
         # Clicked empty space
@@ -690,7 +786,7 @@ def handleClick():
     NotePanel.render(screen)
 
 def handleDrag(xy):
-    global selectingAnything, draggingSelection, drawStartPos
+    global selectingAnything, draggingSelection, drawStartPos, extendingNote
 
     mouseTime, mousePitch = custom.convertWorldToGrid(pygame.mouse.get_pos())
     if mouseTime is None or ColorButton.currentStateIdx == 6:
@@ -726,40 +822,51 @@ def handleDrag(xy):
         notes: list[custom.Note] = noteMap[currColorName]
         for note in notes:
             if (mousePitch == note.pitch) and (
-                (mouseTime >= note.time) and (mouseTime <= note.time + note.duration)
+                (mouseTime >= note.time) and (mouseTime < note.time + note.duration)
                 ):
                 notes.remove(note)
+    elif brushType == 'select':
+        if extendingNote:
+            # EXTEND/RETRACT
+            dx = round(xy[0] / custom.tileWidth)
+            dy = -round(xy[1] / custom.tileHeight)
+            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_SIZEWE)
 
-    if draggingSelection:
-        # GRID-SNAPPED MOVE
-        dx = round(xy[0] / custom.tileWidth)
-        dy = -round(xy[1] / custom.tileHeight)
+            for note in notes:
+                if note.selected and note.extendOriginalDuration:
+                    note.duration = note.extendOriginalDuration + dx
+                    if note.duration == 0:
+                        note.extendOriginalDuration += 1
+                    note.duration = note.extendOriginalDuration + dx
+        elif draggingSelection:
+            # GRID-SNAPPED MOVE
+            dx = round(xy[0] / custom.tileWidth)
+            dy = -round(xy[1] / custom.tileHeight)
 
-        for note in notes:
-            if note.selected and note.dragInitialPosition:
-                note.time = note.dragInitialPosition[0] + dx
-                note.pitch = note.dragInitialPosition[1] + dy
+            for note in notes:
+                if note.selected and note.dragInitialPosition:
+                    note.time = note.dragInitialPosition[0] + dx
+                    note.pitch = note.dragInitialPosition[1] + dy
+        else:
+            # SELECTION BOX
+            x0, y0 = selectionStartPos
+            x1, y1 = pygame.mouse.get_pos()
 
-    else:
-        # SELECTION BOX
-        x0, y0 = selectionStartPos
-        x1, y1 = pygame.mouse.get_pos()
+            rect = pygame.Rect(
+                min(x0, x1),
+                min(y0, y1),
+                abs(x1 - x0),
+                abs(y1 - y0)
+            )
+            NoteGrid.setSelection(rect)
+            #pygame.draw.rect(screen, gui.BORDER_COLOR, rect, 1)
 
-        rect = pygame.Rect(
-            min(x0, x1),
-            min(y0, y1),
-            abs(x1 - x0),
-            abs(y1 - y0)
-        )
-        NoteGrid.setSelection(rect)
-        #pygame.draw.rect(screen, gui.BORDER_COLOR, rect, 1)
+            for note in notes:
+                note_x, note_y = custom.convertGridToWorld(note.time, note.pitch)
+                note_rect = pygame.Rect(note_x, note_y, note.duration * custom.tileWidth, custom.tileHeight)
 
-        for note in notes:
-            note_x, note_y = custom.convertGridToWorld(note.time, note.pitch)
-            note_rect = pygame.Rect(note_x, note_y, note.duration * custom.tileWidth, custom.tileHeight)
-
-            if rect.colliderect(note_rect): note.select()
-            else: note.unselect()
+                if rect.colliderect(note_rect): note.select()
+                else: note.unselect()
 
     NotePanel.render(screen)
 
@@ -767,6 +874,8 @@ def handleDrag(xy):
 NoteGrid.onMouseClick(handleClick)
 NoteGrid.onMouseDrag(handleDrag)
 NoteGrid.onMouseUnClick(lambda: (setattr(NoteGrid, 'selectionRect', None),
+                                 trimOverlappingNotes(),
+                                 pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW),
                                  NotePanel.render(screen)))
 
 
@@ -864,6 +973,10 @@ while running:
 
             PitchPanel.setRect((0, 80, 80, height - 80))
             NotePanel.setRect((80, 80, width - 80, height - 80))
+            NoteGrid.width = width
+            NoteGrid.height = height
+            PitchList.height = height
+            NoteGrid.viewBounds()
 
             ToolBar.setRect((0, 0, width, 80))
             GridPanel.setRect((0, 80, width, height - 80))
@@ -871,11 +984,25 @@ while running:
 
             MasterPanel.render(screen)
         elif event.type == pygame.KEYDOWN:
+            if event.key in [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7]:
+                numKeyPressed = [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7].index(event.key)
+                ColorButton.setCurrentState(numKeyPressed)
+                colorSync()
+            if event.key in [pygame.K_MINUS, pygame.K_EQUALS]: # zoom out horizontally
+                if pygame.key.get_pressed()[pygame.K_LCTRL]:
+                    zoomIndex = zoomDimensions.index((custom.tileWidth, custom.tileHeight))
+                    if event.key == pygame.K_MINUS:
+                        zoomIndex = max(zoomIndex - 1, 0)
+                    elif event.key == pygame.K_EQUALS:
+                        zoomIndex = min(zoomIndex + 1, len(zoomDimensions) - 1)
+                    custom.tileWidth, custom.tileHeight = zoomDimensions[zoomIndex]
+                    GridPanel.render(screen)
             if event.key == pygame.K_BACKSPACE or event.key == pygame.K_DELETE: # Delete all selected notes
-                for colorName, colorChannel in noteMap.items():
-                    for note in colorChannel:
-                        if note.selected:
-                            colorChannel.remove(note)
+                for colorName in noteMap:
+                    noteMap[colorName] = [
+                        note for note in noteMap[colorName]
+                        if not note.selected
+                    ]
                 NotePanel.render(screen)
             elif event.key == CMD_KEY: # Switch to eraser momentarily
                 brushType = "eraser"

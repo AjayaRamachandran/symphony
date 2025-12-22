@@ -28,10 +28,10 @@ def notesToFreq(notes):
     Converts a set of notes (as ints from C2) to frequencies
     '''
     freqs = []
-    C1 = 65.41 / 2
+    C2 = 65.41
     ratio = 1.05946309436
     for note in notes:
-        noteFreq = C1 * (ratio ** (note - 1))
+        noteFreq = C2 * (ratio ** (note - 1))
         freqs.append(noteFreq)
     return freqs
 
@@ -85,12 +85,12 @@ def exportToWav(arr2d: np.ndarray, filename: str, sample_rate: int = 44100): # f
         counter += 1
     sfwrite(candidate, arr2d, sample_rate, subtype='PCM_16')
 
-def playNotes(play_obj=None, notes=None, duration=1, waves=0, volume=0.2, sample_rate=SAMPLE_RATE):
+def playNotes(notes=[], waves=0, duration=1, volume=0.2, sample_rate=SAMPLE_RATE):
     '''
     fields:
         notes (list) - list of notes to play\n
+        waves (number) - wave type for the notes\n
         duration (number) - duration of the sound, in seconds\n
-        waves (number) - list of wave types for the notes\n
         volume (number) - volume of the sound\n
         sample_rate (number) - the sample rate of the audio
     outputs: nothing
@@ -122,73 +122,105 @@ def playNotes(play_obj=None, notes=None, duration=1, waves=0, volume=0.2, sample
 
         audio = (wave * 32767).astype(np.int16)
         sound = toSound(audio)
+
         play_obj = sound.play()
         return play_obj
+    
     except Exception as e:
         console.error(f"NoteError: {e}")
         return None
 
-def assembleNotes(notes, phases, waveMap, duration=1, volume=0.2, sample_rate=SAMPLE_RATE):
+def playFull(noteMap, waveMap, playhead=0, tpm=120, volume=0.2, sample_rate=SAMPLE_RATE, channel='all'):
     '''
     fields:
-        notes (list) - list of notes to play\n
-        phases (list) - phases of the notes (to avoid phase mismatch)\n
-        duration (number) - duration of the sound\n
-        volume (number) - volume of the sound\n
-        sample_rate (number) - the sample rate of the audio
-    outputs: np.array, list
-
-    Compound notes playback, tracks phase to keep continuous notes.
+        noteMap (dict) - { colorchannel : [Note, ...] }
+        waveMap (dict) - { color : 'square' | 'triangle' | 'sawtooth' }
+        playhead (int) - tile offset
+        tpm (int) - tiles per minute
+        volume (float) - output volume
+        sample_rate (int) - audio sample rate
+        channel (str | int) - which channel to play
+    outputs:
+        pygame.mixer.Sound
     '''
-    freqs = notesToFreq([n[0] for n in notes])
-    inColors = [n[2] for n in notes]
 
-    counts = {}
-    for idx, f in enumerate(freqs):
-        typ = waveMap[inColors[idx]]
-        counts[(f, typ)] = counts.get((f, typ), 0) + 1
+    try:
+        seconds_per_tile = 60.0 / tpm
 
-    t = np.linspace(0, duration, int(sample_rate * duration), False)
-    newPhases = {}
-    wave = np.zeros_like(t)
-    #seen = set()
+        # Flatten notes and find total length
+        all_notes = []
+        last_tile = 0
 
-    phasesOfFreqs = {}
+        for cchIdx, cch in enumerate(noteMap.items()):
+            color, notes = cch
+            if channel == 'all' or channel == cchIdx:
+                for note in notes:
+                    all_notes.append((color, note))
+                    end_tile = note.time + note.duration
+                    last_tile = max(last_tile, end_tile)
 
-    for idx, freq in enumerate(freqs):
-        typ = waveMap[inColors[idx]]
-        phase = phases.get(freq, 0.0)
-        if notes[idx][1]:
-            phase += pi
-        if freq in phasesOfFreqs:
-            phase = phasesOfFreqs[freq]
+        total_duration = last_tile * seconds_per_tile
+        total_samples = int(total_duration * sample_rate)
+
+        wave = np.zeros(total_samples, dtype=np.float32)
+
+        # Generate each note into the buffer
+        for color, note in all_notes:
+            freq = notesToFreq([note.pitch])[0]
+            wave_type = waveMap[color]
+
+            start_sec = note.time * seconds_per_tile
+            dur_sec = note.duration * seconds_per_tile
+
+            start_idx = int(start_sec * sample_rate)
+            end_idx = int((start_sec + dur_sec) * sample_rate)
+
+            if start_idx >= total_samples:
+                continue
+
+            t = np.linspace(0, dur_sec, end_idx - start_idx, False)
+
+            if wave_type == 0:  # square
+                part = np.sign(np.sin(2 * np.pi * freq * t))
+            elif wave_type == 1:  # triangle
+                part = (2 / np.pi) * np.arcsin(np.sin(2 * np.pi * freq * t))
+            else:  # sawtooth
+                part = 2 * (t * freq - np.floor(0.5 + t * freq))
+
+            part *= noteToMagnitude(note.pitch, wave_type)
+
+            wave[start_idx:end_idx] += part[:max(0, total_samples - start_idx)]
+
+        # Normalize
+        max_val = np.max(np.abs(wave))
+        if max_val > 0:
+            wave /= max_val
+
+        wave *= volume * 0.3
+
+        # Apply playhead offset
+        playhead_samples = int(playhead * seconds_per_tile * sample_rate)
+        if playhead_samples < len(wave):
+            wave = wave[playhead_samples:]
         else:
-            phasesOfFreqs[freq] = phase
-        #if (freq, typ) in seen:
-            #continue
+            wave = np.zeros(1, dtype=np.float32)
 
-        if typ == 0: # square wave
-            part = np.sign(np.sin(2 * np.pi * freq * t + phase)) * counts[(freq, typ)]
-        elif typ == 1: # triangle wave
-            part = (2 / np.pi) * np.arcsin(np.sin(2 * np.pi * freq * t + phase)) * counts[(freq, typ)] * 2
-        else: # sawtooth wave
-            part = 2 * (t * freq + (phase / (2 * pi)) - np.floor(0.5 + t * freq + (phase / (2 * pi)))) * counts[(freq, typ)]
+        audio = (wave * 32767).astype(np.int16)
+        sound = toSound(audio)
 
-        wave += part
-        #seen.add((freq, typ))
-        newPhases[freq] = (phase + 2 * np.pi * freq * duration) % (2 * np.pi) # increments phase to keep it continuous
 
-    # normalize + volume
-    wave = wave / np.max(np.abs(wave)) - (0.6 * wave / (np.max(np.abs(wave)) ** 2))
-    wave *= volume * 0.3
+        play_obj = sound.play()
+        return play_obj
 
-    audio = (wave * 32767).astype(np.int16)
-    return audio, newPhases
+    except Exception as e:
+        console.error(f"playFull Error: {e}")
+        return None
 
-def createMidiFromNotes(noteData, workingFile, outputFolderPath, instrumentName="Acoustic Grand Piano"):
+
+def createMidiFromNotes(noteMap, workingFile, outputFolderPath, instrumentName="Acoustic Grand Piano"):
     '''
     fields:
-        noteData (list) - list of notes, containing timing, pitch, and duration\n
+        noteMap (dict) - noteMap data\n
         outputFolderPath (string) - path of output folder\n
         instrumentName (string) - instrument type to use
     outputs: nothing
@@ -208,14 +240,15 @@ def createMidiFromNotes(noteData, workingFile, outputFolderPath, instrumentName=
     midi = pretty_midi.PrettyMIDI()
     instrument = pretty_midi.Instrument(program=pretty_midi.instrument_name_to_program(instrumentName))
 
-    for note in noteData:
-        pitch = note["pitch"]
-        start = note["startTime"]
-        end = start + note["duration"]
-        velocity = note.get("velocity", 127)
+    for color, channel in noteMap.items():
+        for note in noteMap:
+            pitch = note.pitch + 23
+            start = note.time
+            end = start + note.duration
+            velocity = 64
 
-        midiNote = pretty_midi.Note(velocity=velocity, pitch=pitch, start=start, end=end)
-        instrument.notes.append(midiNote)
+            midiNote = pretty_midi.Note(velocity=velocity, pitch=pitch, start=start, end=end)
+            instrument.notes.append(midiNote)
 
     midi.instruments.append(instrument)
     midi.write(candidate)

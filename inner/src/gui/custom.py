@@ -62,7 +62,7 @@ def convertGridToWorld(time, pitch, tileSize: tuple[int | float] = None, view: t
     _tileWidth, _tileHeight = tileSize if tileSize is not None else (tileWidth, tileHeight)
     _viewCol, _viewRow = view if view is not None else (viewCol, viewRow)
 
-    return [(time - viewCol) * _tileWidth + 80, ((112 - viewRow) - pitch) * _tileHeight + 80]
+    return [(time - viewCol) * _tileWidth + 80, ((84 - viewRow) - pitch) * _tileHeight + 80]
 
 def convertWorldToGrid(mousePos, tileSize: tuple[int | float] = None, view: tuple[int | float] = None):
     '''
@@ -84,7 +84,7 @@ def convertWorldToGrid(mousePos, tileSize: tuple[int | float] = None, view: tupl
     _viewCol, _viewRow = view if view is not None else (viewCol, viewRow)
 
     time = (mouseX - 80) / _tileWidth + _viewCol
-    pitch = (112 - _viewRow) - (mouseY - 80) / _tileHeight
+    pitch = (84 - _viewRow) - (mouseY - 80) / _tileHeight
 
     return floor(time), ceil(pitch)
 
@@ -98,10 +98,22 @@ class PitchList(gui.Interactive):
     def __init__(self, pos, width, height, notes):
         super().__init__(pos, width, height)
         self.notes = notes
+        self.mode = [0, 2, 4, 6, 7, 9, 11]
+        self.key = 3
 
         self.onMouseEnter(lambda: (setattr(self, 'redraw', True), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
         self.onMouseLeave(lambda: (setattr(self, 'redraw', True), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
         self.onMouseClick(lambda: setattr(self, 'redraw', True))
+
+    def setModeKey(self, mode=None, key=None):
+        '''
+        fields:
+            mode (list) - list of which 12TET notes are in the mode
+        
+        Updates the internal interval to match the main interval.
+        '''
+        self.mode = mode if mode != None else self.mode
+        self.key = key if key != None else self.key
 
     def setNotes(self, notes):
         self.notes = notes
@@ -119,14 +131,14 @@ class PitchList(gui.Interactive):
         offsetY = (ceil(viewRow) - viewRow - 1) * tileHeight + 80
         y = 0
         while offsetY < pygame.display.get_window_size()[1]:
-            litRow = (ceil(viewRow + y - 1) % 2 == 0)
+            litRow = ((11 - ceil((viewRow + y - 1) + self.key) % 12) in self.mode)
             noteToWrite = self.notes[11 - (ceil(viewRow + y - 1) % 12)]
             octaveToWrite = 8 - ceil(viewRow + y - 1) // 12
             pygame.draw.rect(screen, gui.ALT_BG_COLOR_4 if (litRow) else gui.ALT_BG_COLOR_3,
                                 (1, offsetY + 1, 78, tileHeight - 2), border_radius=3)
             gui.stamp(screen, f"{noteToWrite} {octaveToWrite}", gui.SUBHEADING1, 5, offsetY + 5, gui.ALT_TEXT_COLOR)
             if pygame.mouse.get_pressed()[0] and gui.mouseBounds((1, offsetY + 1, 78, tileHeight - 2)):
-                sp.playNotes(notes=[(11 - (ceil(viewRow + y - 1) % 12)) + 12 * (7 - ceil(viewRow + y - 1) // 12) + 1], duration=0.2, volume=0.05)
+                sp.playNotes(notes=[(-1 - (ceil(viewRow + y - 1) % 12)) + 12 * (7 - ceil(viewRow + y - 1) // 12) + 1], duration=0.2, volume=0.12)
             
             offsetY += tileHeight
             y += 1
@@ -138,27 +150,35 @@ class NoteGrid(gui.Interactive):
     def __init__(self, pos, width, height):
         super().__init__(pos, width, height)
         self.noteMap = {}
+        self.color = 0
         self.scVel = [0, 0]
         self.interval = 4
+        self.mode = [0, 2, 4, 6, 7, 9, 11]
+        self.key = 3
 
         self.selectionRect = None
 
         def changeView(xy):
-            global viewRow, viewCol
+            global viewRow, viewCol, tileHeight, tileWidth
             self.redraw = True
             viewCol += xy[0] / 8
             viewRow -= xy[1] / 8
             if viewCol <= 0:
                 viewCol = 0
-            if viewRow <= 12:
-                viewRow = 12
-            if viewRow >= 84:
-                viewRow = 84
+            self.viewBounds()
             x, y = xy
             self.scVel = [x * 2, y * 2]
 
         self.onMouseClick(lambda: setattr(self, 'redraw', True))
         self.onHoverScroll(changeView)
+
+    def viewBounds(self):
+        global viewRow, viewCol
+        numRowsVisible = (pygame.display.get_window_size()[1] - 80) / tileHeight
+        if viewRow <= 23:
+            viewRow = 23
+        if viewRow >= 96 - numRowsVisible:
+            viewRow = 96 - numRowsVisible
 
     def setNoteMap(self, noteMap):
         '''
@@ -177,6 +197,16 @@ class NoteGrid(gui.Interactive):
         Updates the internal interval to match the main interval.
         '''
         self.interval = interval
+
+    def setModeKey(self, mode=None, key=None):
+        '''
+        fields:
+            mode (list) - list of which 12TET notes are in the mode
+        
+        Updates the internal interval to match the main interval.
+        '''
+        self.mode = mode if mode != None else self.mode
+        self.key = key if key != None else self.key
 
     def setLinkedPanels(self, panel: frame.Panel, notes: frame.Panel):
         self.panel = panel
@@ -201,10 +231,7 @@ class NoteGrid(gui.Interactive):
             viewRow -= self.scVel[1] / 20
             if viewCol <= 0:
                 viewCol = 0
-            if viewRow <= 12:
-                viewRow = 12
-            if viewRow >= 84:
-                viewRow = 84
+            self.viewBounds()
             self.panel.render(screen)
             self.notes.render(screen)
     
@@ -218,7 +245,7 @@ class NoteGrid(gui.Interactive):
             litCol = (ceil(viewCol + x - 1) % self.interval == 0)
             y = 0
             while offsetY < pygame.display.get_window_size()[1]:
-                litRow = (ceil(viewRow + y - 1) % 2 == 0)
+                litRow = ((11 - ceil((viewRow + y - 1) + self.key) % 12) in self.mode)
                 pygame.draw.rect(screen, gui.ALT_BG_COLOR_1 if (litRow != litCol) else gui.ALT_BG_COLOR_2 if (litRow and litCol) else gui.ALT_BG_COLOR,
                                  (offsetX + 1, offsetY + 1, tileWidth - 2, tileHeight - 2), border_radius=3)
                 offsetY += tileHeight
@@ -232,7 +259,7 @@ class NoteGrid(gui.Interactive):
 
             for note in colorNotes:
                 if isinstance(note, Note):
-                    note.render(screen, colors[colorIdx], False, [0,0])
+                    note.render(screen, colors[colorIdx], self.color != 6 and self.color != colorIdx, [0,0])
                 else:
                     raise ValueError(f'Invalid data type for note: {note.__class__()}')
         
@@ -305,6 +332,7 @@ class Note():
         self.selected = False
         self.visible = True
         self.dragInitialPosition = None
+        self.extendOriginalDuration = self.duration
     
     def __repr__(self):
         return f"Note object with Pitch: {self.pitch}, Time: {self.time}, Duration: {self.duration}, Data Fields: {self.dataFields}, Selected?: {self.selected}"
@@ -352,13 +380,33 @@ class Note():
 
     def render(self, screen: pygame.Surface, color: tuple[int, int, int, int], transparent = False, tileOffset: tuple = None): 
 
-        drawScreen = pygame.Surface(pygame.display.get_window_size(), pygame.SRCALPHA)
+        #drawScreen = pygame.Surface(pygame.display.get_window_size(), pygame.SRCALPHA)
         rectCoords = [
             *convertGridToWorld(self.time, self.pitch, (tileWidth, tileHeight), (viewCol, viewRow)),
             self.duration * tileWidth,
             tileHeight
         ]
-        pygame.draw.rect(drawScreen, (*color[:3], 128 if transparent else 255), rectCoords, border_radius=3)
+        lineCoordsTop = [
+            rectCoords[0] + rectCoords[2] - 6,
+            rectCoords[1] + 5
+        ]
+        lineCoordsBottom = [
+            rectCoords[0] + rectCoords[2] - 6,
+            rectCoords[1] + rectCoords[3] - 5
+        ]
+        lineCoordsTop2 = [
+            rectCoords[0] + rectCoords[2] - 10,
+            rectCoords[1] + 5
+        ]
+        lineCoordsBottom2 = [
+            rectCoords[0] + rectCoords[2] - 10,
+            rectCoords[1] + rectCoords[3] - 5
+        ]
+        pygame.draw.rect(screen, ([100, 100, 100, 255] if transparent else color), rectCoords, border_radius=3)
+        pygame.draw.line(screen, ([80, 80, 80, 255] if transparent else [*[color[a]*0.7 for a in range(3)], 255]),
+                         lineCoordsTop, lineCoordsBottom, 2)
+        pygame.draw.line(screen, ([80, 80, 80, 255] if transparent else [*[color[a]*0.7 for a in range(3)], 255]),
+                         lineCoordsTop2, lineCoordsBottom2, 2)
         if self.selected:
-            pygame.draw.rect(drawScreen, (255, 255, 255, 255), rectCoords, width=2, border_radius=3)
-        screen.blit(drawScreen, [0, 0])
+            pygame.draw.rect(screen, (255, 255, 255, 255), rectCoords, width=2, border_radius=3)
+        #screen.blit(screen, [0, 0])
