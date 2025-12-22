@@ -989,7 +989,7 @@ while running:
                 ColorButton.setCurrentState(numKeyPressed)
                 colorSync()
             if event.key in [pygame.K_MINUS, pygame.K_EQUALS]: # zoom out horizontally
-                if pygame.key.get_pressed()[pygame.K_LCTRL]:
+                if pygame.key.get_pressed()[CMD_KEY]:
                     zoomIndex = zoomDimensions.index((custom.tileWidth, custom.tileHeight))
                     if event.key == pygame.K_MINUS:
                         zoomIndex = max(zoomIndex - 1, 0)
