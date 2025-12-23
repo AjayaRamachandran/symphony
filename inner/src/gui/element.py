@@ -603,6 +603,100 @@ class Button(Interactive):
         self.currentStateIdx = idx
         self.currentState = self.states[self.currentStateIdx]
 
+class Dropdown(Interactive):
+    '''
+    Class to contain dropdowns, which inherit an interactive, having states and open/closed state.
+    '''
+    def __init__(self, pos, width, height, states: list, font: pygame.font.Font=None, image: pygame.Surface=None):
+        super().__init__(pos, width, height)
+
+        # button properties
+        self.initHeight = height
+        self.states = states
+        self.currentStateIdx = 0
+        self.currentState = self.states[self.currentStateIdx]
+        self.font = font if (font != None) else SUBHEADING1
+        self.image = image if (image != None) else pygame.Surface((16, 16), pygame.SRCALPHA)
+        self.expanded = False
+
+        self.onMouseEnter(lambda: (setattr(self, "redraw", True), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
+        self.onMouseLeave(lambda: (setattr(self, "redraw", True), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
+        
+        self.onMouseClick(self.handleClick)
+        self.onMouseClickOut(self.handleClickOut)
+
+    def handleClick(self):
+        self.redraw = True
+        self.expanded = not self.expanded
+        if self.expanded:
+            self.height = self.initHeight * (len(self.states) + 1)
+        else:
+            if ((pygame.mouse.get_pos()[1] - self.y) // self.initHeight) - 1 == -1:
+                self.handleClickOut() # if we select the top item (the placeholder), treat it like clicking out
+            else:
+                self.setCurrentState(((pygame.mouse.get_pos()[1] - self.y) // self.initHeight) - 1)
+                self.height = self.initHeight
+                if callable(self.onSelectCallback) : self.onSelectCallback()
+                if callable(self.onCloseCallback): self.onCloseCallback()
+
+    def handleClickOut(self):
+        self.redraw = True
+        self.expanded = False
+        self.height = self.initHeight
+        if callable(self.onCloseCallback): self.onCloseCallback()
+
+    def onSelect(self, function):
+        '''
+        fields:
+            function (function | lambda) - an action to do.
+        outputs: nothing
+
+        Takes in a function or lambda, and sets it internally as the action to do when a dropdown item is selected.
+        '''
+        self.onSelectCallback = function
+
+    def onClose(self, function):
+        '''
+        fields:
+            function (function | lambda) - an action to do.
+        outputs: nothing
+
+        Takes in a function or lambda, and sets it internally as the action to do when a dropdown is closed.
+        '''
+        self.onCloseCallback = function 
+    
+    def update(self, screen):
+        super().update(screen)
+        if self.redraw:
+            self.render(screen)
+
+    def render(self, screen: pygame.Surface):
+        if not self.expanded:
+            pygame.draw.rect(screen, ALT_BG_COLOR_1 if self.mouseInside else ALT_BG_COLOR_4, (self.x, self.y, self.width, self.height), border_radius=3)
+            stamp(screen, self.currentState, self.font, self.x + self.width/2, self.y + self.height/2, ALT_TEXT_COLOR, justification="center")
+        if self.expanded:
+            pygame.draw.rect(screen, ALT_BG_COLOR_4, (self.x, self.y, self.width, self.height), border_radius=3)
+            stamp(screen, self.currentState, self.font, self.x + self.width/2, self.y + self.initHeight/2, ALT_TEXT_COLOR, justification="center")
+        
+            # dropdown bg
+            pygame.draw.rect(screen, ALT_BG_COLOR_4, (self.x, self.y + self.initHeight, self.width, self.height - self.initHeight), border_radius=3)
+            # outline
+            pygame.draw.rect(screen, BORDER_COLOR, (self.x, self.y + self.initHeight, self.width, self.height - self.initHeight), border_radius=3, width=1)
+            # selected item highlight
+            pygame.draw.rect(screen, ALT_BG_COLOR_1, (self.x, self.y + self.initHeight + (self.currentStateIdx * self.initHeight), self.width, self.initHeight), border_radius=3)
+            for idx, state in enumerate(self.states):
+                stamp(screen, state, self.font, self.x + self.width/2, self.y + self.initHeight/2 + ((idx + 1) * self.initHeight),
+                      ALT_TEXT_COLOR, justification="center")
+
+    def cycleStates(self):
+        self.currentStateIdx = (self.currentStateIdx + 1) % len(self.states)
+        self.currentState = self.states[self.currentStateIdx]
+    
+    def setCurrentState(self, idx):
+        self.currentStateIdx = idx
+        self.currentState = self.states[self.currentStateIdx]
+
+
 class Scrollbar(Interactive):
     '''
     Class to contain scroll bars, which inherit an interactive, having interactive slidability.

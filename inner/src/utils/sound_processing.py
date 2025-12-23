@@ -47,7 +47,7 @@ def noteToMagnitude(note, waves):
     if waves != 1:
         mag = (1.8 - 1.4 * (note / 72))
     else:
-        mag = 6 * exp(-(1/20) * note)
+        mag = 6 * exp(-(1/20) * (note + 5))
     return mag
 
 def toSound(array_1d: np.ndarray, returnType='Sound'):# -> pygame.mixer.Sound:
@@ -116,8 +116,16 @@ def playNotes(notes=[], waves=0, duration=1, volume=0.2, sample_rate=SAMPLE_RATE
                 part = 2 * (t * freq - np.floor(0.5 + t * freq)) * mag
             wave += part * noteToMagnitude(note, waves)
 
+        # --- small fade-out for triangle wave to avoid pop ---
+        if waves == 1:
+            fade_time = 0.005  # 5 ms
+            fade_len = int(sample_rate * fade_time)
+            if fade_len > 0:
+                fade = np.linspace(1, 0, fade_len)
+                wave[-fade_len:] *= fade
+        # ----------------------------------------------------
+
         # normalize + volume
-        #wave = wave/np.max(np.abs(wave)) - (0.6*wave/(np.max(np.abs(wave))**2))
         wave *= volume * 0.3
 
         audio = (wave * 32767).astype(np.int16)
@@ -184,6 +192,14 @@ def playFull(noteMap, waveMap, playhead=0, tpm=120, volume=0.2, sample_rate=SAMP
                 part = np.sign(np.sin(2 * np.pi * freq * t))
             elif wave_type == 1:  # triangle
                 part = (2 / np.pi) * np.arcsin(np.sin(2 * np.pi * freq * t))
+
+                # --- small fade-out to avoid pop ---
+                fade_time = 0.005  # 5 ms
+                fade_len = int(sample_rate * fade_time)
+                if fade_len > 0 and fade_len < len(part):
+                    fade = np.linspace(1, 0, fade_len)
+                    part[-fade_len:] *= fade
+                # ----------------------------------
             else:  # sawtooth
                 part = 2 * (t * freq - np.floor(0.5 + t * freq))
 
@@ -207,7 +223,6 @@ def playFull(noteMap, waveMap, playhead=0, tpm=120, volume=0.2, sample_rate=SAMP
 
         audio = (wave * 32767).astype(np.int16)
         sound = toSound(audio)
-
 
         play_obj = sound.play()
         return play_obj

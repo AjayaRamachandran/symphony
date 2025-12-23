@@ -25,7 +25,7 @@ class Panel():
     '''
     Rectangular object that can render as a surface and hold elements within it. 
     '''
-    def __init__(self, rect: list | tuple, bgColor, elements: list):
+    def __init__(self, rect: list | tuple, bgColor, elements: list, name = None):
         self.x = rect[0]
         self.y = rect[1]
         self.width = rect[2]
@@ -33,7 +33,12 @@ class Panel():
         self.bgColor = bgColor
         self.elements = elements
 
+        self.name = name if name else f"Panel at ({self.x, self.y, self.width, self.height}) and bgColor {self.bgColor}"
+
         self.selfRender = None
+    
+    def __str__(self):
+        return self.name
 
     def setRect(self, rect):
         self.x = rect[0]
@@ -89,6 +94,7 @@ class Panel():
 
         Ex. updating the beats per measure requires the grid panel to re-render.
         '''
+        #console.log(f'rendering {str(self)}')
         mySurface = pygame.Surface((pygame.display.get_window_size()), pygame.SRCALPHA)
         mySurface.fill(self.bgColor)
 

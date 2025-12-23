@@ -184,6 +184,7 @@ waveImages = [squareWaveImage, triangleWaveImage, sawtoothWaveImage]
 
 upChevronImage = pygame.image.load(f"{source_path}/assets/up.png")
 downChevronImage = pygame.image.load(f"{source_path}/assets/down.png")
+upDownChevronImage = pygame.image.load(f"{source_path}/assets/up-down.png")
 
 ###### PYGAME & WINDOW INITIALIZE ######
 
@@ -332,36 +333,42 @@ lastTime = time.time()
 
 
 PlayPauseButton = gui.Button(pos=(26, 26), width=28, height=28, states=[playImage, pauseImage])
-AccidentalsButton = gui.Button(pos=(60, 26), width=28, height=28, states=[sharpsImage, flatsImage])
+AccidentalsButton = gui.Button(pos=(60, 26), width=28, height=28, states=[flatsImage, sharpsImage])
 PlayheadButton = gui.Button(pos=(94, 26), width=28, height=28, states=[headImage, headAltImage])
 BrushButton = gui.Button(pos=(128, 26), width=28, height=28, states=[brushImage, eraserImage, selectImage])
 LeftToolbar = frame.Panel((0, 0, width, height), gui.EMPTY_COLOR,
-                           [PlayPauseButton, AccidentalsButton, PlayheadButton, BrushButton])
+                           [PlayPauseButton, AccidentalsButton, PlayheadButton, BrushButton],
+                           name="LeftToolbar")
 
 TempoDownButton = gui.Button(pos=(180, 26), width=20, height=28, states=[downChevronImage])
 TempoTextBox = gui.TextBox(pos=(205, 26), width=105, height=28, text='360')
 TempoUpButton = gui.Button(pos=(315, 26), width=20, height=28, states=[upChevronImage])
 TempoControls = frame.Panel((0, 0, width, height), gui.EMPTY_COLOR,
-                            [TempoDownButton, TempoTextBox, TempoUpButton])
+                            [TempoDownButton, TempoTextBox, TempoUpButton],
+                            name="TempoControls")
 
 MeasureLengthDownButton = gui.Button(pos=(width - 360, 26), width=20, height=28, states=[downChevronImage])
 MeasureLengthTextBox = gui.TextBox(pos=(width - 335, 26), width=30, height=28, text='4')
 MeasureLengthUpButton = gui.Button(pos=(width - 300, 26), width=20, height=28, states=[upChevronImage])
 MeasureLengthControls = frame.Panel((0, 0, width, height), gui.EMPTY_COLOR,
-                                    [MeasureLengthDownButton, MeasureLengthTextBox, MeasureLengthUpButton])
+                                    [MeasureLengthDownButton, MeasureLengthTextBox, MeasureLengthUpButton],
+                                    name="MeasureLengthControls")
 
 colorStates = custom.getColorStates(28, 28, source_path)
 ColorButton = gui.Button(pos=(width - 256, 26), width=28, height=28, states=colorStates)
 WaveButton = gui.Button(pos=(width - 223, 26), width=28, height=28, states=[squareWaveImage, triangleWaveImage, sawtoothWaveImage])
-KeyButton = gui.Button(pos=(width - 171, 26), width=40, height=28, states=NOTES_FLAT)
-ModeButton = gui.Button(pos=(width - 126, 26), width=100, height=28, states=modes)
+KeyDropdown = gui.Dropdown(pos=(width - 171, 26), width=40, height=28, states=NOTES_FLAT, image=upDownChevronImage)
+ModeDropdown = gui.Dropdown(pos=(width - 126, 26), width=100, height=28, states=modes, image=upDownChevronImage)
 RightToolbar = frame.Panel((0, 0, width, height), gui.EMPTY_COLOR,
-                           [KeyButton, ModeButton, WaveButton, ColorButton])
+                           [KeyDropdown, ModeDropdown, WaveButton, ColorButton],
+                           name="RightToolbar")
 
-ToolBar = frame.Panel((0, 0, width, 80), gui.BG_COLOR,
-                          [RightToolbar, LeftToolbar, MeasureLengthControls, TempoControls])
+ToolBar = frame.Panel((0, 0, width, height), (0, 0, 0, 0),
+                          [RightToolbar, LeftToolbar, MeasureLengthControls, TempoControls],
+                          name="ToolBar")
 
 def toolBarGraphics(screen):
+    pygame.draw.rect(screen, gui.BG_COLOR, (0, 0, width, 80))
     pygame.draw.line(screen, gui.BORDER_COLOR, (0, 79), (width, 79), 1)
 
 ToolBar.onSelfRender(toolBarGraphics)
@@ -372,17 +379,21 @@ NoteGrid = custom.NoteGrid(pos=(0, 0), width=width, height=height)
 PitchList = custom.PitchList(pos=(0, 80), width=80, height=height-80, notes=NOTES_FLAT)
 PlayHead = custom.PlayHead()
 
-NotePanel = frame.Panel(rect=(80, 80, width-80, height-80), bgColor=gui.BG_COLOR, elements=[NoteGrid, PlayHead])
+NotePanel = frame.Panel(rect=(80, 80, width-80, height-80), bgColor=gui.BG_COLOR, elements=[NoteGrid, PlayHead],
+                        name="NotePanel")
 PlayHead.setLinkedPanel(NotePanel)
-PitchPanel = frame.Panel(rect=(0, 80, 80, height-80), bgColor=gui.BG_COLOR, elements=[PitchList])
+PitchPanel = frame.Panel(rect=(0, 80, 80, height-80), bgColor=gui.BG_COLOR, elements=[PitchList],
+                         name="PitchPanel")
 
 NoteGrid.setLinkedPanels(NotePanel, PitchPanel)
 PitchList.setLinkedPanels(PitchPanel)
 
-GridPanel = frame.Panel((0, 80, width, height-80), (0, 0, 0, 0), [NotePanel, PitchPanel])
+GridPanel = frame.Panel((0, 80, width, height-80), (0, 0, 0, 0), [NotePanel, PitchPanel],
+                        name="GridPanel")
 NoteGrid.setNoteMap(noteMap)
 
-MasterPanel = frame.Panel((0, 0, width, height), gui.BG_COLOR, [ToolBar, GridPanel])
+MasterPanel = frame.Panel((0, 0, width, height), gui.BG_COLOR, [GridPanel, ToolBar],
+                          name="MasterPanel")
 
 ###### PROGRAM STATE INITIALIZE ######
 
@@ -439,8 +450,8 @@ NoteGrid.setModeKey(key = NOTES_SHARP.index(key) if ('#' in key) else NOTES_FLAT
 ###### GUI LOGIC ######
 
 # Key, Mode
-KeyButton.setCurrentState(keyIndex)
-ModeButton.setCurrentState(modes.index(mode))
+KeyDropdown.setCurrentState(keyIndex)
+ModeDropdown.setCurrentState(modes.index(mode))
 
 def playPauseToggle():
     global playing, play_obj
@@ -513,8 +524,9 @@ def measureLengthSync():
     global timeInterval
     timeInterval = int(MeasureLengthTextBox.getText())
     MeasureLengthControls.render(screen)
-    NoteGrid.setIntervals(timeInterval)
-    NotePanel.render(screen)
+    if NoteGrid.interval != timeInterval:
+        NoteGrid.setIntervals(timeInterval)
+        NotePanel.render(screen)
 
 def measureLengthUp():
     global timeInterval
@@ -535,36 +547,42 @@ MeasureLengthTextBox.onBlurFocus(measureLengthSync)
 def toggleAccidentals():
     AccidentalsButton.cycleStates()
     AccidentalsButton.render(screen)
-    PitchList.setNotes(NOTES_FLAT if AccidentalsButton.currentState == flatsImage else NOTES_SHARP)
+    PitchList.setNotes(NOTES_FLAT if (AccidentalsButton.currentStateIdx == 0) else NOTES_SHARP)
     PitchPanel.render(screen)
+    if AccidentalsButton.currentStateIdx == 0: # changed to flats
+        KeyDropdown.states = NOTES_FLAT
+        KeyDropdown.setCurrentState(keyIndex)
+        KeyDropdown.render(screen)
+    else:
+        KeyDropdown.states = NOTES_SHARP
+        KeyDropdown.setCurrentState(keyIndex)
+        KeyDropdown.render(screen)
 AccidentalsButton.onMouseClick(toggleAccidentals)
 
-def cycleKey():
-    KeyButton.cycleStates()
-    NoteGrid.setModeKey(key = KeyButton.currentStateIdx)
-    PitchList.setModeKey(key = KeyButton.currentStateIdx)
-    KeyButton.render(screen)
-    NotePanel.render(screen)
+def finalizeKey():
+    NoteGrid.setModeKey(key = KeyDropdown.currentStateIdx)
+    PitchList.setModeKey(key = KeyDropdown.currentStateIdx)
 
-def cycleMode():
-    ModeButton.cycleStates()
-    NoteGrid.setModeKey(mode = modesMap[ModeButton.currentState])
-    PitchList.setModeKey(mode = modesMap[ModeButton.currentState])
-    ModeButton.render(screen)
-    NotePanel.render(screen)
+def finalizeMode():
+    NoteGrid.setModeKey(mode = modesMap[ModeDropdown.currentState])
+    PitchList.setModeKey(mode = modesMap[ModeDropdown.currentState])
 
-KeyButton.onMouseClick(cycleKey)
-ModeButton.onMouseClick(cycleMode)
+KeyDropdown.onSelect(finalizeKey)
+KeyDropdown.onClose(lambda: MasterPanel.render(screen))
+ModeDropdown.onSelect(finalizeMode)
+ModeDropdown.onClose(lambda: MasterPanel.render(screen))
 
 def cycleWave():
     global waveMap
     WaveButton.cycleStates()
     waveMap[justColorNames[ColorButton.currentStateIdx]] = WaveButton.currentStateIdx
+    PitchList.setWave(WaveButton.currentStateIdx)
     WaveButton.render(screen)
 
 def colorSync():
     ColorButton.render(screen)
     WaveButton.setCurrentState(waveMap[justColorNames[ColorButton.currentStateIdx]])
+    PitchList.setWave(WaveButton.currentStateIdx)
     WaveButton.render(screen)
     NoteGrid.color = ColorButton.currentStateIdx
     NotePanel.render(screen)
@@ -686,6 +704,17 @@ def clearSelection(notes):
 
 def handleClick():
     global selectingAnything, draggingSelection, selectionStartPos, dragStartGridPos, drawStartPos, extendingNote, extendStartGridPos, head, waveMap
+    if pygame.mouse.get_pos()[1] < 80:
+        console.log("click was outside of the notepanel, we don't care")
+        return
+    if ModeDropdown.expanded:
+        if pygame.rect.Rect(ModeDropdown.x, ModeDropdown.y, ModeDropdown.width, ModeDropdown.height).collidepoint(pygame.mouse.get_pos()):
+            console.log("click was on mode dropdown, we don't care")
+            return
+    if KeyDropdown.expanded:
+        if pygame.rect.Rect(KeyDropdown.x, KeyDropdown.y, KeyDropdown.width, KeyDropdown.height).collidepoint(pygame.mouse.get_pos()):
+            console.log("click was on key dropdown, we don't care")
+            return
 
     mouseTime, mousePitch = custom.convertWorldToGrid(pygame.mouse.get_pos())
 
@@ -787,6 +816,8 @@ def handleClick():
 
 def handleDrag(xy):
     global selectingAnything, draggingSelection, drawStartPos, extendingNote
+    if pygame.mouse.get_pos()[1] < 80:
+        return
 
     mouseTime, mousePitch = custom.convertWorldToGrid(pygame.mouse.get_pos())
     if mouseTime is None or ColorButton.currentStateIdx == 6:
@@ -871,12 +902,17 @@ def handleDrag(xy):
     NotePanel.render(screen)
 
 
+def handleUnClick():
+    if pygame.mouse.get_pos()[1] < 80:
+        return
+    NoteGrid.selectionRect = None
+    trimOverlappingNotes()
+    pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
+    NotePanel.render(screen)
+
 NoteGrid.onMouseClick(handleClick)
 NoteGrid.onMouseDrag(handleDrag)
-NoteGrid.onMouseUnClick(lambda: (setattr(NoteGrid, 'selectionRect', None),
-                                 trimOverlappingNotes(),
-                                 pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW),
-                                 NotePanel.render(screen)))
+NoteGrid.onMouseUnClick(handleUnClick)
 
 
 ###### MAINLOOP ######
@@ -962,8 +998,8 @@ while running:
 
             ColorButton.setPosition((width - 256, 26))
             WaveButton.setPosition((width - 223, 26))
-            KeyButton.setPosition((width - 171, 26))
-            ModeButton.setPosition((width - 126, 26))
+            KeyDropdown.setPosition((width - 171, 26))
+            ModeDropdown.setPosition((width - 126, 26))
 
             MeasureLengthControls.setRect((0, 0, width, height))
             TempoControls.setRect((0, 0, width, height))

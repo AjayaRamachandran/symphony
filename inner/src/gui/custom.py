@@ -100,6 +100,7 @@ class PitchList(gui.Interactive):
         self.notes = notes
         self.mode = [0, 2, 4, 6, 7, 9, 11]
         self.key = 3
+        self.wave = 0
 
         self.onMouseEnter(lambda: (setattr(self, 'redraw', True), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
         self.onMouseLeave(lambda: (setattr(self, 'redraw', True), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
@@ -118,6 +119,9 @@ class PitchList(gui.Interactive):
     def setNotes(self, notes):
         self.notes = notes
 
+    def setWave(self, wave):
+        self.wave = wave
+
     def setLinkedPanels(self, panel: frame.Panel):
         self.panel = panel
 
@@ -128,20 +132,30 @@ class PitchList(gui.Interactive):
 
     def render(self, screen):
         screen.fill(gui.BG_COLOR)
-        offsetY = (ceil(viewRow) - viewRow - 1) * tileHeight + 80
+        # split viewRow into a stable integer row index and a fractional scroll offset
+        # this avoids floating-point precision issues (e.g. 53.00000000000001)
+        baseRow = int(viewRow)
+        frac = viewRow - baseRow
+        offsetY = (-frac) * tileHeight + 80 # calculate the vertical pixel offset caused by partial scrolling
         y = 0
         while offsetY < pygame.display.get_window_size()[1]:
-            litRow = ((11 - ceil((viewRow + y - 1) + self.key) % 12) in self.mode)
-            noteToWrite = self.notes[11 - (ceil(viewRow + y - 1) % 12)]
-            octaveToWrite = 8 - ceil(viewRow + y - 1) // 12
-            pygame.draw.rect(screen, gui.ALT_BG_COLOR_4 if (litRow) else gui.ALT_BG_COLOR_3,
-                                (1, offsetY + 1, 78, tileHeight - 2), border_radius=3)
+            rowIndex = baseRow + y # calculate the absolute row index for this tile
+
+            litRow = ((11 - ((rowIndex + self.key) % 12)) in self.mode)
+
+            noteToWrite = self.notes[11 - (rowIndex % 12)]
+            octaveToWrite = 8 - (rowIndex // 12)
+
+            pygame.draw.rect(screen, gui.ALT_BG_COLOR_4 if litRow else gui.ALT_BG_COLOR_3, (1, offsetY + 1, 78, tileHeight - 2), border_radius=3)
             gui.stamp(screen, f"{noteToWrite} {octaveToWrite}", gui.SUBHEADING1, 5, offsetY + 5, gui.ALT_TEXT_COLOR)
+
             if pygame.mouse.get_pressed()[0] and gui.mouseBounds((1, offsetY + 1, 78, tileHeight - 2)):
-                sp.playNotes(notes=[(-1 - (ceil(viewRow + y - 1) % 12)) + 12 * (7 - ceil(viewRow + y - 1) // 12) + 1], duration=0.2, volume=0.12)
-            
+                sp.playNotes(notes=[(-1 - (rowIndex % 12)) + 12 * (7 - rowIndex // 12) + 1], waves=self.wave, duration=0.2, volume=0.12)
+
             offsetY += tileHeight
             y += 1
+
+
 
 class NoteGrid(gui.Interactive):
     '''
@@ -179,6 +193,7 @@ class NoteGrid(gui.Interactive):
             viewRow = 23
         if viewRow >= 96 - numRowsVisible:
             viewRow = 96 - numRowsVisible
+        #console.log((viewRow, viewCol))
 
     def setNoteMap(self, noteMap):
         '''
@@ -237,17 +252,27 @@ class NoteGrid(gui.Interactive):
     
     def render(self, screen):
         screen.fill(gui.BG_COLOR)
-        offsetX = (ceil(viewCol) - viewCol - 1) * tileWidth + 80
-        #console.log((viewCol, offsetX))
+        # split viewCol into integer column index and fractional scroll offset
+        baseCol = int(viewCol)
+        fracCol = viewCol - baseCol
+        offsetX = (-fracCol) * tileWidth + 80 # initial horizontal pixel offset from partial scrolling
         x = 0
         while offsetX < pygame.display.get_window_size()[0]:
-            offsetY = (ceil(viewRow) - viewRow - 1) * tileHeight + 80
-            litCol = (ceil(viewCol + x - 1) % self.interval == 0)
+            # absolute column index for this tile
+            colIndex = baseCol + x
+
+            litCol = (colIndex % self.interval == 0)
+
+            baseRow = int(viewRow) # split viewRow into integer row index and fractional scroll offset
+            fracRow = viewRow - baseRow
+            offsetY = (-fracRow) * tileHeight + 80 # initial vertical pixel offset from partial scrolling
             y = 0
             while offsetY < pygame.display.get_window_size()[1]:
-                litRow = ((11 - ceil((viewRow + y - 1) + self.key) % 12) in self.mode)
-                pygame.draw.rect(screen, gui.ALT_BG_COLOR_1 if (litRow != litCol) else gui.ALT_BG_COLOR_2 if (litRow and litCol) else gui.ALT_BG_COLOR,
-                                 (offsetX + 1, offsetY + 1, tileWidth - 2, tileHeight - 2), border_radius=3)
+                rowIndex = baseRow + y # absolute row index for this tile
+
+                litRow = ((11 - ((rowIndex + self.key) % 12)) in self.mode)
+                pygame.draw.rect(screen, gui.ALT_BG_COLOR_1 if (litRow != litCol) else gui.ALT_BG_COLOR_2 if (litRow and litCol) else gui.ALT_BG_COLOR, (offsetX + 1, offsetY + 1, tileWidth - 2, tileHeight - 2), border_radius=3)
+
                 offsetY += tileHeight
                 y += 1
             offsetX += tileWidth
@@ -265,7 +290,6 @@ class NoteGrid(gui.Interactive):
         
         if self.selectionRect:
             pygame.draw.rect(screen, (255, 255, 255, 255), self.selectionRect, 1)
-            #pygame.draw.rect(screen, (255, 255, 255, 5), self.selectionRect)
 
 class PlayHead():
     '''
