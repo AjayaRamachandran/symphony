@@ -403,7 +403,6 @@ class Note():
         self.dataFields = newData.get('data_fields', self.dataFields)
 
     def render(self, screen: pygame.Surface, color: tuple[int, int, int, int], transparent = False, tileOffset: tuple = None): 
-
         #drawScreen = pygame.Surface(pygame.display.get_window_size(), pygame.SRCALPHA)
         rectCoords = [
             *convertGridToWorld(self.time, self.pitch, (tileWidth, tileHeight), (viewCol, viewRow)),
@@ -427,9 +426,9 @@ class Note():
             rectCoords[1] + rectCoords[3] - 5
         ]
         pygame.draw.rect(screen, ([100, 100, 100, 255] if transparent else color), rectCoords, border_radius=3)
-        pygame.draw.line(screen, ([80, 80, 80, 255] if transparent else [*[color[a]*0.7 for a in range(3)], 255]),
+        pygame.draw.line(screen, ([80, 80, 80, 255] if transparent else [*[min(255, color[a]*0.8) for a in range(3)], 255]),
                          lineCoordsTop, lineCoordsBottom, 2)
-        pygame.draw.line(screen, ([80, 80, 80, 255] if transparent else [*[color[a]*0.7 for a in range(3)], 255]),
+        pygame.draw.line(screen, ([80, 80, 80, 255] if transparent else [*[min(255, color[a]*0.8) for a in range(3)], 255]),
                          lineCoordsTop2, lineCoordsBottom2, 2)
         if self.selected:
             pygame.draw.rect(screen, (255, 255, 255, 255), rectCoords, width=2, border_radius=3)

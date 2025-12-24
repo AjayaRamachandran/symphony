@@ -16,6 +16,7 @@ from tkinter.filedialog import asksaveasfile, asksaveasfilename
 import json
 import traceback
 from collections import defaultdict
+import webbrowser
 
 lastTime = time.time()
 START_TIME = lastTime
@@ -176,6 +177,7 @@ eraserImage = pygame.image.load(f"{source_path}/assets/eraser.png")
 selectImage = pygame.image.load(f"{source_path}/assets/select.png")
 sharpsImage = pygame.image.load(f"{source_path}/assets/sharps.png")
 flatsImage = pygame.image.load(f"{source_path}/assets/flats.png")
+questionImage = pygame.image.load(f"{source_path}/assets/question.png")
 
 squareWaveImage = pygame.image.load(f"{source_path}/assets/square.png")
 sawtoothWaveImage = pygame.image.load(f"{source_path}/assets/sawtooth.png")
@@ -235,6 +237,7 @@ fps = 60
 ###### VARIABLE & GUI ELEMENT SETUP ######
 
 worldMessage = ""
+questions_url = "https://docs.nimbial.com/symphony/4"
 
 key = 'Eb'
 mode = 'Lydian'
@@ -347,20 +350,21 @@ TempoControls = frame.Panel((0, 0, width, height), gui.EMPTY_COLOR,
                             [TempoDownButton, TempoTextBox, TempoUpButton],
                             name="TempoControls")
 
-MeasureLengthDownButton = gui.Button(pos=(width - 360, 26), width=20, height=28, states=[downChevronImage])
-MeasureLengthTextBox = gui.TextBox(pos=(width - 335, 26), width=30, height=28, text='4')
-MeasureLengthUpButton = gui.Button(pos=(width - 300, 26), width=20, height=28, states=[upChevronImage])
+MeasureLengthDownButton = gui.Button(pos=(width - 412, 26), width=20, height=28, states=[downChevronImage])
+MeasureLengthTextBox = gui.TextBox(pos=(width - 387, 26), width=30, height=28, text='4')
+MeasureLengthUpButton = gui.Button(pos=(width - 352, 26), width=20, height=28, states=[upChevronImage])
 MeasureLengthControls = frame.Panel((0, 0, width, height), gui.EMPTY_COLOR,
                                     [MeasureLengthDownButton, MeasureLengthTextBox, MeasureLengthUpButton],
                                     name="MeasureLengthControls")
 
 colorStates = custom.getColorStates(28, 28, source_path)
-ColorButton = gui.Button(pos=(width - 256, 26), width=28, height=28, states=colorStates)
-WaveButton = gui.Button(pos=(width - 223, 26), width=28, height=28, states=[squareWaveImage, triangleWaveImage, sawtoothWaveImage])
-KeyDropdown = gui.Dropdown(pos=(width - 171, 26), width=40, height=28, states=NOTES_FLAT, image=upDownChevronImage)
-ModeDropdown = gui.Dropdown(pos=(width - 126, 26), width=100, height=28, states=modes, image=upDownChevronImage)
+ColorButton = gui.Button(pos=(width - 308, 26), width=28, height=28, states=colorStates)
+WaveButton = gui.Button(pos=(width - 275, 26), width=28, height=28, states=[squareWaveImage, triangleWaveImage, sawtoothWaveImage])
+KeyDropdown = gui.Dropdown(pos=(width - 223, 26), width=40, height=28, states=NOTES_FLAT, image=upDownChevronImage)
+ModeDropdown = gui.Dropdown(pos=(width - 178, 26), width=100, height=28, states=modes, image=upDownChevronImage)
+QuestionButton = gui.Button(pos=(width - 54, 26), width=28, height=28, states=[questionImage])
 RightToolbar = frame.Panel((0, 0, width, height), gui.EMPTY_COLOR,
-                           [KeyDropdown, ModeDropdown, WaveButton, ColorButton],
+                           [KeyDropdown, ModeDropdown, WaveButton, ColorButton, QuestionButton],
                            name="RightToolbar")
 
 ToolBar = frame.Panel((0, 0, width, height), (0, 0, 0, 0),
@@ -593,6 +597,7 @@ def cycleColor():
 
 WaveButton.onMouseClick(cycleWave)
 ColorButton.onMouseClick(cycleColor)
+QuestionButton.onMouseClick(lambda: webbrowser.open(questions_url))
 
 MasterPanel.render(screen)
 
@@ -607,18 +612,6 @@ if process == 'instantiate':
                                   titleText,
                                   sessionID)
     sys.exit()
-
-def inBounds(coords1, coords2, point) -> bool:
-    '''
-    fields:
-        coords1 (pair[number]) - first coordinate
-        coords2 (pair[number]) - second coordinate
-        point (pair[number]) - point to check
-    outputs: boolean
-
-    Returns whether a point is within the bounds of two other points. order of coords is arbitrary.
-    '''
-    return point[0] > min(coords1[0], coords2[0]) and point[1] > min(coords1[1], coords2[1]) and point[0] < max(coords1[0], coords2[0]) and point[1] < max(coords1[1], coords2[1])
 
 def trimOverlappingNotes():
     """
@@ -914,7 +907,6 @@ NoteGrid.onMouseClick(handleClick)
 NoteGrid.onMouseDrag(handleDrag)
 NoteGrid.onMouseUnClick(handleUnClick)
 
-
 ###### MAINLOOP ######
 
 running = True
@@ -992,14 +984,15 @@ while running:
             screen = pygame.display.set_mode((max(event.w, minWidth), max(event.h, minHeight)), pygame.RESIZABLE)
             width, height = (max(event.w, minWidth), max(event.h, minHeight))
 
-            MeasureLengthDownButton.setPosition((width - 360, 26))
-            MeasureLengthTextBox.setPosition((width - 335, 26))
-            MeasureLengthUpButton.setPosition((width - 300, 26))
+            MeasureLengthDownButton.setPosition((width - 412, 26))
+            MeasureLengthTextBox.setPosition((width - 387, 26))
+            MeasureLengthUpButton.setPosition((width - 352, 26))
 
-            ColorButton.setPosition((width - 256, 26))
-            WaveButton.setPosition((width - 223, 26))
-            KeyDropdown.setPosition((width - 171, 26))
-            ModeDropdown.setPosition((width - 126, 26))
+            ColorButton.setPosition((width - 308, 26))
+            WaveButton.setPosition((width - 275, 26))
+            KeyDropdown.setPosition((width - 223, 26))
+            ModeDropdown.setPosition((width - 178, 26))
+            QuestionButton.setPosition((width - 54, 26))
 
             MeasureLengthControls.setRect((0, 0, width, height))
             TempoControls.setRect((0, 0, width, height))
