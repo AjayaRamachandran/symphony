@@ -3,7 +3,6 @@
 ###### IMPORT ######
 
 import pygame
-import time
 import numpy as np
 from math import *
 import cv2

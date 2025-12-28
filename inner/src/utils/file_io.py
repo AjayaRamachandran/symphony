@@ -1,9 +1,10 @@
-# file_io.py
+# utils/file_io.py
 # module for working with file saving and loading.
 ###### IMPORT ######
 
-from tkinter.filedialog import asksaveasfile #, asksaveasfilename
 import dill as pkl
+
+###### INTERNAL MODULES ######
 
 import utils.state_loading as sl
 from console_controls.console import *
@@ -20,7 +21,7 @@ def dumpToFile(workingFile: str, destFile: str, programState: dict, process: str
         autoSave (string) - directory to autosave, if null then don't dump to autosave\n
         titleText (string) - the title text to name auto save backups\n
         sessionID (string) - the session ID to name auto save backups
-    outputs: nothing
+    outputs: string (the updated worldMessage)
 
     Saves data to the working file, and also the file dir provided
     '''
@@ -46,3 +47,26 @@ def dumpToFile(workingFile: str, destFile: str, programState: dict, process: str
     open(workingFile, 'wb').close()
     worldMessage = (f"Last Saved {readableTime} to " + destFile) if (destFile != workingFile) else "You have unsaved changes - Please save to a file on your PC."
     return worldMessage
+
+def simpleDump(filePath: str, programState: dict):
+    '''
+    fields:
+        filePath (string) - path of the file\n
+        programState (dict) - the existing program state to dump\n
+    outputs: nothing
+
+    Saves data to the provided file
+    '''
+
+    noteMap = programState["noteMap"]
+    key = programState["key"]
+    mode = programState["mode"]
+    waveMap = programState["waveMap"]
+    ticksPerTile = programState["ticksPerTile"]
+
+    saveReadyNoteMap = sl.toSavable(noteMap)
+    programState = sl.newProgramState(key, mode, ticksPerTile, saveReadyNoteMap, waveMap)
+
+    with open(filePath, 'wb') as file:
+        pkl.dump(programState, file, -1)
+        file.close()

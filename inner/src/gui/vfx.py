@@ -1,6 +1,5 @@
 # gui/vfx.py
 # handles visual effects of gui elements, like blurring, etc.
-
 ###### IMPORT ######
 
 import cv2

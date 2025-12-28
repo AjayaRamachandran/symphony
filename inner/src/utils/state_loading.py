@@ -1,4 +1,4 @@
-# state_loading.py
+# utils/state_loading.py
 # module for handling state saving / loading and backwards compatibility.
 ###### IMPORT ######
 
@@ -44,13 +44,14 @@ class ProgramState():
         self.waveMap = waves
         console.log(f"Updated ProgramState with key {key} and mode {mode}.")
 
-def newProgramState(key : str, mode : str, ticksPerTile : int, noteMap : dict, waveMap : dict):
+def newProgramState(key : str, mode : str, ticksPerTile : int, noteMap : dict, waveMap : dict, interval : int):
     return {
         "key" : key,
         "mode" : mode,
         "ticksPerTile" : ticksPerTile,
         "noteMap" : noteMap,
-        "waveMap" : waveMap
+        "waveMap" : waveMap,
+        "interval" : interval
     }
 
 def toProgramState(state):
@@ -76,6 +77,7 @@ def toProgramState(state):
         stateMode = getattr(state, "mode", "Lydian")
         stateWaves = state.get("waveMap", state.get("wavemap", DEFAULT_WAVE_MAP))
         stateTicksPerTile = getattr(state, "ticksPerTile", 10)
+        stateInterval = 4 # ProgramState is also older than Interval being stored in the file
 
         # convert noteMap with backwards-compatibility normalization
         rawNoteMap = getattr(state, "noteMap", {})
@@ -99,6 +101,7 @@ def toProgramState(state):
         stateTicksPerTile = state.get("ticksPerTile", 10)
         stateWaves = state.get("waveMap", DEFAULT_WAVE_MAP)
         newNoteMap = state.get("noteMap", {})
+        stateInterval = state.get("interval", 4)
     else:
         raise TypeError("state must be a ProgramState or dict")
 
@@ -109,6 +112,7 @@ def toProgramState(state):
         "key": stateKey,
         "mode": stateMode,
         "waveMap": stateWaves,
+        "interval": stateInterval,
     }
 
 

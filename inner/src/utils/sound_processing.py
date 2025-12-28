@@ -1,4 +1,4 @@
-# sound_processing.py
+# utils/sound_processing.py
 # module for handling all sound related code.
 ###### IMPORT ######
 
@@ -6,8 +6,9 @@ import numpy as np
 import pygame
 from soundfile import write as sfwrite
 import pretty_midi
-from os import environ, path
-from math import *
+from os import path
+from math import exp
+from music21 import stream, note, tempo, meter, instrument, clef
 
 ###### INTERNAL MODULES ######
 
@@ -67,23 +68,6 @@ def toSound(array_1d: np.ndarray, returnType='Sound'):# -> pygame.mixer.Sound:
         arr2d = np.column_stack([array_1d] * nchan)
     return pygame.sndarray.make_sound(arr2d) if returnType == 'Sound' else arr2d
 
-def exportToWav(arr2d: np.ndarray, filename: str, sample_rate: int = 44100): # filename is actually the filepath
-    '''
-    fields:
-        arr2d (np.ndarray) - sound data\n
-        filename (str) - the output file name\n
-        sample_rate (number) - the sample rate of the audio
-    outputs: nothing
-    
-    Take a 2-D array and write it to a WAV file using soundfile library. If file exists, appends an incrementing number to the filename.
-    '''
-    base, ext = path.splitext(filename)
-    candidate = filename
-    counter = 1
-    while path.exists(candidate):
-        candidate = f"{base} ({counter}){ext}"
-        counter += 1
-    sfwrite(candidate, arr2d, sample_rate, subtype='PCM_16')
 
 def playNotes(notes=[], waves=0, duration=1, volume=0.2, sample_rate=SAMPLE_RATE):
     '''
@@ -148,80 +132,11 @@ def playFull(noteMap, waveMap, playhead=0, tpm=120, volume=0.2, sample_rate=SAMP
         volume (float) - output volume
         sample_rate (int) - audio sample rate
         channel (str | int) - which channel to play
-    outputs:
-        pygame.mixer.Sound
+    outputs: nothing (plays sound)
     '''
 
     try:
-        seconds_per_tile = 60.0 / tpm
-
-        # Flatten notes and find total length
-        all_notes = []
-        last_tile = 0
-
-        for cchIdx, cch in enumerate(noteMap.items()):
-            color, notes = cch
-            if channel == 'all' or channel == cchIdx:
-                for note in notes:
-                    all_notes.append((color, note))
-                    end_tile = note.time + note.duration
-                    last_tile = max(last_tile, end_tile)
-
-        total_duration = last_tile * seconds_per_tile
-        total_samples = int(total_duration * sample_rate)
-
-        wave = np.zeros(total_samples, dtype=np.float32)
-
-        # Generate each note into the buffer
-        for color, note in all_notes:
-            freq = notesToFreq([note.pitch])[0]
-            wave_type = waveMap[color]
-
-            start_sec = note.time * seconds_per_tile
-            dur_sec = note.duration * seconds_per_tile
-
-            start_idx = int(start_sec * sample_rate)
-            end_idx = int((start_sec + dur_sec) * sample_rate)
-
-            if start_idx >= total_samples:
-                continue
-
-            t = np.linspace(0, dur_sec, end_idx - start_idx, False)
-
-            if wave_type == 0:  # square
-                part = np.sign(np.sin(2 * np.pi * freq * t))
-            elif wave_type == 1:  # triangle
-                part = (2 / np.pi) * np.arcsin(np.sin(2 * np.pi * freq * t))
-
-                # --- small fade-out to avoid pop ---
-                fade_time = 0.005  # 5 ms
-                fade_len = int(sample_rate * fade_time)
-                if fade_len > 0 and fade_len < len(part):
-                    fade = np.linspace(1, 0, fade_len)
-                    part[-fade_len:] *= fade
-                # ----------------------------------
-            else:  # sawtooth
-                part = 2 * (t * freq - np.floor(0.5 + t * freq))
-
-            part *= noteToMagnitude(note.pitch, wave_type)
-
-            wave[start_idx:end_idx] += part[:max(0, total_samples - start_idx)]
-
-        # Normalize
-        max_val = np.max(np.abs(wave))
-        if max_val > 0:
-            wave /= max_val
-
-        wave *= volume * 0.3
-
-        # Apply playhead offset
-        playhead_samples = int(playhead * seconds_per_tile * sample_rate)
-        if playhead_samples < len(wave):
-            wave = wave[playhead_samples:]
-        else:
-            wave = np.zeros(1, dtype=np.float32)
-
-        audio = (wave * 32767).astype(np.int16)
+        audio = createFullSound(noteMap, waveMap, playhead, tpm, volume, sample_rate)
         sound = toSound(audio)
 
         play_obj = sound.play()
@@ -231,25 +146,184 @@ def playFull(noteMap, waveMap, playhead=0, tpm=120, volume=0.2, sample_rate=SAMP
         console.error(f"playFull Error: {e}")
         return None
 
+def createFullSound(noteMap, waveMap, playhead=0, tpm=120, volume=0.2, sample_rate=SAMPLE_RATE, channel='all'):
+    '''
+    fields:
+        noteMap (dict) - { colorchannel : [Note, ...] }
+        waveMap (dict) - { color : 'square' | 'triangle' | 'sawtooth' }
+        playhead (int) - tile offset
+        tpm (int) - tiles per minute
+        volume (float) - output volume
+        sample_rate (int) - audio sample rate
+        channel (str | int) - which channel to play
+    outputs: np.ndarray
+    '''
 
-def createMidiFromNotes(noteMap, workingFile, outputFolderPath, instrumentName="Acoustic Grand Piano"):
+    seconds_per_tile = 60.0 / tpm
+
+    # Flatten notes and find total length
+    all_notes = []
+    last_tile = 0
+
+    for cchIdx, cch in enumerate(noteMap.items()):
+        color, notes = cch
+        if channel == 'all' or channel == cchIdx:
+            for note in notes:
+                all_notes.append((color, note))
+                end_tile = note.time + note.duration
+                last_tile = max(last_tile, end_tile)
+
+    total_duration = last_tile * seconds_per_tile
+    total_samples = int(total_duration * sample_rate)
+
+    wave = np.zeros(total_samples, dtype=np.float32)
+
+    # Generate each note into the buffer
+    for color, note in all_notes:
+        freq = notesToFreq([note.pitch])[0]
+        wave_type = waveMap[color]
+
+        start_sec = note.time * seconds_per_tile
+        dur_sec = note.duration * seconds_per_tile
+
+        start_idx = int(start_sec * sample_rate)
+        end_idx = int((start_sec + dur_sec) * sample_rate)
+
+        if start_idx >= total_samples:
+            continue
+
+        t = np.linspace(0, dur_sec, end_idx - start_idx, False)
+
+        if wave_type == 0:  # square
+            part = np.sign(np.sin(2 * np.pi * freq * t))
+        elif wave_type == 1:  # triangle
+            part = (2 / np.pi) * np.arcsin(np.sin(2 * np.pi * freq * t))
+
+            # --- small fade-out to avoid pop ---
+            fade_time = 0.005  # 5 ms
+            fade_len = int(sample_rate * fade_time)
+            if fade_len > 0 and fade_len < len(part):
+                fade = np.linspace(1, 0, fade_len)
+                part[-fade_len:] *= fade
+            # ----------------------------------
+        else:  # sawtooth
+            part = 2 * (t * freq - np.floor(0.5 + t * freq))
+
+        part *= noteToMagnitude(note.pitch, wave_type)
+
+        wave[start_idx:end_idx] += part[:max(0, total_samples - start_idx)]
+
+    # Normalize
+    max_val = np.max(np.abs(wave))
+    if max_val > 0:
+        wave /= max_val
+
+    wave *= volume * 0.3
+
+    # Apply playhead offset
+    playhead_samples = int(playhead * seconds_per_tile * sample_rate)
+    if playhead_samples < len(wave):
+        wave = wave[playhead_samples:]
+    else:
+        wave = np.zeros(1, dtype=np.float32)
+
+    audio = (wave * 32767).astype(np.int16)
+
+    return audio
+
+
+
+def exportToWav(arr2d: np.ndarray, filename: str, sample_rate: int = 44100): # filename is actually the filepath
+    '''
+    fields:
+        arr2d (np.ndarray) - sound data\n
+        filename (str) - the output file name\n
+        sample_rate (number) - the sample rate of the audio
+    outputs: nothing
+    
+    Take a 2-D array and write it to a WAV file using soundfile library. If file exists, appends an incrementing number to the filename.
+    '''
+    base, ext = path.splitext(filename)
+    candidate = filename
+    counter = 1
+    while path.exists(candidate):
+        candidate = f"{base} ({counter}){ext}"
+        counter += 1
+    sfwrite(candidate, arr2d, sample_rate, subtype='PCM_16')
+
+
+def exportToFlac(arr2d: np.ndarray, filename: str, sample_rate: int = 44100):
+    '''
+    fields:
+        arr2d (np.ndarray) - sound data
+        filename (str) - output filepath
+        sample_rate (number) - sample rate
+    outputs: nothing
+
+    Take a 2-D array and write it to a FLAC file.
+    If file exists, appends an incrementing number to the filename.
+    '''
+    base, ext = path.splitext(filename)
+    if ext.lower() != ".flac":
+        ext = ".flac"
+
+    candidate = base + ext
+    counter = 1
+    while path.exists(candidate):
+        candidate = f"{base} ({counter}){ext}"
+        counter += 1
+
+    sfwrite(candidate, arr2d, sample_rate, format="FLAC")
+
+
+def exportToOggVorbis(arr2d: np.ndarray, filename: str, sample_rate: int = 44100, quality: float = 0.5):
+    '''
+    fields:
+        arr2d (np.ndarray) - sound data
+        filename (str) - output filepath
+        sample_rate (number) - sample rate
+        quality (float) - Vorbis quality (-1.0 to 1.0, typical 0.3-0.6)
+    outputs: nothing
+
+    Take a 2-D array and write it to an Ogg Vorbis file.
+    If file exists, appends an incrementing number to the filename.
+    '''
+    base, ext = path.splitext(filename)
+    if ext.lower() not in (".ogg", ".oga"):
+        ext = ".ogg"
+
+    candidate = base + ext
+    counter = 1
+    while path.exists(candidate):
+        candidate = f"{base} ({counter}){ext}"
+        counter += 1
+
+    sfwrite(
+        candidate,
+        arr2d,
+        sample_rate,
+        format="OGG",
+        subtype="VORBIS",
+        compression=quality
+    )
+
+def createMidiFromNotes(noteMap: dict, filename: str, instrumentName="Acoustic Grand Piano"):
     '''
     fields:
         noteMap (dict) - noteMap data\n
-        outputFolderPath (string) - path of output folder\n
+        filename (string) - path of output folder\n
         instrumentName (string) - instrument type to use
     outputs: nothing
 
-    Generates a MIDI file from a strike list and saves it to a file.
+    Generates a MIDI file from a 1.1 noteMap and saves it to a file.
     '''
 
-    baseName = path.splitext(path.basename(workingFile))[0]
-    ext = ".mid"
-    candidate = path.join(outputFolderPath, baseName + ext)
+    base, ext = path.splitext(filename)
     # Resolve name conflicts
+    candidate = base + ext
     counter = 1
     while path.exists(candidate):
-        candidate = path.join(outputFolderPath, f"{baseName} ({counter}){ext}")
+        candidate = f"{base} ({counter}){ext}"
         counter += 1
     
     midi = pretty_midi.PrettyMIDI()
@@ -267,3 +341,75 @@ def createMidiFromNotes(noteMap, workingFile, outputFolderPath, instrumentName="
 
     midi.instruments.append(instrument)
     midi.write(candidate)
+
+def createMusicXMLFromNotes(
+    noteMap: dict,
+    filename: str,
+    tempoBPM: int,
+    tileQuarterLength: float = 1.0,
+    measureLength: int = 4,
+    colorStaffMap: dict | None = None
+):
+    '''
+    fields:
+        noteMap (dict) - {color: iterable of notes}\n
+        filename (str) - output filepath (.musicxml)\n
+        tempoBPM (int) - tempo in BPM\n
+        tileQuarterLength (float) - duration of one tile in quarter notes\n
+        measureLength (int) - number of tiles per measure\n
+        colorStaffMap (dict) - color → staff name (ex. "Soprano")\n
+    outputs: nothing
+
+    Generates a MuseScore-compatible MusicXML notation file.
+    '''
+
+    base, ext = path.splitext(filename)
+    if ext.lower() not in (".xml", ".musicxml"):
+        ext = ".musicxml"
+
+    candidate = base + ext
+    counter = 1
+    while path.exists(candidate):
+        candidate = f"{base} ({counter}){ext}"
+        counter += 1
+
+    score = stream.Score()
+
+    # Tempo
+    score.insert(0, tempo.MetronomeMark(number=tempoBPM))
+
+    # Time signature
+    quartersPerMeasure = measureLength * tileQuarterLength
+    numerator = int(quartersPerMeasure)
+    denominator = 4
+    score.insert(0, meter.TimeSignature(f"{numerator}/{denominator}"))
+
+    for color, notes in noteMap.items():
+        part = stream.Part()
+
+        # Instrument / staff type
+        staffName = colorStaffMap.get(color) if colorStaffMap else None
+        if staffName:
+            part.insert(0, instrument.fromString(staffName))
+
+        # Clef inference (basic)
+        if staffName:
+            if staffName.lower() in ("soprano", "alto"):
+                part.insert(0, clef.TrebleClef())
+            elif staffName.lower() in ("tenor"):
+                part.insert(0, clef.Treble8vbClef())
+            elif staffName.lower() in ("baritone", "bass"):
+                part.insert(0, clef.BassClef())
+
+        for n in notes:
+            pitch = n.pitch + 23  # same offset logic as MIDI
+            startQL = n.time * tileQuarterLength
+            durQL = n.duration * tileQuarterLength
+
+            m21note = note.Note(pitch)
+            m21note.duration.quarterLength = durQL
+            part.insert(startQL, m21note)
+
+        score.append(part)
+
+    score.write("musicxml", candidate)

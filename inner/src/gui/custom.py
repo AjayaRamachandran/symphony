@@ -4,10 +4,7 @@
 
 import pygame
 import time
-import numpy as np
-import cv2
 from io import BytesIO
-import copy
 from math import *
 
 ###### INTERNAL MODULES ######

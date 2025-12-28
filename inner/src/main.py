@@ -1,18 +1,13 @@
 # main.py
-# entry point for the program.
+# entry point for the program. contains the mainloop.
 ###### IMPORT ######
 
 import pygame
-from io import BytesIO
 import numpy as np
-import copy
-import cv2
-from math import *
 import time
-import os
+from os import path
 import sys
-import dill as pkl
-from tkinter.filedialog import asksaveasfile, asksaveasfilename
+from tkinter.filedialog import asksaveasfile
 import json
 import traceback
 from collections import defaultdict
@@ -23,15 +18,20 @@ START_TIME = lastTime
 
 ###### INTERNAL MODULES ######
 
+import events
+
 import console_controls.console_window as cw
+from console_controls.console import *
+
+import utils.state_loading as sl
+import utils.file_io as fio
 import utils.sound_processing as sp
+
 import gui.element as gui
 import gui.frame as frame
 import gui.custom as custom
-from console_controls.console import *
-import utils.state_loading as sl
-import utils.file_io as fio
-import events
+
+import process_command.read_write as pcrw
 
 ###### PLATFORM DETECTION ######
 
@@ -62,21 +62,6 @@ except ImportError:
 
 ####### SYSARG HANDLING ######
 
-'''
-SET ARGUMENTS:
-"main.py" "open" "filename" "folder" [src_folder] [autosave_dir_path] [user_settings_path]: starts program, opening file and establishing autosave bridge. Only 'open' requires autosave_dir_path and user_settings_path.
-"main.py" "instantiate" "filename" "folder" [src_folder]: does not start pygame, simply creates the file in the provided folder and exits
-"main.py" "retrieve" "filepath" "id" [src_folder] [user_data_path]: gets all information about program and puts it into the json with the id, writes response.json to user_data_path if provided, else to src_folder
-"main.py" "export" "filepath" "folder" [src_folder]: exports the file into the provided folder as a .wav
-"main.py" "convert" "filepath" "folder" [src_folder]: exports the file into the provided folder as a .mid
-
-"main.py" "filename": opens file with autosave bridge
-"main.py": starts program without autosave (NOT RECOMMENDED)
-
-autosave_dir_path: absolute path to the autosave directory.json file (required only for 'open')
-user_settings_path: absolute path to the user-settings.json file (required only for 'open')
-user_data_path: absolute path to the user data directory (used for retrieve)
-'''
 def cleanse(string):
     '''
     fields:
@@ -102,69 +87,12 @@ def get_arg_path(arg_index, default_relative):
     '''
     if len(sys.argv) > arg_index:
         return sys.argv[arg_index]
-    return os.path.abspath(default_relative)
-
-autoSaveDirectory = None
-user_settings_path = None
-directory_json_path = None
-source_path = 'inner/src'
+    return path.abspath(default_relative)
 
 SAMPLE_RATE = 44100
 
 titleText = "Untitled"
-process = ''
-autoSave = None
-globalUUID = 0
 sessionID = time.strftime('%Y-%m-%d %H%M%S')
-console.log(f'Running with sysargv: {sys.argv}')
-
-process = 'open'
-
-if len(sys.argv) > 7:
-    console.error("Wrong usage: Too many arguments!")
-    sys.exit(1)
-if len(sys.argv) >= 5:
-    if sys.argv[1] == 'export' or sys.argv[1] == 'convert':
-        process = sys.argv[1]
-        workingFile = sys.argv[2]
-        destination = sys.argv[3]
-    elif sys.argv[1] == 'retrieve':
-        process = sys.argv[1]
-        workingFile = sys.argv[2]
-        globalUUID = sys.argv[3]
-    else:
-        process = sys.argv[1]
-        workingFile = sys.argv[3] + '/' + sys.argv[2] # used to cleanse sysargv 2, but realized this can actually cause errors
-        titleText = sys.argv[2][:-9]
-        if process == 'open':
-            if process == 'open' and user_settings_path:
-                autoSave = not json.load(open(user_settings_path))["disable_auto_save"]
-            #import threading
-elif len(sys.argv) == 2:
-    #import threading
-    workingFile = sys.argv[1]
-    console.warn('You are running Symphony without the Project Manager. This can lead to poor file safety and potential project loss.')
-else:
-    #import threading
-    workingFile = ""
-    console.warn('You are running Symphony without the Project Manager. This can lead to poor file safety and potential project loss.')
-    console.warn('You are running Symphony without a designated autosave destination. We highly recommend against this.')
-
-if process == 'open' and len(sys.argv) == 7:
-    source_path = get_arg_path(4, 'assets/directory.json')
-    directory_json_path = get_arg_path(5, 'assets/directory.json')
-    user_settings_path = get_arg_path(6, 'assets/user-settings.json')
-    autoSaveDirectory = json.load(open(directory_json_path))['Symphony Auto-Save'][0]['Auto-Save']
-
-show_console = False
-if process == 'open' and user_settings_path:
-    show_console = json.load(open(user_settings_path))["show_console"]
-    if show_console:
-        try:
-            userName = json.load(open(user_settings_path))["user_name"].split(sep=' ')[0]
-        except Exception:
-            userName = 'User'
-        console.message(f'Hey, {userName}! This console can be safely closed at any time, and your editor will remain active.')
 
 ###### IMAGES ######
 
@@ -190,21 +118,17 @@ upDownChevronImage = pygame.image.load(f"{source_path}/assets/up-down.png")
 
 ###### PYGAME & WINDOW INITIALIZE ######
 
-if process in ['instantiate', 'retrieve', 'export', 'convert']:
-    os.environ["SDL_VIDEODRIVER"] = "dummy"
-
 console.log("Initialized Args "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
 lastTime = time.time()
 
 width, height = (1100, 592)
 minWidth, minHeight = (925, 592)
 iconPath = f'{source_path}/assets/icon32x32.png'
-if os.path.exists(iconPath):
+if path.exists(iconPath):
     gameIcon = pygame.image.load(iconPath)
     pygame.display.set_icon(gameIcon)
 else:
     console.warn(f"Warning: Icon file not found at {iconPath}")
-
 console.log("Initialized Icon Path "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
 lastTime = time.time()
 
@@ -216,15 +140,8 @@ console.log("Initialized Pygame "+ '(' + str(round(time.time() - lastTime, 5)) +
 lastTime = time.time()
 
 pygame.display.set_caption(f"{titleText} - Symphony v1.1 Beta")
-#pygame.display.set_icon(pygame.image.load(f"{source_path}/icon.png"))
+# pygame.display.set_icon(pygame.image.load(f"{source_path}/icon.png"))
 screen = pygame.display.set_mode((width, height), pygame.RESIZABLE, pygame.NOFRAME)
-
-if (process == 'instantiate') or (process == 'retrieve'):
-    None
-else:
-    pygame.display.flip()
-    pygame.event.pump()
-    time.sleep(0.1)
 
 console.log("Initialized Window "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
 lastTime = time.time()
@@ -326,14 +243,6 @@ zoomDimensions = [
 
 ###### ASSETS ######
 
-if process == 'open':
-    bytes_io = BytesIO()
-    console.log("Initialized Classes "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
-    lastTime = time.time()
-
-console.log("Initialized Assets "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
-lastTime = time.time()
-
 
 PlayPauseButton = gui.Button(pos=(26, 26), width=28, height=28, states=[playImage, pauseImage])
 AccidentalsButton = gui.Button(pos=(60, 26), width=28, height=28, states=[flatsImage, sharpsImage])
@@ -400,38 +309,6 @@ MasterPanel = frame.Panel((0, 0, width, height), gui.BG_COLOR, [GridPanel, ToolB
                           name="MasterPanel")
 
 ###### PROGRAM STATE INITIALIZE ######
-
-if workingFile == "" or process == 'instantiate': # if the workingfile is not provided or we are creating a new file, initialize a new program state
-    ps = sl.newProgramState("Eb", "Lydian", 10, noteMap, waveMap)
-    console.log('Creating new programState...')
-else:
-    ps = sl.toProgramState(pkl.load(open(workingFile, "rb")))
-    console.log('Loading existing programState...')
-
-if process == 'retrieve' and len(sys.argv) >= 5:
-    filepath = sys.argv[2]
-    id_val = sys.argv[3]
-    src_folder = sys.argv[4]
-    user_data_path = sys.argv[5] if len(sys.argv) >= 6 else None
-
-    response_path = os.path.join(user_data_path if user_data_path else src_folder, 'response.json')
-    with open(response_path, 'w') as f:
-        console.log('DUMPING INTO RESPONSE.JSON')
-        console.log(os.path.join(user_data_path, 'response.json'))
-        #console.log(ps["noteMap"])
-        tpm = round(3600 / ps["ticksPerTile"], 2)
-        tiles = int((max(ps["noteMap"].items(), key=lambda x : x[0][1]))[0][1]) if (len(ps["noteMap"].items()) > 0) else 0
-        json.dump({ 'fileInfo' : {
-                    'Key' : ps["key"],
-                    'Mode' : ps["mode"],
-                    'Tempo (tpm)' : tpm,
-                    #'Empty?' : (ps["noteMap"] == {}),
-                    'Length (tiles)' : tiles,
-                    'Duration' : ("0" if len(str(floor(tiles / tpm))) == 1 else '') + str(floor(tiles / tpm)) + ':' + ("0" if len(str(round(((tiles / tpm) % 1) * 60))) == 1 else '') + str(round(((tiles / tpm) % 1) * 60))
-                    }, 'id': globalUUID
-                }, f)
-        f.close()
-    sys.exit()
 
 console.log("Initialized ProgramState "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
 lastTime = time.time()
@@ -603,16 +480,6 @@ MasterPanel.render(screen)
 
 ###### FUNCTIONS ######
 
-if process == 'instantiate':
-    worldMessage = fio.dumpToFile(workingFile,
-                                  workingFile,
-                                  sl.newProgramState(key, mode, ticksPerTile, noteMap, waveMap),
-                                  process,
-                                  autoSave,
-                                  titleText,
-                                  sessionID)
-    sys.exit()
-
 def trimOverlappingNotes():
     """
     Shortens notes so that overlapping notes of the SAME pitch
@@ -638,31 +505,6 @@ def trimOverlappingNotes():
 
                 if next_note.time < current_end:
                     current.duration = max(0, next_note.time - current.time)
-
-if process == 'export':
-    phases = {}
-    finalWave = np.array([], dtype=np.int16)
-
-    lastNoteTime = 0
-    for note in noteMap.items():
-        lastNoteTime = max(lastNoteTime, note[1].time)
-
-    for tempTick in range(1, lastNoteTime + 2):
-        playingNotes = [
-            (note.key, note.lead, note.color)
-            for note in noteMap.values()
-            if note.time == tempTick
-        ]
-        chunk, phases = sp.assembleNotes(playingNotes, phases, waveMap, duration=ticksPerTile/60)
-        finalWave = np.concatenate([finalWave, chunk])
-
-    arr2d = sp.toSound(finalWave, returnType='2DArray')
-    sp.exportToWav(arr2d, destination + '/' + os.path.splitext(os.path.basename(workingFile))[0] + '.wav', sample_rate=44100)
-    sys.exit()
-        
-if process == 'convert':
-    sp.createMidiFromNotes(sl.convertNoteMapToStrikeList(noteMap), destination)
-    sys.exit()
 
     
 console.log("Initialized Functions "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')

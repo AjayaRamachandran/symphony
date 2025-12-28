@@ -3,7 +3,6 @@
 ###### IMPORT ######
 
 import time
-import sys
 
 ###### METHODS / CLASSES ######
 
