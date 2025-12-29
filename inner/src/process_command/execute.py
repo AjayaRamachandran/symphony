@@ -27,7 +27,7 @@ def retrieve(pc_file: dict):
     args = pc_file['args']
 
     project_file_path = path.join(args['project_folder_path'], args['project_file_name']) + '.symphony'
-    response_file_path = args['pc_file_path']
+    response_file_path = pc_file['pc_file_path']
     ps = sl.toProgramState(pkl.load(open(project_file_path, "rb")))
 
     with open(response_file_path, 'w') as f:
@@ -77,7 +77,7 @@ def instantiate(pc_file: dict):
 
     ps = sl.newProgramState("Eb", "Lydian", 10, NOTE_MAP_EMPTY, WAVE_MAP_EMPTY)
     project_file_path = path.join(args['project_folder_path'], args['project_file_name']) + '.symphony'
-    response_file_path = args['pc_file_path']
+    response_file_path = pc_file['pc_file_path']
 
     fio.simpleDump(project_file_path, ps)
     with open(response_file_path, 'w') as f:
@@ -106,7 +106,7 @@ def export(pc_file: dict):
     output_file_type = args['file_type']
 
     project_file_path = path.join(project_folder_path, project_file_name) + '.symphony'
-    response_file_path = args['pc_file_path']
+    response_file_path = pc_file['pc_file_path']
     ps = sl.toProgramState(pkl.load(open(project_file_path, "rb")))
 
     finalWave = sp.createFullSound(ps['noteMap'], ps['waveMap'], tpm=ps['tpm'])
@@ -144,19 +144,29 @@ def convert(pc_file: dict):
     project_folder_path = args['project_folder_path']
     output_file_type = args['file_type']
 
-    if args['tempo'] == 'auto':
-        
-
     project_file_path = path.join(project_folder_path, project_file_name) + '.symphony'
-    response_file_path = args['pc_file_path']
+    response_file_path = pc_file['pc_file_path']
     ps = sl.toProgramState(pkl.load(open(project_file_path, "rb")))
 
     if output_file_type == 'mid':
-        sp.createMidiFromNotes(sl.convertNoteMapToStrikeList(ps['noteMap']),
+        sp.createMidiFromNotes(ps['noteMap'],
                                path.join(project_folder_path, project_file_name) + '.mid')
     if output_file_type == 'musicxml':
+        if args['tempo'] == 'auto': bpm = ps['tpm'] / ps['beatLength']
+        else: bpm = args['tempo']
+        
+        if args['time_sig_numerator'] == 'auto': time_sig_numerator = ps['beatsPerMeasure']
+        else: time_sig_numerator = args['time_sig_numerator']
+
+        if args['time_sig_denominator'] == 'auto': time_sig_denominator = 4
+        else: time_sig_denominator = args['time_sig_denominator']
+
         sp.createMusicXMLFromNotes(ps['noteMap'],
                                    path.join(project_folder_path, project_file_name) + '.musicxml',
-                                   ps['tpm'],
-                                   args['quarter_notes_per_tile'],
-                                   args)
+                                   bpm,
+                                   time_sig_numerator,
+                                   time_sig_denominator,
+                                   ps['beatLength'],
+                                   ps['key'],
+                                   ps['mode'],
+                                   args['color_clef_map'] if args['color_clef_map'] != {} else None)

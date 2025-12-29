@@ -44,14 +44,15 @@ class ProgramState():
         self.waveMap = waves
         console.log(f"Updated ProgramState with key {key} and mode {mode}.")
 
-def newProgramState(key : str, mode : str, ticksPerTile : int, noteMap : dict, waveMap : dict, interval : int):
+def newProgramState(key : str, mode : str, ticksPerTile : int, noteMap : dict, waveMap : dict, beatLength : int, beatsPerMeasure : int):
     return {
         "key" : key,
         "mode" : mode,
         "ticksPerTile" : ticksPerTile,
         "noteMap" : noteMap,
         "waveMap" : waveMap,
-        "interval" : interval
+        "beatLength" : beatLength,
+        "beatsPerMeasure" : beatsPerMeasure,
     }
 
 def toProgramState(state):
@@ -77,7 +78,8 @@ def toProgramState(state):
         stateMode = getattr(state, "mode", "Lydian")
         stateWaves = state.get("waveMap", state.get("wavemap", DEFAULT_WAVE_MAP))
         stateTicksPerTile = getattr(state, "ticksPerTile", 10)
-        stateInterval = 4 # ProgramState is also older than Interval being stored in the file
+        stateBeatLength = 4 # ProgramState is also older than BeatLength being stored in the file
+        stateBeatsPerMeasure = 4 # ProgramState is also older than BeatsPerMeasure being stored in the file
 
         # convert noteMap with backwards-compatibility normalization
         rawNoteMap = getattr(state, "noteMap", {})
@@ -101,7 +103,8 @@ def toProgramState(state):
         stateTicksPerTile = state.get("ticksPerTile", 10)
         stateWaves = state.get("waveMap", DEFAULT_WAVE_MAP)
         newNoteMap = state.get("noteMap", {})
-        stateInterval = state.get("interval", 4)
+        stateBeatLength = state.get("beatLength", 4)
+        stateBeatsPerMeasure = state.get("beatsPerMeasure", 4)
     else:
         raise TypeError("state must be a ProgramState or dict")
 
@@ -112,17 +115,20 @@ def toProgramState(state):
         "key": stateKey,
         "mode": stateMode,
         "waveMap": stateWaves,
-        "interval": stateInterval,
+        "beatLength": stateBeatLength,
+        "beatsPerMeasure": stateBeatsPerMeasure,
     }
 
 
 def convertNoteMapToStrikeList(noteMap):
     '''
+    ### Legacy -- do not use with new (1.1+) noteMap encoding.
+
     fields:
-        noteMap (hash map) - note map in standard encoding
+        noteMap (hash map) - note map in 1.0 encoding
     outputs: list
 
-    Converts the noteMap into a list of notes encoded by their duration and time of strike.
+    Converts the legacy noteMap into a list of notes encoded by their duration and time of strike.
     '''
     strikeList = []
     for el, note in noteMap.items():
@@ -134,13 +140,14 @@ def convertNoteMapToStrikeList(noteMap):
     
     return strikeList
 
+
 def noteMap1_0To1_1(noteMap : dict):
     '''
     fields:
         noteMap (hash map) - note map in 1.0 encoding
     outputs: hash map
 
-    Converts the 1.0 noteMap into 1.1 notation.
+    Converts the 1.0 noteMap into 1.1 format.
     '''
     newNoteMap = {}
     for color, count in DEFAULT_WAVE_MAP.items():

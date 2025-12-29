@@ -20,7 +20,7 @@ def dumpToFile(workingFile: str, destFile: str, programState: dict, process: str
         process (string) - the current running process type, most likely 'open'\n
         autoSave (string) - directory to autosave, if null then don't dump to autosave\n
         titleText (string) - the title text to name auto save backups\n
-        sessionID (string) - the session ID to name auto save backups
+        sessionID (string) - the session ID to name auto save backups\n
     outputs: string (the updated worldMessage)
 
     Saves data to the working file, and also the file dir provided

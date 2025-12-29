@@ -54,40 +54,13 @@ else:
 
 try:
     from ctypes import windll
-    myappid = 'nimbial.symphony.editor.v1-0' # arbitrary string
+    myappid = 'nimbial.symphony.editor.v1-1' # arbitrary string
     windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 except ImportError:
     console.warn('Error importing windll or setting Unique AppID. You might be running on a non-Windows platform.')
     pass # Not on Windows or ctypes is not available
 
 ####### SYSARG HANDLING ######
-
-def cleanse(string):
-    '''
-    fields:
-        string (string) - the string to cleanse
-    outputs: string
-    
-    removes all non-acceptable characters from a string.
-    '''
-    stringCopy = string
-    for l in range(len(stringCopy)):
-        if not stringCopy[l] in 'abcdefghijklmnopqrstuvwxyzABCEDFGHIJKLMNOPQRSTUVWXYZ1234567890-_+(). ':
-            stringCopy = stringCopy[:l] + '_' + stringCopy[l+1:]
-    return stringCopy
-
-def get_arg_path(arg_index, default_relative):
-    '''
-    fields:
-        arg_index (string) - the index of the sysarg
-        default_relative (string) - the relpath to default to
-    outputs: string
-
-    gets a number sysarg, if it does not exist returns default's abspath
-    '''
-    if len(sys.argv) > arg_index:
-        return sys.argv[arg_index]
-    return path.abspath(default_relative)
 
 SAMPLE_RATE = 44100
 
@@ -123,6 +96,7 @@ lastTime = time.time()
 
 width, height = (1100, 592)
 minWidth, minHeight = (925, 592)
+
 iconPath = f'{source_path}/assets/icon32x32.png'
 if path.exists(iconPath):
     gameIcon = pygame.image.load(iconPath)
@@ -170,8 +144,10 @@ saveFrame = 0
 NOTES_SHARP = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
 NOTES_FLAT =  ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"]
 NOTES_FLAT_NEW =  ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"]
+
 noteCount = 128 # horizontal count of notes (beats) in the grid
 noteRange = 72 # vertical count of notes (keys) in the grid
+
 modesIntervals = [
     ["Lydian",        [0, 2, 4, 6, 7, 9, 11]],
     ["Ionian (maj.)", [0, 2, 4, 5, 7, 9, 11]],
@@ -196,6 +172,7 @@ colors = {
     "pink" : (168, 49, 94),
     "all" : (255, 255, 255)
 }
+
 colorsInd = {
     "orange" : 0,
     "purple" : 1,
@@ -205,10 +182,10 @@ colorsInd = {
     "pink" : 5,
     "all" : 6
 }
+
 colorsList = list(colors.items())
 justColors = [n[1] for n in colorsList]
 justColorNames = [n[0] for n in colorsList]
-
 
 waveTypes = ['square', 'triangle', 'sawtooth']
 
@@ -221,7 +198,8 @@ head = False
 playing = False
 brushType = "brush"
 
-timeInterval = 4
+beatLength = 4
+beatsPerMeasure = 4
 
 ticksPerTile = 10
 
@@ -243,7 +221,6 @@ zoomDimensions = [
 
 ###### ASSETS ######
 
-
 PlayPauseButton = gui.Button(pos=(26, 26), width=28, height=28, states=[playImage, pauseImage])
 AccidentalsButton = gui.Button(pos=(60, 26), width=28, height=28, states=[flatsImage, sharpsImage])
 PlayheadButton = gui.Button(pos=(94, 26), width=28, height=28, states=[headImage, headAltImage])
@@ -259,12 +236,19 @@ TempoControls = frame.Panel((0, 0, width, height), gui.EMPTY_COLOR,
                             [TempoDownButton, TempoTextBox, TempoUpButton],
                             name="TempoControls")
 
-MeasureLengthDownButton = gui.Button(pos=(width - 412, 26), width=20, height=28, states=[downChevronImage])
-MeasureLengthTextBox = gui.TextBox(pos=(width - 387, 26), width=30, height=28, text='4')
-MeasureLengthUpButton = gui.Button(pos=(width - 352, 26), width=20, height=28, states=[upChevronImage])
-MeasureLengthControls = frame.Panel((0, 0, width, height), gui.EMPTY_COLOR,
-                                    [MeasureLengthDownButton, MeasureLengthTextBox, MeasureLengthUpButton],
-                                    name="MeasureLengthControls")
+BeatLengthDownButton = gui.Button(pos=(width - 526, 26), width=20, height=28, states=[downChevronImage])
+BeatLengthTextBox = gui.TextBox(pos=(width - 491, 26), width=30, height=28, text='4')
+BeatLengthUpButton = gui.Button(pos=(width - 456, 26), width=20, height=28, states=[upChevronImage])
+BeatLengthControls = frame.Panel((0, 0, width, height), gui.EMPTY_COLOR,
+                                    [BeatLengthDownButton, BeatLengthTextBox, BeatLengthUpButton],
+                                    name="BeatLengthControls")
+
+BeatsPerMeasureDownButton = gui.Button(pos=(width - 412, 26), width=20, height=28, states=[downChevronImage])
+BeatsPerMeasureTextBox = gui.TextBox(pos=(width - 387, 26), width=30, height=28, text='4')
+BeatsPerMeasureUpButton = gui.Button(pos=(width - 352, 26), width=20, height=28, states=[upChevronImage])
+BeatsPerMeasureControls = frame.Panel((0, 0, width, height), gui.EMPTY_COLOR,
+                                    [BeatsPerMeasureDownButton, BeatsPerMeasureTextBox, BeatsPerMeasureUpButton],
+                                    name="BeatsPerMeasureControls")
 
 colorStates = custom.getColorStates(28, 28, source_path)
 ColorButton = gui.Button(pos=(width - 308, 26), width=28, height=28, states=colorStates)
@@ -277,7 +261,7 @@ RightToolbar = frame.Panel((0, 0, width, height), gui.EMPTY_COLOR,
                            name="RightToolbar")
 
 ToolBar = frame.Panel((0, 0, width, height), (0, 0, 0, 0),
-                          [RightToolbar, LeftToolbar, MeasureLengthControls, TempoControls],
+                          [RightToolbar, LeftToolbar, BeatLengthControls, BeatsPerMeasureControls, TempoControls],
                           name="ToolBar")
 
 def toolBarGraphics(screen):
@@ -358,7 +342,7 @@ def headToggle():
 
 PlayheadButton.onMouseClick(headToggle)
 
-# Tempo, MeasureLength Restrictions
+# Tempo, BeatsPerMeasure Restrictions
 TempoTextBox.setInputRestrictions('numeric')
 TempoTextBox.setStateRestrictions(lambda x : (len(x) > 0 and int(x) != 0))
 TempoTextBox.setText(TempoTextBox.getText() + ' tpm')
@@ -372,8 +356,8 @@ def removeTpmFromEnd():
 TempoTextBox.onFocus(removeTpmFromEnd)
 TempoTextBox.onBlurFocus(addTpmToEnd)
 
-MeasureLengthTextBox.setInputRestrictions('numeric')
-MeasureLengthTextBox.setStateRestrictions(lambda x : (len(x) > 0 and int(x) > 0))
+BeatsPerMeasureTextBox.setInputRestrictions('numeric')
+BeatsPerMeasureTextBox.setStateRestrictions(lambda x : (len(x) > 0 and int(x) > 0))
 
 # Tempo Controls
 def tempoSync():
@@ -400,30 +384,51 @@ TempoUpButton.onMouseClick(tempoUp)
 TempoDownButton.onMouseClick(tempoDown)
 TempoTextBox.onBlurFocus(tempoSync)
 
-# Measure Length Controls
-def measureLengthSync():
-    global timeInterval
-    timeInterval = int(MeasureLengthTextBox.getText())
-    MeasureLengthControls.render(screen)
-    if NoteGrid.interval != timeInterval:
-        NoteGrid.setIntervals(timeInterval)
+# Beats Per Measure Controls
+def beatsPerMeasureSync():
+    global beatsPerMeasure
+    beatsPerMeasure = int(BeatsPerMeasureTextBox.getText())
+    BeatsPerMeasureControls.render(screen)
+    if NoteGrid.beatsPerMeasure != beatsPerMeasure:
+        NoteGrid.setIntervals(beatsPerMeasure)
         NotePanel.render(screen)
 
-def measureLengthUp():
-    global timeInterval
-    timeInterval += 1
-    MeasureLengthTextBox.setText(timeInterval)
-    measureLengthSync()
+def beatsPerMeasureUp():
+    global beatsPerMeasure
+    beatsPerMeasure += 1
+    BeatsPerMeasureTextBox.setText(beatsPerMeasure)
+    beatsPerMeasureSync()
 
-def measureLengthDown():
-    global timeInterval
-    timeInterval = max(1, timeInterval - 1)
-    MeasureLengthTextBox.setText(timeInterval)
-    measureLengthSync()
+def beatsPerMeasureDown():
+    global beatsPerMeasure
+    beatsPerMeasure = max(1, beatsPerMeasure - 1)
+    BeatsPerMeasureTextBox.setText(beatsPerMeasure)
+    beatsPerMeasureSync()
 
-MeasureLengthUpButton.onMouseClick(measureLengthUp)
-MeasureLengthDownButton.onMouseClick(measureLengthDown)
-MeasureLengthTextBox.onBlurFocus(measureLengthSync)
+BeatsPerMeasureUpButton.onMouseClick(beatsPerMeasureUp)
+BeatsPerMeasureDownButton.onMouseClick(beatsPerMeasureDown)
+BeatsPerMeasureTextBox.onBlurFocus(beatsPerMeasureSync)
+
+# Beat Length Controls
+def beatLengthSync():
+    global beatLength
+    beatLength = int(BeatLengthTextBox.getText())
+    BeatLengthControls.render(screen)
+    if NoteGrid.beatLength != beatLength:
+        NoteGrid.setIntervals(beatLength)
+        NotePanel.render(screen)
+
+def beatLengthUp():
+    global beatLength
+    beatLength += 1
+    BeatLengthTextBox.setText(beatLength)
+    beatLengthSync()
+
+def beatLengthDown():
+    global beatLength
+    beatLength = max(1, beatLength - 1)
+    BeatLengthTextBox.setText(beatLength)
+    beatLengthSync()
 
 def toggleAccidentals():
     AccidentalsButton.cycleStates()
@@ -826,9 +831,13 @@ while running:
             screen = pygame.display.set_mode((max(event.w, minWidth), max(event.h, minHeight)), pygame.RESIZABLE)
             width, height = (max(event.w, minWidth), max(event.h, minHeight))
 
-            MeasureLengthDownButton.setPosition((width - 412, 26))
-            MeasureLengthTextBox.setPosition((width - 387, 26))
-            MeasureLengthUpButton.setPosition((width - 352, 26))
+            BeatLengthDownButton.setPosition((width - 526, 26))
+            BeatLengthTextBox.setPosition((width - 491, 26))
+            BeatLengthUpButton.setPosition((width - 456, 26))
+
+            BeatsPerMeasureDownButton.setPosition((width - 412, 26))
+            BeatsPerMeasureTextBox.setPosition((width - 387, 26))
+            BeatsPerMeasureUpButton.setPosition((width - 352, 26))
 
             ColorButton.setPosition((width - 308, 26))
             WaveButton.setPosition((width - 275, 26))
@@ -836,7 +845,7 @@ while running:
             ModeDropdown.setPosition((width - 178, 26))
             QuestionButton.setPosition((width - 54, 26))
 
-            MeasureLengthControls.setRect((0, 0, width, height))
+            BeatsPerMeasureControls.setRect((0, 0, width, height))
             TempoControls.setRect((0, 0, width, height))
 
             LeftToolbar.setRect((0, 0, width, height))

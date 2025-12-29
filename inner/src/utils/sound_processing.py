@@ -40,7 +40,7 @@ def noteToMagnitude(note, waves):
     '''
     fields:
         note (number) - input note pitch\n
-        waves (number) - wave type
+        waves (number) - wave type\n
     outputs: number
 
     Gets a relative magnitude based on an input note and type, to keep perceived volume the same
@@ -55,7 +55,7 @@ def toSound(array_1d: np.ndarray, returnType='Sound'):# -> pygame.mixer.Sound:
     '''
     fields:
         array_1d (np.ndarray) - 1-dimensional int16 array of waves\n
-        returnType (string) - what to return the sound as
+        returnType (string) - what to return the sound as\n
     outputs: pygame sound
     
     Convert a 1-D int16 numpy array into a 2-D array matching mixer channels, then wrap into a Sound.
@@ -76,7 +76,7 @@ def playNotes(notes=[], waves=0, duration=1, volume=0.2, sample_rate=SAMPLE_RATE
         waves (number) - wave type for the notes\n
         duration (number) - duration of the sound, in seconds\n
         volume (number) - volume of the sound\n
-        sample_rate (number) - the sample rate of the audio
+        sample_rate (number) - the sample rate of the audio\n
     outputs: nothing
     
     Single set of notes playback, does not keep track of phase. Doesn't return, just plays the sound.
@@ -125,14 +125,16 @@ def playNotes(notes=[], waves=0, duration=1, volume=0.2, sample_rate=SAMPLE_RATE
 def playFull(noteMap, waveMap, playhead=0, tpm=120, volume=0.2, sample_rate=SAMPLE_RATE, channel='all'):
     '''
     fields:
-        noteMap (dict) - { colorchannel : [Note, ...] }
-        waveMap (dict) - { color : 'square' | 'triangle' | 'sawtooth' }
-        playhead (int) - tile offset
-        tpm (int) - tiles per minute
-        volume (float) - output volume
-        sample_rate (int) - audio sample rate
-        channel (str | int) - which channel to play
+        noteMap (dict) - noteMap in standard format\n
+        waveMap (dict) - waveMap in standard format\n
+        playhead (int) - tile offset\n
+        tpm (int) - tiles per minute\n
+        volume (float) - output volume\n
+        sample_rate (int) - audio sample rate\n
+        channel (str | int) - which channel to play\n
     outputs: nothing (plays sound)
+
+    Creates the full sound as a buffer then plays it.
     '''
 
     try:
@@ -149,14 +151,16 @@ def playFull(noteMap, waveMap, playhead=0, tpm=120, volume=0.2, sample_rate=SAMP
 def createFullSound(noteMap, waveMap, playhead=0, tpm=120, volume=0.2, sample_rate=SAMPLE_RATE, channel='all'):
     '''
     fields:
-        noteMap (dict) - { colorchannel : [Note, ...] }
-        waveMap (dict) - { color : 'square' | 'triangle' | 'sawtooth' }
-        playhead (int) - tile offset
-        tpm (int) - tiles per minute
-        volume (float) - output volume
-        sample_rate (int) - audio sample rate
-        channel (str | int) - which channel to play
+        noteMap (dict) - noteMap in stanard format\n
+        waveMap (dict) - waveMap in standard format\n
+        playhead (int) - tile offset\n
+        tpm (int) - tiles per minute\n
+        volume (float) - output volume\n
+        sample_rate (int) - audio sample rate\n
+        channel (str | int) - which channel to play\n
     outputs: np.ndarray
+
+    Creates the full sound of the song as a buffer, stored in an ndarray.
     '''
 
     seconds_per_tile = 60.0 / tpm
@@ -238,7 +242,7 @@ def exportToWav(arr2d: np.ndarray, filename: str, sample_rate: int = 44100): # f
     fields:
         arr2d (np.ndarray) - sound data\n
         filename (str) - the output file name\n
-        sample_rate (number) - the sample rate of the audio
+        sample_rate (number) - the sample rate of the audio\n
     outputs: nothing
     
     Take a 2-D array and write it to a WAV file using soundfile library. If file exists, appends an incrementing number to the filename.
@@ -255,9 +259,9 @@ def exportToWav(arr2d: np.ndarray, filename: str, sample_rate: int = 44100): # f
 def exportToFlac(arr2d: np.ndarray, filename: str, sample_rate: int = 44100):
     '''
     fields:
-        arr2d (np.ndarray) - sound data
-        filename (str) - output filepath
-        sample_rate (number) - sample rate
+        arr2d (np.ndarray) - sound data\n
+        filename (str) - output filepath\n
+        sample_rate (number) - sample rate\n
     outputs: nothing
 
     Take a 2-D array and write it to a FLAC file.
@@ -279,10 +283,10 @@ def exportToFlac(arr2d: np.ndarray, filename: str, sample_rate: int = 44100):
 def exportToOggVorbis(arr2d: np.ndarray, filename: str, sample_rate: int = 44100, quality: float = 0.5):
     '''
     fields:
-        arr2d (np.ndarray) - sound data
-        filename (str) - output filepath
-        sample_rate (number) - sample rate
-        quality (float) - Vorbis quality (-1.0 to 1.0, typical 0.3-0.6)
+        arr2d (np.ndarray) - sound data\n
+        filename (str) - output filepath\n
+        sample_rate (number) - sample rate\n
+        quality (float) - Vorbis quality (-1.0 to 1.0, typical 0.3-0.6)\n
     outputs: nothing
 
     Take a 2-D array and write it to an Ogg Vorbis file.
@@ -312,7 +316,7 @@ def createMidiFromNotes(noteMap: dict, filename: str, instrumentName="Acoustic G
     fields:
         noteMap (dict) - noteMap data\n
         filename (string) - path of output folder\n
-        instrumentName (string) - instrument type to use
+        instrumentName (string) - instrument type to use\n
     outputs: nothing
 
     Generates a MIDI file from a 1.1 noteMap and saves it to a file.
@@ -346,8 +350,11 @@ def createMusicXMLFromNotes(
     noteMap: dict,
     filename: str,
     tempoBPM: int,
-    tileQuarterLength: float = 1.0,
-    measureLength: int = 4,
+    timeSigNumerator: int,
+    timeSigDenominator: int,
+    beatLength: int,
+    key: str,
+    mode: str,
     colorStaffMap: dict | None = None
 ):
     '''
@@ -355,9 +362,12 @@ def createMusicXMLFromNotes(
         noteMap (dict) - {color: iterable of notes}\n
         filename (str) - output filepath (.musicxml)\n
         tempoBPM (int) - tempo in BPM\n
-        tileQuarterLength (float) - duration of one tile in quarter notes\n
-        measureLength (int) - number of tiles per measure\n
-        colorStaffMap (dict) - color → staff name (ex. "Soprano")\n
+        timeSigNumerator (int) - beats per measure\n
+        timeSigDenominator (int) - note value that gets the beat\n
+        beatLength (int) - number of tiles per beat\n
+        key (str) - tonic (e.g. "C#", "Db")\n
+        mode (str) - musical mode\n
+        colorStaffMap (dict) - color → clef name (ex. "Treble", "Tenor (8vb)")\n
     outputs: nothing
 
     Generates a MuseScore-compatible MusicXML notation file.
@@ -379,30 +389,50 @@ def createMusicXMLFromNotes(
     score.insert(0, tempo.MetronomeMark(number=tempoBPM))
 
     # Time signature
-    quartersPerMeasure = measureLength * tileQuarterLength
-    numerator = int(quartersPerMeasure)
-    denominator = 4
-    score.insert(0, meter.TimeSignature(f"{numerator}/{denominator}"))
+    score.insert(0, meter.TimeSignature(f"{timeSigNumerator}/{timeSigDenominator}"))
+
+    # Key signature
+    modeMap = {
+        "Ionian (maj.)": "major",
+        "Aeolian (min.)": "minor",
+        "Dorian": "dorian",
+        "Phrygian": "phrygian",
+        "Lydian": "lydian",
+        "Mixolydian": "mixolydian",
+        "Locrian": "locrian",
+    }
+    score.insert(0, key.Key(key, modeMap[mode]))
+
+    # One tile expressed in quarterLength units
+    tileQuarterLength = (4 / timeSigDenominator) / beatLength
+
+    # Clef mapping
+    clefMap = {
+        "Treble": clef.TrebleClef,
+        "Treble (8va)": clef.Treble8vaClef,
+        "Treble (8vb)": clef.Treble8vbClef,
+
+        "Soprano": clef.SopranoClef,
+        "Mezzo-soprano": clef.MezzoSopranoClef,
+        "Alto": clef.AltoClef,
+        "Tenor": clef.TenorClef,
+
+        "Bass": clef.BassClef,
+        "Bass (8vb)": clef.Bass8vbClef,
+    }
 
     for color, notes in noteMap.items():
         part = stream.Part()
 
-        # Instrument / staff type
-        staffName = colorStaffMap.get(color) if colorStaffMap else None
-        if staffName:
-            part.insert(0, instrument.fromString(staffName))
-
-        # Clef inference (basic)
-        if staffName:
-            if staffName.lower() in ("soprano", "alto"):
-                part.insert(0, clef.TrebleClef())
-            elif staffName.lower() in ("tenor"):
-                part.insert(0, clef.Treble8vbClef())
-            elif staffName.lower() in ("baritone", "bass"):
-                part.insert(0, clef.BassClef())
+        # Clef assignment
+        clefName = colorStaffMap.get(color) if colorStaffMap else None
+        if clefName and clefName in clefMap:
+            part.insert(0, clefMap[clefName]())    
+        else:
+            part.insert(0, clef.TrebleClef()) # default is treble clef
 
         for n in notes:
-            pitch = n.pitch + 23  # same offset logic as MIDI
+            pitch = n.pitch + 23
             startQL = n.time * tileQuarterLength
             durQL = n.duration * tileQuarterLength
 

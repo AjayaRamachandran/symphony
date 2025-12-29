@@ -22,7 +22,7 @@ def operateProcessCommand(file_path):
         file_path (str) - absolute file path to read process command from
     outputs: dict | None
 
-    Reads the process command file, writes a success or error message back into it, 
+    Reads the process command file, writes a success or error message back into it, then runs the necessary execution method.
     '''
     global gui_is_open
 

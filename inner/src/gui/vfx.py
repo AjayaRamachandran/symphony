@@ -12,8 +12,8 @@ import pygame
 def processImage(image_bytes: bytes, width: int, height: int, blurRadius: int) -> BytesIO:
     """
     fields:
-        image_bytes (bytes): Raw image bytes (e.g., from a file or surface).
-        crop_width (int): Width in pixels to crop from the left side.
+        image_bytes (bytes): Raw image bytes (e.g., from a file or surface).\n
+        crop_width (int): Width in pixels to crop from the left side.\n
     outputs:
         BytesIO: A buffer containing the blurred, cropped JPEG image.
 
@@ -38,8 +38,8 @@ def processImage(image_bytes: bytes, width: int, height: int, blurRadius: int) -
 def surfaceBlur(surface: pygame.Surface, blurRadius: 5) -> pygame.Surface:
     """
     fields:
-        surface (pygame.Surface): Input Pygame surface.
-        crop_width (int): Width in pixels to crop from the left side.
+        surface (pygame.Surface): Input Pygame surface.\n
+        crop_width (int): Width in pixels to crop from the left side.\n
     outputs:
         pygame.Surface: A new Pygame surface containing the blurred image.
         

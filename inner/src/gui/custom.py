@@ -163,7 +163,8 @@ class NoteGrid(gui.Interactive):
         self.noteMap = {}
         self.color = 0
         self.scVel = [0, 0]
-        self.interval = 4
+        self.beatLength = 4
+        self.beatsPerMeasure = 4
         self.mode = [0, 2, 4, 6, 7, 9, 11]
         self.key = 3
 
@@ -201,14 +202,15 @@ class NoteGrid(gui.Interactive):
         '''
         self.noteMap = noteMap
 
-    def setIntervals(self, interval: int):
+    def setIntervals(self, beatLength: int, beatsPerMeasure: int):
         '''
         fields:
             interval (number) - interval between light tiles
         
         Updates the internal interval to match the main interval.
         '''
-        self.interval = interval
+        self.beatLength = beatLength
+        self.beatsPerMeasure = beatsPerMeasure
 
     def setModeKey(self, mode=None, key=None):
         '''
@@ -258,7 +260,7 @@ class NoteGrid(gui.Interactive):
             # absolute column index for this tile
             colIndex = baseCol + x
 
-            litCol = (colIndex % self.interval == 0)
+            litColAmount = int(colIndex % self.beatLength == 0) + int(colIndex % (self.beatLength * self.beatsPerMeasure) == 0)
 
             baseRow = int(viewRow) # split viewRow into integer row index and fractional scroll offset
             fracRow = viewRow - baseRow
@@ -268,7 +270,22 @@ class NoteGrid(gui.Interactive):
                 rowIndex = baseRow + y # absolute row index for this tile
 
                 litRow = ((11 - ((rowIndex + self.key) % 12)) in self.mode)
-                pygame.draw.rect(screen, gui.ALT_BG_COLOR_1 if (litRow != litCol) else gui.ALT_BG_COLOR_2 if (litRow and litCol) else gui.ALT_BG_COLOR, (offsetX + 1, offsetY + 1, tileWidth - 2, tileHeight - 2), border_radius=3)
+
+                thisColor = gui.GRID_BG_COLOR
+                if not litRow:
+                    if litColAmount == 1:
+                        thisColor = gui.GRID_BG_COLOR_BEAT
+                    elif litColAmount == 2:
+                        thisColor = gui.GRID_BG_COLOR_MEASURE
+                else:
+                    if litColAmount == 0:
+                        thisColor = gui.GRID_LITROW_COLOR
+                    elif litColAmount == 1:
+                        thisColor = gui.GRID_LITROW_COLOR_BEAT
+                    elif litColAmount == 2:
+                        thisColor = gui.GRID_LITROW_COLOR_MEASURE
+
+                pygame.draw.rect(screen, thisColor, (offsetX + 1, offsetY + 1, tileWidth - 2, tileHeight - 2), border_radius=3)
 
                 offsetY += tileHeight
                 y += 1
