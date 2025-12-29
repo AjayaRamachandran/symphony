@@ -346,9 +346,22 @@ class PlayHead():
                 self.panel.render(screen)
         else:
             self.time = self.home
+    
+    def onExitView(self, function):
+        '''
+        fields:
+            function (function | lambda) - an action to do.
+        outputs: nothing
+
+        Takes in a function or lambda, and sets it internally as the action to do when the playhead leaves the view.
+        '''
+        self.onExitViewCallback = function
 
     def render(self, screen: pygame.Surface):
         lineX = convertGridToWorld(self.time, 0)[0]
+        if lineX > screen.get_width():
+            if callable(self.onExitViewCallback): self.onExitViewCallback()
+
         pygame.draw.line(screen,
                     (0, 255, 255, 255) if self.playing else (255, 255, 0, 255),
                     (lineX, 0),

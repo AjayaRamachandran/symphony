@@ -355,7 +355,7 @@ def createMusicXMLFromNotes(
     beatLength: int,
     key: str,
     mode: str,
-    colorStaffMap: dict | None = None
+    colorClefMap: dict | None = None
 ):
     '''
     fields:
@@ -367,7 +367,7 @@ def createMusicXMLFromNotes(
         beatLength (int) - number of tiles per beat\n
         key (str) - tonic (e.g. "C#", "Db")\n
         mode (str) - musical mode\n
-        colorStaffMap (dict) - color → clef name (ex. "Treble", "Tenor (8vb)")\n
+        colorClefMap (dict) - color → clef name (ex. "Treble", "Tenor (8vb)")\n
     outputs: nothing
 
     Generates a MuseScore-compatible MusicXML notation file.
@@ -425,7 +425,7 @@ def createMusicXMLFromNotes(
         part = stream.Part()
 
         # Clef assignment
-        clefName = colorStaffMap.get(color) if colorStaffMap else None
+        clefName = colorClefMap.get(color) if colorClefMap else None
         if clefName and clefName in clefMap:
             part.insert(0, clefMap[clefName]())    
         else:

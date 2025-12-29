@@ -12,6 +12,7 @@ import json
 import traceback
 from collections import defaultdict
 import webbrowser
+import dill as pkl
 
 lastTime = time.time()
 START_TIME = lastTime
@@ -57,12 +58,16 @@ try:
     myappid = 'nimbial.symphony.editor.v1-1' # arbitrary string
     windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 except ImportError:
-    console.warn('Error importing windll or setting Unique AppID. You might be running on a non-Windows platform.')
+    console.warn('Error importing windll or setting Unique AppID. You might be gui_running on a non-Windows platform.')
     pass # Not on Windows or ctypes is not available
 
 ####### SYSARG HANDLING ######
 
 SAMPLE_RATE = 44100
+
+console.log(sys.argv)
+source_path = sys.argv[1]
+process_command_file = sys.argv[2]
 
 titleText = "Untitled"
 sessionID = time.strftime('%Y-%m-%d %H%M%S')
@@ -106,7 +111,6 @@ else:
 console.log("Initialized Icon Path "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
 lastTime = time.time()
 
-pygame.display.init()
 pygame.font.init()
 pygame.mixer.init()
 
@@ -115,7 +119,6 @@ lastTime = time.time()
 
 pygame.display.set_caption(f"{titleText} - Symphony v1.1 Beta")
 # pygame.display.set_icon(pygame.image.load(f"{source_path}/icon.png"))
-screen = pygame.display.set_mode((width, height), pygame.RESIZABLE, pygame.NOFRAME)
 
 console.log("Initialized Window "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
 lastTime = time.time()
@@ -276,6 +279,9 @@ NoteGrid = custom.NoteGrid(pos=(0, 0), width=width, height=height)
 PitchList = custom.PitchList(pos=(0, 80), width=80, height=height-80, notes=NOTES_FLAT)
 PlayHead = custom.PlayHead()
 
+def bumpRight(): custom.viewCol += 15
+PlayHead.onExitView(bumpRight)
+
 NotePanel = frame.Panel(rect=(80, 80, width-80, height-80), bgColor=gui.BG_COLOR, elements=[NoteGrid, PlayHead],
                         name="NotePanel")
 PlayHead.setLinkedPanel(NotePanel)
@@ -296,18 +302,6 @@ MasterPanel = frame.Panel((0, 0, width, height), gui.BG_COLOR, [GridPanel, ToolB
 
 console.log("Initialized ProgramState "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
 lastTime = time.time()
-
-noteMap = ps["noteMap"]
-ticksPerTile = ps["ticksPerTile"]
-waveMap = ps["waveMap"]
-key = ps["key"]
-if "#" in key:
-    keyIndex = NOTES_SHARP.index(key)
-    accidentals = "sharps"
-elif "b" in key:
-    keyIndex = NOTES_FLAT.index(key)
-    accidentals = "flats"
-mode = ps["mode"]
 
 NoteGrid.setModeKey(key = NOTES_SHARP.index(key) if ('#' in key) else NOTES_FLAT.index(key),
                     mode = modesMap[mode])
@@ -480,8 +474,6 @@ def cycleColor():
 WaveButton.onMouseClick(cycleWave)
 ColorButton.onMouseClick(cycleColor)
 QuestionButton.onMouseClick(lambda: webbrowser.open(questions_url))
-
-MasterPanel.render(screen)
 
 ###### FUNCTIONS ######
 
@@ -756,209 +748,262 @@ NoteGrid.onMouseUnClick(handleUnClick)
 
 ###### MAINLOOP ######
 
-running = True
-tempo = int(round(3600 / ps["ticksPerTile"]))
-lastNoteTime = 0
-ctrlZTime = 59
-noteMapVersionTracker = []
-noteMapFutureVersionTracker = []
+gui_running = False
+run = True
+
+#ctrlZTime = 59
+#noteMapVersionTracker = []
+#noteMapFutureVersionTracker = []
 
 root = None
 last_update = time.time()
 
-# Setup Tkinter console window (only if setting allows it)
-if (process == 'open' and len(sys.argv) == 7) or (len(sys.argv) == 1):
-    if (len(sys.argv) == 1) or json.load(open(user_settings_path))["show_console"]:
+try:
+    root = cw.ConsoleWindow(consoleMessages, source_path)
+except Exception as e:
+    console.error(f"Failed to open console window: {e}")
+    root = None
+
+while run:
+    while not gui_running:
+        time.sleep(1)
+        pc_data = pcrw.operateProcessCommand(process_command_file)
+
+        if pc_data != None:
+            gui_running = True
+            args = pc_data['args']
+            working_file_path = path.join(args['project_folder_path'], args['project_file_name']) + '.symphony'
+            with open(working_file_path, "rb") as pf:
+                ps = sl.toProgramState(pkl.load(pf))
+
+            user_settings_path = path.join(args['symphony_data_path'], 'user-settings.json')
+            with open(user_settings_path) as settings_file:
+                settings = json.load(settings_file)
+
+            directory_path = path.join(args['symphony_data_path'], 'directory.json')
+            with open(directory_path) as directory_file:
+                directory = json.load(directory_file)
+
+            autoSave = False if settings['disable_auto_save'] else directory["Symphony Auto-Save"][0]["Auto-Save"]
+
+            noteMap = ps["noteMap"]
+            ticksPerTile = ps["ticksPerTile"]
+            waveMap = ps["waveMap"]
+            key = ps["key"]
+            if "#" in key:
+                keyIndex = NOTES_SHARP.index(key)
+                accidentals = "sharps"
+            elif "b" in key:
+                keyIndex = NOTES_FLAT.index(key)
+                accidentals = "flats"
+            mode = ps["mode"]
+
+            tempo = int(round(3600 / ps["ticksPerTile"]))
+
+            NoteGrid.setModeKey(key = NOTES_SHARP.index(key) if ('#' in key) else NOTES_FLAT.index(key),
+                        mode = modesMap[mode])
+            
+            pygame.display.init()
+            screen = pygame.display.set_mode((width, height), pygame.RESIZABLE, pygame.NOFRAME)
+            MasterPanel.render(screen)
+    
+
+    while gui_running:
+        events.pump()
+
+        # Tkinter GUI updates
+        if root is not None:
+            try:
+                now = time.time()
+                if now - last_update > 0.05:  # Limit updates
+                    root.update()
+                    root.update_console()
+                    last_update = now
+            except Exception as e:
+                console.error(f"[Console closed or failed: {e}]")
+                root = None  # Fully disable Tkinter from now on
+
+        saveFrame += 60 * (1 / fps)
+        if round(saveFrame) == 60:
+            pc_data = pcrw.operateProcessCommand(process_command_file)
+        if saveFrame > 1200: # Saves every 20 seconds
+            saveFrame = 0
+            myPath = working_file_path
+            # in 1.1+, it will not be possible to not have a workingfile. main.py will be run from a test module, which will create and link
+            # the workingfile as necessary.
+            worldMessage = fio.dumpToFile(
+                                    myPath,
+                                    myPath,
+                                    sl.newProgramState(key, mode, ticksPerTile, noteMap, waveMap, beatLength, beatsPerMeasure),
+                                    autoSave,
+                                    titleText,
+                                    sessionID)
+
+        NoteGrid.setNoteMap(noteMap)
         try:
-            root = cw.ConsoleWindow(consoleMessages, source_path)
-        except Exception as e:
-            console.error(f"Failed to open console window: {e}")
-            root = None
-
-while running:
-    events.pump()
-
-    # Tkinter GUI updates
-    if root is not None:
+            MasterPanel.update(screen)
+        except pygame.error as e:
+            traceback.print_exc()
+            console.log('Pygame was likely quit outside of the main module. Handling and closing properly...\nIf this was unexpected, investigate.')
+            gui_running = False
+            break
+            
         try:
-            now = time.time()
-            if now - last_update > 0.05:  # Limit updates
-                root.update()
-                root.update_console()
-                last_update = now
-        except Exception as e:
-            console.error(f"[Console closed or failed: {e}]")
-            root = None  # Fully disable Tkinter from now on
+            for event in events.get():
+                if event.type == pygame.QUIT:
+                    gui_running = False
+        except pygame.error as e:
+            traceback.print_exc()
+            console.log('Pygame was likely quit outside of the main module. Handling and closing properly...\nIf this was unexpected, investigate.')
+            gui_running = False
+            break
 
-    saveFrame += 60 * (1 / fps)
-    if saveFrame > 1200: # Saves every 20 seconds
-        saveFrame = 0
-        myPath = workingFile if workingFile != "" else f"{source_path}/assets/workingfile.symphony"
-        worldMessage = fio.dumpToFile(
-                                myPath,
-                                myPath,
-                                sl.newProgramState(key, mode, ticksPerTile, noteMap, waveMap),
-                                process,
-                                autoSave,
-                                titleText,
-                                sessionID)
-
-    NoteGrid.setNoteMap(noteMap)
-    try:
-        MasterPanel.update(screen)
-    except pygame.error as e:
-        traceback.print_exc()
-        console.log('Pygame was likely quit outside of the main module. Handling and closing properly...\nIf this was unexpected, investigate.')
-        running = False
-        break
-        
-    try:
         for event in events.get():
             if event.type == pygame.QUIT:
-                running = False
-    except pygame.error as e:
-        traceback.print_exc()
-        console.log('Pygame was likely quit outside of the main module. Handling and closing properly...\nIf this was unexpected, investigate.')
-        running = False
-        break
+                gui_running = False
+                console.warn("Pygame was quit")
+                break
+            elif event.type == pygame.VIDEORESIZE:
+                screen = pygame.display.set_mode((max(event.w, minWidth), max(event.h, minHeight)), pygame.RESIZABLE)
+                width, height = (max(event.w, minWidth), max(event.h, minHeight))
 
-    for event in events.get():
-        if event.type == pygame.QUIT:
-            running = False
-            console.warn("Pygame was quit")
+                BeatLengthDownButton.setPosition((width - 526, 26))
+                BeatLengthTextBox.setPosition((width - 491, 26))
+                BeatLengthUpButton.setPosition((width - 456, 26))
+
+                BeatsPerMeasureDownButton.setPosition((width - 412, 26))
+                BeatsPerMeasureTextBox.setPosition((width - 387, 26))
+                BeatsPerMeasureUpButton.setPosition((width - 352, 26))
+
+                ColorButton.setPosition((width - 308, 26))
+                WaveButton.setPosition((width - 275, 26))
+                KeyDropdown.setPosition((width - 223, 26))
+                ModeDropdown.setPosition((width - 178, 26))
+                QuestionButton.setPosition((width - 54, 26))
+
+                BeatsPerMeasureControls.setRect((0, 0, width, height))
+                TempoControls.setRect((0, 0, width, height))
+
+                LeftToolbar.setRect((0, 0, width, height))
+                RightToolbar.setRect((0, 0, width, height))
+
+                PitchPanel.setRect((0, 80, 80, height - 80))
+                NotePanel.setRect((80, 80, width - 80, height - 80))
+                NoteGrid.width = width
+                NoteGrid.height = height
+                PitchList.height = height
+                NoteGrid.viewBounds()
+
+                ToolBar.setRect((0, 0, width, 80))
+                GridPanel.setRect((0, 80, width, height - 80))
+                MasterPanel.setRect((0, 0, width, height))
+
+                MasterPanel.render(screen)
+            elif event.type == pygame.KEYDOWN:
+                if event.key in [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7]:
+                    numKeyPressed = [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7].index(event.key)
+                    ColorButton.setCurrentState(numKeyPressed)
+                    colorSync()
+                if event.key in [pygame.K_MINUS, pygame.K_EQUALS]: # zoom out horizontally
+                    if pygame.key.get_pressed()[CMD_KEY]:
+                        zoomIndex = zoomDimensions.index((custom.tileWidth, custom.tileHeight))
+                        if event.key == pygame.K_MINUS:
+                            zoomIndex = max(zoomIndex - 1, 0)
+                        elif event.key == pygame.K_EQUALS:
+                            zoomIndex = min(zoomIndex + 1, len(zoomDimensions) - 1)
+                        custom.tileWidth, custom.tileHeight = zoomDimensions[zoomIndex]
+                        GridPanel.render(screen)
+                if event.key == pygame.K_BACKSPACE or event.key == pygame.K_DELETE: # Delete all selected notes
+                    for colorName in noteMap:
+                        noteMap[colorName] = [
+                            note for note in noteMap[colorName]
+                            if not note.selected
+                        ]
+                    NotePanel.render(screen)
+                elif event.key == CMD_KEY: # Switch to eraser momentarily
+                    brushType = "eraser"
+                    BrushButton.setCurrentState(1)
+                    BrushButton.render(screen)
+                elif event.key == pygame.K_LSHIFT: # Switch to select permanently
+                    brushType = "select"
+                    BrushButton.setCurrentState(2)
+                    BrushButton.render(screen)
+                elif event.key == pygame.K_SPACE: # Play / pause
+                    playPauseToggle()
+                elif event.key == pygame.K_s:
+                    if pygame.key.get_pressed()[CMD_KEY]: # if the user presses Ctrl+S (to save)
+                        #if working_file_path == "": # file dialog to show up if the user's workspace is not attached to a file
+                        '''
+                            filename = asksaveasfile(initialfile = 'Untitled.symphony', mode='wb',defaultextension=".symphony", filetypes=[("Symphony Musical Composition","*.symphony")])
+                            if filename != None:
+                                filestring = filename.name
+                                myPath = f"{source_path}/assets/workingfile.symphony"
+
+                                worldMessage = fio.dumpToFile(filestring,
+                                                            myPath,
+                                                            sl.newProgramState(key, mode, ticksPerTile, noteMap, waveMap, beatLength, beatsPerMeasure),
+                                                            autoSave,
+                                                            titleText,
+                                                            sessionID)
+
+                                pathBytes = bytearray(myPath.read())
+                                filename.write(pathBytes)
+                                filename.close()
+                                working_file_path = filestring
+                            else:
+                                myPath = f"{source_path}/assets/workingfile.symphony"
+                                worldMessage = fio.dumpToFile(myPath, myPath, sl.newProgramState(key, mode, ticksPerTile, noteMap, waveMap, beatLength, beatsPerMeasure), autoSave, titleText, sessionID)
+                            '''
+                            # in 1.1+, it will not be possible to not have a workingfile. main.py will be run from a test module, which will create and link
+                            # the workingfile as necessary.
+                        #else: # save to workspace file
+                        worldMessage = fio.dumpToFile(working_file_path, myPath, sl.newProgramState(key, mode, ticksPerTile, noteMap, waveMap, beatLength, beatsPerMeasure), autoSave, titleText, sessionID)
+                        saveFrame = 0
+            elif event.type == pygame.KEYUP:
+                if event.key == CMD_KEY: # Switches away from eraser when Ctrl is let go
+                    brushType = "brush"
+                    BrushButton.setCurrentState(0)
+                    BrushButton.render(screen)
+                    for color, colorChannel in noteMap.items():
+                        for note in colorChannel:
+                            note.selected = False
+                    NotePanel.render(screen)
+            elif event.type == pygame.WINDOWFOCUSLOST:
+                console.warn("Window unfocused")
+                MasterPanel.render(screen)
+            elif event.type == pygame.WINDOWFOCUSGAINED:
+                console.warn("Window focused")
+                MasterPanel.render(screen)
+
+        if gui_running == False:
             break
-        elif event.type == pygame.VIDEORESIZE:
-            screen = pygame.display.set_mode((max(event.w, minWidth), max(event.h, minHeight)), pygame.RESIZABLE)
-            width, height = (max(event.w, minWidth), max(event.h, minHeight))
+        clock.tick(fps)
+        pygame.display.flip()  # Update the display
 
-            BeatLengthDownButton.setPosition((width - 526, 26))
-            BeatLengthTextBox.setPosition((width - 491, 26))
-            BeatLengthUpButton.setPosition((width - 456, 26))
+    #if working_file_path == "": # file dialog to show up if the user has unsaved changes (they have not attached the workspace to a file)
+        '''
+        filename = asksaveasfile(initialfile = 'Untitled.symphony', mode='wb',defaultextension=".symphony", filetypes=[("Symphony Musical Composition","*.symphony")])
+        if filename != None:
+            filestring = filename.name
+            myPath = f"{source_path}/assets/workingfile.symphony"
 
-            BeatsPerMeasureDownButton.setPosition((width - 412, 26))
-            BeatsPerMeasureTextBox.setPosition((width - 387, 26))
-            BeatsPerMeasureUpButton.setPosition((width - 352, 26))
+            worldMessage = fio.dumpToFile(filestring, myPath, sl.newProgramState(key, mode, ticksPerTile, noteMap, waveMap, beatLength, beatsPerMeasure), autoSave, titleText, sessionID)
 
-            ColorButton.setPosition((width - 308, 26))
-            WaveButton.setPosition((width - 275, 26))
-            KeyDropdown.setPosition((width - 223, 26))
-            ModeDropdown.setPosition((width - 178, 26))
-            QuestionButton.setPosition((width - 54, 26))
+            pathBytes = bytearray(myPath.read())
+            filename.write(pathBytes)
+            filename.close()
+            working_file_path = filestring
+        else:
+            myPath = f"{source_path}/assets/workingfile.symphony"
+            worldMessage = fio.dumpToFile(myPath, myPath, sl.newProgramState(key, mode, ticksPerTile, noteMap, waveMap, beatLength, beatsPerMeasure), autoSave, titleText, sessionID)
+        '''
+        # in 1.1+, it will not be possible to not have a workingfile. main.py will be run from a test module, which will create and link
+        # the workingfile as necessary.
 
-            BeatsPerMeasureControls.setRect((0, 0, width, height))
-            TempoControls.setRect((0, 0, width, height))
-
-            LeftToolbar.setRect((0, 0, width, height))
-            RightToolbar.setRect((0, 0, width, height))
-
-            PitchPanel.setRect((0, 80, 80, height - 80))
-            NotePanel.setRect((80, 80, width - 80, height - 80))
-            NoteGrid.width = width
-            NoteGrid.height = height
-            PitchList.height = height
-            NoteGrid.viewBounds()
-
-            ToolBar.setRect((0, 0, width, 80))
-            GridPanel.setRect((0, 80, width, height - 80))
-            MasterPanel.setRect((0, 0, width, height))
-
-            MasterPanel.render(screen)
-        elif event.type == pygame.KEYDOWN:
-            if event.key in [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7]:
-                numKeyPressed = [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7].index(event.key)
-                ColorButton.setCurrentState(numKeyPressed)
-                colorSync()
-            if event.key in [pygame.K_MINUS, pygame.K_EQUALS]: # zoom out horizontally
-                if pygame.key.get_pressed()[CMD_KEY]:
-                    zoomIndex = zoomDimensions.index((custom.tileWidth, custom.tileHeight))
-                    if event.key == pygame.K_MINUS:
-                        zoomIndex = max(zoomIndex - 1, 0)
-                    elif event.key == pygame.K_EQUALS:
-                        zoomIndex = min(zoomIndex + 1, len(zoomDimensions) - 1)
-                    custom.tileWidth, custom.tileHeight = zoomDimensions[zoomIndex]
-                    GridPanel.render(screen)
-            if event.key == pygame.K_BACKSPACE or event.key == pygame.K_DELETE: # Delete all selected notes
-                for colorName in noteMap:
-                    noteMap[colorName] = [
-                        note for note in noteMap[colorName]
-                        if not note.selected
-                    ]
-                NotePanel.render(screen)
-            elif event.key == CMD_KEY: # Switch to eraser momentarily
-                brushType = "eraser"
-                BrushButton.setCurrentState(1)
-                BrushButton.render(screen)
-            elif event.key == pygame.K_LSHIFT: # Switch to select permanently
-                brushType = "select"
-                BrushButton.setCurrentState(2)
-                BrushButton.render(screen)
-            elif event.key == pygame.K_SPACE: # Play / pause
-                playPauseToggle()
-            elif event.key == pygame.K_s:
-                if pygame.key.get_pressed()[CMD_KEY]: # if the user presses Ctrl+S (to save)
-                    if workingFile == "": # file dialog to show up if the user's workspace is not attached to a file
-                        filename = asksaveasfile(initialfile = 'Untitled.symphony', mode='wb',defaultextension=".symphony", filetypes=[("Symphony Musical Composition","*.symphony")])
-                        if filename != None:
-                            filestring = filename.name
-                            myPath = f"{source_path}/assets/workingfile.symphony"
-
-                            worldMessage = fio.dumpToFile(filestring,
-                                                        myPath,
-                                                        sl.newProgramState(key, mode, ticksPerTile, noteMap, waveMap),
-                                                        process,
-                                                        autoSave,
-                                                        titleText,
-                                                        sessionID)
-
-                            pathBytes = bytearray(myPath.read())
-                            filename.write(pathBytes)
-                            filename.close()
-                            workingFile = filestring
-                        else:
-                            myPath = f"{source_path}/assets/workingfile.symphony"
-                            worldMessage = fio.dumpToFile(myPath, myPath, sl.newProgramState(key, mode, ticksPerTile, noteMap, waveMap), process, autoSave, titleText, sessionID)
-                    else: # save to workspace file
-                        worldMessage = fio.dumpToFile(workingFile, myPath, sl.newProgramState(key, mode, ticksPerTile, noteMap, waveMap), process, autoSave, titleText, sessionID)
-                    saveFrame = 0
-        elif event.type == pygame.KEYUP:
-            if event.key == CMD_KEY: # Switches away from eraser when Ctrl is let go
-                brushType = "brush"
-                BrushButton.setCurrentState(0)
-                BrushButton.render(screen)
-                for color, colorChannel in noteMap.items():
-                    for note in colorChannel:
-                        note.selected = False
-                NotePanel.render(screen)
-        elif event.type == pygame.WINDOWFOCUSLOST:
-            console.warn("Window unfocused")
-            MasterPanel.render(screen)
-        elif event.type == pygame.WINDOWFOCUSGAINED:
-            console.warn("Window focused")
-            MasterPanel.render(screen)
-
-    if running == False:
-        break
-    clock.tick(fps)
-    pygame.display.flip()  # Update the display
-
-if workingFile == "": # file dialog to show up if the user has unsaved changes (they have not attached the workspace to a file)
-    filename = asksaveasfile(initialfile = 'Untitled.symphony', mode='wb',defaultextension=".symphony", filetypes=[("Symphony Musical Composition","*.symphony")])
-    if filename != None:
-        filestring = filename.name
-        myPath = f"{source_path}/assets/workingfile.symphony"
-
-        worldMessage = fio.dumpToFile(filestring, myPath, sl.newProgramState(key, mode, ticksPerTile, noteMap, waveMap), process, autoSave, titleText, sessionID)
-
-        pathBytes = bytearray(myPath.read())
-        filename.write(pathBytes)
-        filename.close()
-        workingFile = filestring
-    else:
-        myPath = f"{source_path}/assets/workingfile.symphony"
-        worldMessage = fio.dumpToFile(myPath, myPath, sl.newProgramState(key, mode, ticksPerTile, noteMap, waveMap), process, autoSave, titleText, sessionID)
-else: # save all changes upon closing that have happened since the last autosave
-    worldMessage = fio.dumpToFile(workingFile, workingFile, sl.newProgramState(key, mode, ticksPerTile, noteMap, waveMap), process, autoSave, titleText, sessionID)
-    
-# quit loop
-pygame.quit()
-sys.exit()
+    #else: # save all changes upon closing that have happened since the last autosave
+    worldMessage = fio.dumpToFile(working_file_path, working_file_path, sl.newProgramState(key, mode, ticksPerTile, noteMap, waveMap, beatLength, beatsPerMeasure), autoSave, titleText, sessionID)
+        
+    # quit loop
+    #pygame.quit()
+    pygame.display.quit()
+    #sys.exit()

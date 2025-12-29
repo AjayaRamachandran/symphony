@@ -11,13 +11,12 @@ from console_controls.console import *
 
 ###### FUNCTIONS ######
 
-def dumpToFile(workingFile: str, destFile: str, programState: dict, process: str, autoSave: str = None, titleText: str = "", sessionID: str = ""):
+def dumpToFile(workingFile: str, destFile: str, programState: dict, autoSave: str = None, titleText: str = "", sessionID: str = ""):
     '''
     fields:
         workingFile (string) - path of the working file\n
         destFile (string) - path of the destination file\n
         programState (dict) - the existing program state to dump\n
-        process (string) - the current running process type, most likely 'open'\n
         autoSave (string) - directory to autosave, if null then don't dump to autosave\n
         titleText (string) - the title text to name auto save backups\n
         sessionID (string) - the session ID to name auto save backups\n
@@ -31,6 +30,8 @@ def dumpToFile(workingFile: str, destFile: str, programState: dict, process: str
     mode = programState["mode"]
     waveMap = programState["waveMap"]
     ticksPerTile = programState["ticksPerTile"]
+    beatLength = programState["beatLength"]
+    beatsPerMeasure = programState["beatsPerMeasure"]
 
     saveReadyNoteMap = sl.toSavable(noteMap)
 
@@ -38,9 +39,9 @@ def dumpToFile(workingFile: str, destFile: str, programState: dict, process: str
     localTime = time.localtime(epochSeconds)
     readableTime = time.strftime('%Y-%m-%d at %H:%M:%S', localTime)
 
-    programState = sl.newProgramState(key, mode, ticksPerTile, saveReadyNoteMap, waveMap)
+    programState = sl.newProgramState(key, mode, ticksPerTile, saveReadyNoteMap, waveMap, beatLength, beatsPerMeasure)
     pkl.dump(programState, open(workingFile, 'wb'), -1)
-    if (autoSave != None) and process == 'open':
+    if (autoSave != None):
         pkl.dump(programState, open(autoSave + '/' + titleText + ' Backup ' + sessionID + '.symphony', 'wb'), -1)
         open(autoSave + '/' + titleText + ' Backup ' + sessionID + '.symphony', 'wb').close()
     
@@ -63,9 +64,11 @@ def simpleDump(filePath: str, programState: dict):
     mode = programState["mode"]
     waveMap = programState["waveMap"]
     ticksPerTile = programState["ticksPerTile"]
+    beatLength = programState["beatLength"]
+    beatsPerMeasure = programState["beatsPerMeasure"]
 
     saveReadyNoteMap = sl.toSavable(noteMap)
-    programState = sl.newProgramState(key, mode, ticksPerTile, saveReadyNoteMap, waveMap)
+    programState = sl.newProgramState(key, mode, ticksPerTile, saveReadyNoteMap, waveMap, beatLength, beatsPerMeasure)
 
     with open(filePath, 'wb') as file:
         pkl.dump(programState, file, -1)

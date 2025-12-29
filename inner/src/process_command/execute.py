@@ -28,7 +28,9 @@ def retrieve(pc_file: dict):
 
     project_file_path = path.join(args['project_folder_path'], args['project_file_name']) + '.symphony'
     response_file_path = pc_file['pc_file_path']
-    ps = sl.toProgramState(pkl.load(open(project_file_path, "rb")))
+    with open(project_file_path, "rb") as pf:
+        ps = sl.toProgramState(pkl.load(pf))
+
 
     with open(response_file_path, 'w') as f:
 
@@ -50,8 +52,6 @@ def retrieve(pc_file: dict):
             "message" : "",
             "payload" : payload
         }, f)
-        
-        f.close()
 
 
 def instantiate(pc_file: dict):
@@ -75,7 +75,7 @@ def instantiate(pc_file: dict):
         "all" : 0
     }
 
-    ps = sl.newProgramState("Eb", "Lydian", 10, NOTE_MAP_EMPTY, WAVE_MAP_EMPTY)
+    ps = sl.newProgramState("Eb", "Lydian", 10, NOTE_MAP_EMPTY, WAVE_MAP_EMPTY, 4, 4)
     project_file_path = path.join(args['project_folder_path'], args['project_file_name']) + '.symphony'
     response_file_path = pc_file['pc_file_path']
 
@@ -87,8 +87,6 @@ def instantiate(pc_file: dict):
             "message" : "",
             "payload" : { }
         }, f)
-        
-        f.close()
 
 
 def export(pc_file: dict):
@@ -107,7 +105,8 @@ def export(pc_file: dict):
 
     project_file_path = path.join(project_folder_path, project_file_name) + '.symphony'
     response_file_path = pc_file['pc_file_path']
-    ps = sl.toProgramState(pkl.load(open(project_file_path, "rb")))
+    with open(project_file_path, "rb") as pf:
+        ps = sl.toProgramState(pkl.load(pf))
 
     finalWave = sp.createFullSound(ps['noteMap'], ps['waveMap'], tpm=ps['tpm'])
     arr2d = sp.toSound(finalWave, returnType='2DArray')
@@ -126,8 +125,6 @@ def export(pc_file: dict):
             "message" : "",
             "payload" : { }
         }, f)
-        
-        f.close()
 
 
 def convert(pc_file: dict):
@@ -146,7 +143,8 @@ def convert(pc_file: dict):
 
     project_file_path = path.join(project_folder_path, project_file_name) + '.symphony'
     response_file_path = pc_file['pc_file_path']
-    ps = sl.toProgramState(pkl.load(open(project_file_path, "rb")))
+    with open(project_file_path, "rb") as pf:
+        ps = sl.toProgramState(pkl.load(pf))
 
     if output_file_type == 'mid':
         sp.createMidiFromNotes(ps['noteMap'],
@@ -170,3 +168,11 @@ def convert(pc_file: dict):
                                    ps['key'],
                                    ps['mode'],
                                    args['color_clef_map'] if args['color_clef_map'] != {} else None)
+        
+    with open(response_file_path, 'w') as f:
+        json.dump({
+            "status" : "success",
+            "id" : pc_file['id'],
+            "message" : "",
+            "payload" : { }
+        }, f)
