@@ -5,6 +5,7 @@
 import json
 import copy
 import sys
+import traceback
 
 ###### INTERNAL MODULES ######
 
@@ -74,13 +75,14 @@ def operateProcessCommand(file_path):
                 pce.export(pc)
             elif command == 'convert':
                 pce.convert(pc)
-        except Exception as e:
+        except Exception:
+            traceback.print_exc()
             with open(file_path, 'w') as dump_file:
                 json.dump({
                     "status": "error",
                     "id": pc['id'],
                     "message": "UnknownError",
-                    "payload": {"error_message": str(e)}
+                    "payload": {"error_message": str(traceback.format_exc())}
                 }, dump_file)
             return
 

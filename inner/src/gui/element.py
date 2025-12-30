@@ -19,12 +19,12 @@ import events
 source_path = 'inner/src'
 DRAG_THRESHOLD = 2
 
-GRID_BG_COLOR = (38, 38, 38, 255)
-GRID_BG_COLOR_BEAT = (40, 40, 40, 255) #282828ff
-GRID_BG_COLOR_MEASURE = (44, 44, 44, 255)
-GRID_LITROW_COLOR = (40, 40, 40, 255) #282828ff
-GRID_LITROW_COLOR_BEAT = (44, 44, 44, 255)
-GRID_LITROW_COLOR_MEASURE = (48, 48, 48, 255)
+GRID_BG_COLOR = (40, 40, 40, 255)
+GRID_BG_COLOR_BEAT = (45, 45, 45, 255)
+GRID_BG_COLOR_MEASURE = (55, 55, 55, 255)
+GRID_LITROW_COLOR = (43, 43, 43, 255)
+GRID_LITROW_COLOR_BEAT = (48, 48, 48, 255)
+GRID_LITROW_COLOR_MEASURE = (62, 62, 62, 255)
 
 ALT_BG_COLOR_3 = (36, 36, 36, 255) #242424ff
 ALT_BG_COLOR_4 = (40, 40, 40, 255) #282828ff
@@ -366,7 +366,7 @@ class Interactive(Element):
 
         for event in events.get():
             if event.type == pygame.QUIT:
-                pygame.quit()
+                pygame.display.quit()
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_UP:
                     xy[1] += 10
@@ -481,7 +481,7 @@ class TextBox(Interactive):
         if self.selected:
             for event in events.get():
                 if event.type == pygame.QUIT:
-                    pygame.quit()
+                    pygame.display.quit()
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_BACKSPACE:
                         self.temporaryText = self.temporaryText[:-1]

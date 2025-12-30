@@ -31,16 +31,19 @@ def retrieve(pc_file: dict):
     with open(project_file_path, "rb") as pf:
         ps = sl.toProgramState(pkl.load(pf))
 
+    maxNoteEndTime = 0
+    for color, colorChannel in ps["noteMap"].items():
+        for note in colorChannel:
+            maxNoteEndTime = max(maxNoteEndTime, note.time + note.duration)
 
     with open(response_file_path, 'w') as f:
-
-        tpm = round(3600 / ps["ticksPerTile"], 2)
-        tiles = int((max(ps["noteMap"].items(), key=lambda x : x[0][1]))[0][1]) if (len(ps["noteMap"].items()) > 0) else 0
+        tpm = ps["tpm"]
+        tiles = maxNoteEndTime
         payload = {
             'fileInfo' : {
                 'Key' : ps["key"],
                 'Mode' : ps["mode"],
-                'Tempo (tpm)' : tpm,
+                'Tempo (tpm)' : ps["tpm"],
                 # 'Empty?' : (ps["noteMap"] == {}),
                 'Length (tiles)' : tiles,
                 'Duration' : ("0" if len(str(floor(tiles / tpm))) == 1 else '') + str(floor(tiles / tpm)) + ':' + ("0" if len(str(round(((tiles / tpm) % 1) * 60))) == 1 else '') + str(round(((tiles / tpm) % 1) * 60))
@@ -102,6 +105,7 @@ def export(pc_file: dict):
     project_file_name = args['project_file_name']
     project_folder_path = args['project_folder_path']
     output_file_type = args['file_type']
+    dest_folder_path = args['dest_folder_path']
 
     project_file_path = path.join(project_folder_path, project_file_name) + '.symphony'
     response_file_path = pc_file['pc_file_path']
@@ -112,11 +116,11 @@ def export(pc_file: dict):
     arr2d = sp.toSound(finalWave, returnType='2DArray')
 
     if output_file_type == 'wav':
-        sp.exportToWav(arr2d, path.join(project_folder_path, project_file_name) + '.wav', sample_rate=44100)
+        sp.exportToWav(arr2d, path.join(dest_folder_path, project_file_name) + '.wav', sample_rate=44100)
     elif output_file_type == 'flac':
-        sp.exportToFlac(arr2d, path.join(project_folder_path, project_file_name) + '.flac', sample_rate=44100)
-    elif output_file_type == 'ogg':
-        sp.exportToOggVorbis(arr2d, path.join(project_folder_path, project_file_name) + '.ogg', sample_rate=44100)
+        sp.exportToFlac(arr2d, path.join(dest_folder_path, project_file_name) + '.flac', sample_rate=44100)
+    elif output_file_type == 'mp3':
+        sp.exportToMp3(arr2d, path.join(dest_folder_path, project_file_name) + '.mp3', sample_rate=44100)
 
     with open(response_file_path, 'w') as f:
         json.dump({
@@ -140,6 +144,7 @@ def convert(pc_file: dict):
     project_file_name = args['project_file_name']
     project_folder_path = args['project_folder_path']
     output_file_type = args['file_type']
+    dest_folder_path = args['dest_folder_path']
 
     project_file_path = path.join(project_folder_path, project_file_name) + '.symphony'
     response_file_path = pc_file['pc_file_path']
@@ -148,26 +153,26 @@ def convert(pc_file: dict):
 
     if output_file_type == 'mid':
         sp.createMidiFromNotes(ps['noteMap'],
-                               path.join(project_folder_path, project_file_name) + '.mid')
+                               path.join(dest_folder_path, project_file_name) + '.mid')
     if output_file_type == 'musicxml':
-        if args['tempo'] == 'auto': bpm = ps['tpm'] / ps['beatLength']
-        else: bpm = args['tempo']
+        if args['time_sig_denominator'] == 'auto': time_sig_denominator = 4
+        else: time_sig_denominator = args['time_sig_denominator']
+
+        if args['tempo_bpm'] == 'auto': bpm = (ps['tpm'] / ps['beatLength']) * (4 / time_sig_denominator)
+        else: bpm = args['tempo_bpm']
         
         if args['time_sig_numerator'] == 'auto': time_sig_numerator = ps['beatsPerMeasure']
         else: time_sig_numerator = args['time_sig_numerator']
 
-        if args['time_sig_denominator'] == 'auto': time_sig_denominator = 4
-        else: time_sig_denominator = args['time_sig_denominator']
-
         sp.createMusicXMLFromNotes(ps['noteMap'],
-                                   path.join(project_folder_path, project_file_name) + '.musicxml',
+                                   path.join(dest_folder_path, project_file_name) + '.musicxml',
                                    bpm,
                                    time_sig_numerator,
                                    time_sig_denominator,
                                    ps['beatLength'],
                                    ps['key'],
                                    ps['mode'],
-                                   args['color_clef_map'] if args['color_clef_map'] != {} else None)
+                                   args['color_clef_map'] if (args['color_clef_map'] != {}) else None)
         
     with open(response_file_path, 'w') as f:
         json.dump({

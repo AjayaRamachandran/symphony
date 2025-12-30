@@ -21,34 +21,19 @@ DEFAULT_WAVE_MAP = {
     "all": 0,
 }
 
+DEFAULT_META_FIELD = {
+    "version" : "1.1",
+    "plugins" : []
+}
+
 ###### METHODS / CLASSES ######
 
-class ProgramState():
-    '''
-    LEGACY
-    Class to contain the entire editor's state, with all relevant fields for opening and saving.
-    '''
-
-    def __init__(self, ticksPerTile, noteMap, key, mode, waves):
-        self.ticksPerTile = ticksPerTile
-        self.noteMap = noteMap
-        self.key = key
-        self.mode = mode
-        self.waveMap = waves
-
-    def updateAttributes(self, noteMap, ticksPerTile, key, mode, waves):
-        self.noteMap = copy.deepcopy(noteMap)
-        self.ticksPerTile = ticksPerTile
-        self.key = key
-        self.mode = mode
-        self.waveMap = waves
-        console.log(f"Updated ProgramState with key {key} and mode {mode}.")
-
-def newProgramState(key : str, mode : str, ticksPerTile : int, noteMap : dict, waveMap : dict, beatLength : int, beatsPerMeasure : int):
+def newProgramState(key : str, mode : str, tpm : int, noteMap : dict, waveMap : dict, beatLength : int, beatsPerMeasure : int):
     return {
+        "meta" : DEFAULT_META_FIELD,
         "key" : key,
         "mode" : mode,
-        "ticksPerTile" : ticksPerTile,
+        "tpm" : tpm,
         "noteMap" : noteMap,
         "waveMap" : waveMap,
         "beatLength" : beatLength,
@@ -66,51 +51,31 @@ def toProgramState(state):
     Older ProgramState objects (and future objects) are converted into a dict, so all code can now treat them as such
     '''
 
-    DEFAULT_META_FIELD = {
-        "version" : "1.1",
-        "plugins" : []
-    }
-
-    if isinstance(state, ProgramState):
+    if isinstance(state, dict):
+        stateMeta = state.get("meta", DEFAULT_META_FIELD)
+        stateKey = state.get("key", "Eb")
+        stateMode = state.get("mode", "Lydian")
+        stateTpm = state.get("tpm", 360)
+        stateWaves = state.get("waveMap", DEFAULT_WAVE_MAP)
+        newNoteMap = fromSavable(state.get("noteMap", {})) # load from dict back into note format
+        stateBeatLength = state.get("beatLength", 4)
+        stateBeatsPerMeasure = state.get("beatsPerMeasure", 4)
+    else:
         # ProgramState is older than the "meta" field -- no need to check here
         stateMeta = DEFAULT_META_FIELD
         stateKey = getattr(state, "key", "Eb")
         stateMode = getattr(state, "mode", "Lydian")
-        stateWaves = state.get("waveMap", state.get("wavemap", DEFAULT_WAVE_MAP))
-        stateTicksPerTile = getattr(state, "ticksPerTile", 10)
+        stateWaves = getattr(state, "waveMap", getattr(state, "wavemap", DEFAULT_WAVE_MAP))
+        stateTpm = 3600 / getattr(state, "ticksPerTile", 10) # Migration of ticksPerTile to tpm storage in 1.1+
         stateBeatLength = 4 # ProgramState is also older than BeatLength being stored in the file
         stateBeatsPerMeasure = 4 # ProgramState is also older than BeatsPerMeasure being stored in the file
 
-        # convert noteMap with backwards-compatibility normalization
-        rawNoteMap = getattr(state, "noteMap", {})
-        newNoteMap = {}
-        for noteKey, noteVal in rawNoteMap.items():
-            # ensure key is 3-tuple (not necessary anymore, but we keep because it works)
-            if len(noteKey) != 3:
-                noteKey = (*noteKey, "orange")
-            newNoteMap[noteKey] = noteVal
-            # used to be toNote(noteVal), but we removed Note() object, so REALLY old beta files might not work
-            # however, I don't even think such beta files exist on any computer of mine
-            # so we could potentially remove "<1.0 to 1.0" conversion and just keep 1.0->1.1 migration
-
-        # successfully in 1.0 format, now migrate to 1.1
+        newNoteMap = getattr(state, "noteMap", {})
         newNoteMap = noteMap1_0To1_1(newNoteMap)
-
-    elif isinstance(state, dict):
-        stateMeta = state.get("meta", DEFAULT_META_FIELD)
-        stateKey = state.get("key", "Eb")
-        stateMode = state.get("mode", "Lydian")
-        stateTicksPerTile = state.get("ticksPerTile", 10)
-        stateWaves = state.get("waveMap", DEFAULT_WAVE_MAP)
-        newNoteMap = state.get("noteMap", {})
-        stateBeatLength = state.get("beatLength", 4)
-        stateBeatsPerMeasure = state.get("beatsPerMeasure", 4)
-    else:
-        raise TypeError("state must be a ProgramState or dict")
 
     return {
         "meta" : stateMeta,
-        "ticksPerTile": stateTicksPerTile,
+        "tpm": stateTpm,
         "noteMap": newNoteMap,
         "key": stateKey,
         "mode": stateMode,
@@ -156,10 +121,12 @@ def noteMap1_0To1_1(noteMap : dict):
             if (note.lead and note.color == color):
                 offset = 1
                 while (note.key, note.time + offset, color) in noteMap:
+                    if noteMap[(note.key, note.time + offset, color)].lead: # if a new note starts, stop incrementing
+                        break
                     offset += 1
                 strikeList.append(Note({
                     "pitch" : note.key,
-                    "time": note.time,
+                    "time": note.time - 1,
                     "duration": offset,
                     "data_fields": {}
                 }))
@@ -183,6 +150,27 @@ def toSavable(noteMap: dict):
                 channel.append(note.getData())
             elif isinstance(note, dict):
                 channel.append(note)
+            else:
+                raise ValueError('invalid note type')
+        output[color] = channel
+    return output
+
+def fromSavable(noteMap: dict):
+    '''
+    fields:
+        noteMap (dict) - note map in pickle-ready 1.1 notation
+    
+    Converts an active noteMap FROM save-ready format (dict -> Note).
+    Note: this method is repeat-safe; if input is already Note-format, nothing should break.
+    '''
+    output = {}
+    for color, notes in noteMap.items():
+        channel = []
+        for note in notes:
+            if isinstance(note, Note):
+                channel.append(note)
+            elif isinstance(note, dict):
+                channel.append(Note(note))
             else:
                 raise ValueError('invalid note type')
         output[color] = channel

@@ -4,11 +4,12 @@
 
 import numpy as np
 import pygame
-from soundfile import write as sfwrite
+import soundfile as sf
 import pretty_midi
 from os import path
 from math import exp
-from music21 import stream, note, tempo, meter, instrument, clef
+from music21 import stream, note, tempo, meter, instrument, clef, key as keys, tie, metadata, duration as m21duration
+from fractions import Fraction
 
 ###### INTERNAL MODULES ######
 
@@ -136,9 +137,10 @@ def playFull(noteMap, waveMap, playhead=0, tpm=120, volume=0.2, sample_rate=SAMP
 
     Creates the full sound as a buffer then plays it.
     '''
+    notesToPlay = noteMap if channel == 'all' else {list(noteMap.items())[channel][0] : list(noteMap.items())[channel][1]}
 
     try:
-        audio = createFullSound(noteMap, waveMap, playhead, tpm, volume, sample_rate)
+        audio = createFullSound(notesToPlay, waveMap, playhead, tpm, volume, sample_rate)
         sound = toSound(audio)
 
         play_obj = sound.play()
@@ -253,7 +255,8 @@ def exportToWav(arr2d: np.ndarray, filename: str, sample_rate: int = 44100): # f
     while path.exists(candidate):
         candidate = f"{base} ({counter}){ext}"
         counter += 1
-    sfwrite(candidate, arr2d, sample_rate, subtype='PCM_16')
+    sf.write(candidate, arr2d, sample_rate, subtype='PCM_16')
+    console.log('Completed WAV Export.')
 
 
 def exportToFlac(arr2d: np.ndarray, filename: str, sample_rate: int = 44100):
@@ -277,24 +280,25 @@ def exportToFlac(arr2d: np.ndarray, filename: str, sample_rate: int = 44100):
         candidate = f"{base} ({counter}){ext}"
         counter += 1
 
-    sfwrite(candidate, arr2d, sample_rate, format="FLAC")
+    sf.write(candidate, arr2d, sample_rate, format="FLAC")
+    console.log('Completed FLAC Export.')
 
 
-def exportToOggVorbis(arr2d: np.ndarray, filename: str, sample_rate: int = 44100, quality: float = 0.5):
+def exportToMp3(arr2d: np.ndarray, filename: str, sample_rate: int = 44100, quality: float = 0.6):
     '''
     fields:
         arr2d (np.ndarray) - sound data\n
         filename (str) - output filepath\n
         sample_rate (number) - sample rate\n
-        quality (float) - Vorbis quality (-1.0 to 1.0, typical 0.3-0.6)\n
+        quality (float) - mp3 quality (0 to 1.0)\n
     outputs: nothing
 
     Take a 2-D array and write it to an Ogg Vorbis file.
     If file exists, appends an incrementing number to the filename.
     '''
     base, ext = path.splitext(filename)
-    if ext.lower() not in (".ogg", ".oga"):
-        ext = ".ogg"
+    if ext.lower() != ".mp3":
+        ext = ".mp3"
 
     candidate = base + ext
     counter = 1
@@ -302,14 +306,24 @@ def exportToOggVorbis(arr2d: np.ndarray, filename: str, sample_rate: int = 44100
         candidate = f"{base} ({counter}){ext}"
         counter += 1
 
-    sfwrite(
+    # Ensure correct type and range
+    arr2d = np.asarray(arr2d, dtype=np.float32)
+    arr2d = arr2d / np.maximum(np.max(np.abs(arr2d)), 1.0)
+    arr2d = np.clip(arr2d, -1.0, 1.0)
+
+    # Ensure shape (frames, channels)
+    if arr2d.ndim != 2:
+        raise ValueError("Audio must be 2D: (frames, channels)")
+
+    sf.write(
         candidate,
         arr2d,
         sample_rate,
-        format="OGG",
-        subtype="VORBIS",
-        compression=quality
+        format="MP3",
+        subtype="MPEG_LAYER_III",
+        compression_level=(1-quality)
     )
+    console.log('Completed MP3 Export.')
 
 def createMidiFromNotes(noteMap: dict, filename: str, instrumentName="Acoustic Grand Piano"):
     '''
@@ -334,10 +348,10 @@ def createMidiFromNotes(noteMap: dict, filename: str, instrumentName="Acoustic G
     instrument = pretty_midi.Instrument(program=pretty_midi.instrument_name_to_program(instrumentName))
 
     for color, channel in noteMap.items():
-        for note in noteMap:
-            pitch = note.pitch + 23
-            start = note.time
-            end = start + note.duration
+        for note in channel:
+            pitch = note.pitch + 35
+            start = note.time / 4
+            end = start + note.duration / 4
             velocity = 64
 
             midiNote = pretty_midi.Note(velocity=velocity, pitch=pitch, start=start, end=end)
@@ -355,7 +369,7 @@ def createMusicXMLFromNotes(
     beatLength: int,
     key: str,
     mode: str,
-    colorClefMap: dict | None = None
+    colorClefMap: dict | None = None,
 ):
     '''
     fields:
@@ -367,12 +381,12 @@ def createMusicXMLFromNotes(
         beatLength (int) - number of tiles per beat\n
         key (str) - tonic (e.g. "C#", "Db")\n
         mode (str) - musical mode\n
-        colorClefMap (dict) - color → clef name (ex. "Treble", "Tenor (8vb)")\n
+        colorClefMap (dict) - color → clef name (ex. "Treble", "Bass (8vb)")\n
     outputs: nothing
 
     Generates a MuseScore-compatible MusicXML notation file.
     '''
-
+    
     base, ext = path.splitext(filename)
     if ext.lower() not in (".xml", ".musicxml"):
         ext = ".musicxml"
@@ -384,14 +398,37 @@ def createMusicXMLFromNotes(
         counter += 1
 
     score = stream.Score()
+    score.metadata = metadata.Metadata()
+    score.metadata.title = path.split(base)[1]
+    score.metadata.alternativeTitle = f"in {key} {mode}"
+    score.metadata.composer = "Created with Symphony"
 
-    # Tempo
-    score.insert(0, tempo.MetronomeMark(number=tempoBPM))
+    # Calculate quarter length values
+    # One beat = (4 / timeSigDenominator) quarter notes
+    # Example: if denominator is 4, one beat = 1 quarter note
+    # Example: if denominator is 2, one beat = 2 quarter notes (half note)
+    beatQL = Fraction(4, timeSigDenominator)
+    
+    # One tile = beatQL / beatLength quarter notes
+    tileQL = beatQL / beatLength
+    
+    # One measure = timeSigNumerator beats
+    measureQL = beatQL * timeSigNumerator
 
-    # Time signature
-    score.insert(0, meter.TimeSignature(f"{timeSigNumerator}/{timeSigDenominator}"))
+    # Clef mapping
+    clefMap = {
+        "Treble": clef.TrebleClef,
+        "Treble (8va)": clef.Treble8vaClef,
+        "Treble (8vb)": clef.Treble8vbClef,
+        "Soprano": clef.SopranoClef,
+        "Mezzo-soprano": clef.MezzoSopranoClef,
+        "Alto": clef.AltoClef,
+        "Tenor": clef.TenorClef,
+        "Bass": clef.BassClef,
+        "Bass (8vb)": clef.Bass8vbClef,
+    }
 
-    # Key signature
+    # Mode mapping
     modeMap = {
         "Ionian (maj.)": "major",
         "Aeolian (min.)": "minor",
@@ -401,45 +438,138 @@ def createMusicXMLFromNotes(
         "Mixolydian": "mixolydian",
         "Locrian": "locrian",
     }
-    score.insert(0, key.Key(key, modeMap[mode]))
 
-    # One tile expressed in quarterLength units
-    tileQuarterLength = (4 / timeSigDenominator) / beatLength
+    # Determine the maximum number of measures needed across all parts
+    maxMeasures = 0
+    for color, notes in noteMap.items():
+        if notes:
+            maxEndTile = max((n.time + n.duration) for n in notes)
+            maxEndQL = maxEndTile * tileQL
+            numMeasures = int(maxEndQL / measureQL) + 1
+            maxMeasures = max(maxMeasures, numMeasures)
 
-    # Clef mapping
-    clefMap = {
-        "Treble": clef.TrebleClef,
-        "Treble (8va)": clef.Treble8vaClef,
-        "Treble (8vb)": clef.Treble8vbClef,
-
-        "Soprano": clef.SopranoClef,
-        "Mezzo-soprano": clef.MezzoSopranoClef,
-        "Alto": clef.AltoClef,
-        "Tenor": clef.TenorClef,
-
-        "Bass": clef.BassClef,
-        "Bass (8vb)": clef.Bass8vbClef,
-    }
+    # Ensure at least one measure
+    if maxMeasures == 0:
+        maxMeasures = 1
 
     for color, notes in noteMap.items():
         part = stream.Part()
 
-        # Clef assignment
-        clefName = colorClefMap.get(color) if colorClefMap else None
-        if clefName and clefName in clefMap:
-            part.insert(0, clefMap[clefName]())    
-        else:
-            part.insert(0, clef.TrebleClef()) # default is treble clef
+        # Sort notes by start time
+        sortedNotes = sorted(notes, key=lambda n: n.time) if notes else []
 
-        for n in notes:
-            pitch = n.pitch + 23
-            startQL = n.time * tileQuarterLength
-            durQL = n.duration * tileQuarterLength
+        # Create a timeline for each measure
+        measureTimelines = [[] for _ in range(maxMeasures)]
 
-            m21note = note.Note(pitch)
-            m21note.duration.quarterLength = durQL
-            part.insert(startQL, m21note)
+        # Distribute notes into measures
+        for n in sortedNotes:
+            pitch = n.pitch + 35
+            startQL = Fraction(n.time) * tileQL
+            durQL = Fraction(n.duration) * tileQL
 
+            measureIdx = int(startQL / measureQL)
+            if measureIdx >= maxMeasures:
+                continue
+
+            offsetInMeasure = startQL - (measureIdx * measureQL)
+            endQL = startQL + durQL
+            endMeasureIdx = int((endQL - Fraction(1, 100000)) / measureQL)
+
+            if endMeasureIdx > measureIdx:
+                # Note spans multiple measures - split it
+                for mIdx in range(measureIdx, min(endMeasureIdx + 1, maxMeasures)):
+                    measureStartQL = mIdx * measureQL
+                    measureEndQL = (mIdx + 1) * measureQL
+
+                    segmentStart = max(startQL, measureStartQL)
+                    segmentEnd = min(endQL, measureEndQL)
+                    segmentDur = segmentEnd - segmentStart
+
+                    if segmentDur > 0:
+                        offsetInThisMeasure = segmentStart - measureStartQL
+                        
+                        # Determine tie type
+                        if mIdx > measureIdx and mIdx < endMeasureIdx:
+                            tieType = 'continue'
+                        elif mIdx > measureIdx:
+                            tieType = 'stop'
+                        elif mIdx < endMeasureIdx:
+                            tieType = 'start'
+                        else:
+                            tieType = None
+
+                        measureTimelines[mIdx].append({
+                            'offset': offsetInThisMeasure,
+                            'duration': segmentDur,
+                            'pitch': pitch,
+                            'tie': tieType
+                        })
+            else:
+                # Note fits in single measure
+                measureTimelines[measureIdx].append({
+                    'offset': offsetInMeasure,
+                    'duration': durQL,
+                    'pitch': pitch,
+                    'tie': None
+                })
+
+        # Build measures
+        for i in range(maxMeasures):
+            m = stream.Measure(number=i + 1)
+
+            # Add metadata to first measure
+            if i == 0:
+                clefName = colorClefMap.get(color) if colorClefMap else None
+                if clefName and clefName in clefMap:
+                    m.clef = clefMap[clefName]()
+                else:
+                    m.clef = clef.TrebleClef()
+
+                m.timeSignature = meter.TimeSignature(f"{timeSigNumerator}/{timeSigDenominator}")
+                m.keySignature = keys.Key(key, modeMap[mode])
+                m.insert(0, tempo.MetronomeMark(number=tempoBPM))
+
+            # Sort events by offset
+            timeline = sorted(measureTimelines[i], key=lambda x: x['offset'])
+
+            if not timeline:
+                # Empty measure - add a measure rest
+                r = note.Rest()
+                r.duration = m21duration.Duration(quarterLength=float(measureQL))
+                m.append(r)
+            else:
+                # Fill measure with notes and rests
+                currentOffset = Fraction(0)
+
+                for event in timeline:
+                    eventOffset = event['offset']
+                    eventDuration = event['duration']
+
+                    # Add rest if there's a gap before this event
+                    if eventOffset > currentOffset:
+                        gapDur = eventOffset - currentOffset
+                        r = note.Rest()
+                        r.duration = m21duration.Duration(quarterLength=float(gapDur))
+                        m.insert(float(currentOffset), r)
+
+                    # Add the note
+                    n = note.Note(event['pitch'])
+                    n.duration = m21duration.Duration(quarterLength=float(eventDuration))
+                    if event['tie']:
+                        n.tie = tie.Tie(event['tie'])
+                    m.insert(float(eventOffset), n)
+
+                    currentOffset = eventOffset + eventDuration
+
+                # Fill remaining space at end of measure with rest
+                if currentOffset < measureQL:
+                    remainingDur = measureQL - currentOffset
+                    r = note.Rest()
+                    r.duration = m21duration.Duration(quarterLength=float(remainingDur))
+                    m.insert(float(currentOffset), r)
+            part.append(m)
         score.append(part)
 
     score.write("musicxml", candidate)
+    console.log('musicxml created')
+    return candidate
