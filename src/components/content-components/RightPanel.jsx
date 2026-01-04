@@ -37,9 +37,9 @@ function RightPanel() {
     }
   }, [selectedFile, globalDirectory]);
 
-  const runPython2 = async (title) => {
+  const runProcessCommand = async (title) => {
     console.log(title);
-    const result = await window.electronAPI.runPythonScript(['open', `${title}`, globalDirectory]);
+    const result = await window.electronAPI.doProcessCommand(path.join(globalDirectory, `${title}`), 'open');
     console.log(result);
   };
 
@@ -135,7 +135,7 @@ function RightPanel() {
           style={{ transition: 'filter 0.2s, border 0.4s, background 0.4s' }}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
-          onClick={(selectedFile && selectedFile.slice(-9) === '.symphony') ? () => runPython2(selectedFile) : undefined}
+          onClick={(selectedFile && selectedFile.slice(-9) === '.symphony') ? () => runProcessCommand(selectedFile) : undefined}
         >
           <Tooltip text={(selectedFile && selectedFile.slice(-9) === '.symphony') ? 'Click to open in editor, or double click file.' : 'Select a Symphony to open it in the editor.'}/>
           <div>Open in Editor</div>

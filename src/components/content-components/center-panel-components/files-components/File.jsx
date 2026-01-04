@@ -47,10 +47,10 @@ function File({ name }) {
   const [displayName, setDisplayName] = useState(fileName);
   const [isStarred, setIsStarred] = useState(false);
 
-  const runPython2 = async (title) => {
+  const runProcessCommand = async (title) => {
     console.log(title);
     setGlobalUpdateTimestamp(Date.now);
-    const result = await window.electronAPI.runPythonScript(['open', `${title}`, globalDirectory]);
+    const result = await window.electronAPI.doProcessCommand(path.join(globalDirectory, `${title}`), 'open');
     console.log(result);
   };
 
@@ -107,7 +107,7 @@ function File({ name }) {
         }}
         onDoubleClick={async () => {
           if (displayName.endsWith('.symphony')) {
-            runPython2(selectedFile);
+            runProcessCommand(selectedFile);
           } else {
             await window.electronAPI.openNativeApp(path.join(globalDirectory, displayName));
             setGlobalUpdateTimestamp(Date.now());

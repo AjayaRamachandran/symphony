@@ -78,7 +78,7 @@ def instantiate(pc_file: dict):
         "all" : 0
     }
 
-    ps = sl.newProgramState("Eb", "Lydian", 10, NOTE_MAP_EMPTY, WAVE_MAP_EMPTY, 4, 4)
+    ps = sl.newProgramState("Eb", "Lydian", 360, NOTE_MAP_EMPTY, WAVE_MAP_EMPTY, 4, 4)
     project_file_path = path.join(args['project_folder_path'], args['project_file_name']) + '.symphony'
     response_file_path = pc_file['pc_file_path']
 

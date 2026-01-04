@@ -1,6 +1,7 @@
 # main.py
 # entry point for the program. contains the mainloop.
 ###### IMPORT ######
+print('Welcome to Symphony v1.1.')
 
 import time
 lastTime = time.time()
@@ -19,6 +20,10 @@ import webbrowser
 
 import console_controls.console_window as cw
 from console_controls.console import *
+
+console.log("Imported Libraries "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
+lastTime = time.time()
+
 import events
 import gui.element as gui
 import gui.frame as frame
@@ -62,6 +67,7 @@ except ImportError:
 
 SAMPLE_RATE = 44100
 
+console.log(sys.argv)
 source_path = sys.argv[1]
 process_command_file = sys.argv[2]
 
@@ -129,7 +135,6 @@ play_obj = None # global to hold the last Channel/Sound so it doesn't get garbag
 page = "Editor"
 noteMap : dict[str, list[custom.Note]] = {}
 
-tick = 0
 saveFrame = 0
 
 NOTES_SHARP = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
@@ -293,7 +298,7 @@ KeyDropdown.setCurrentState(keyIndex)
 ModeDropdown.setCurrentState(modes.index(mode))
 
 def playPauseToggle():
-    global playing, play_obj
+    global playing, play_obj, tpm
     playing = not playing
     PlayPauseButton.cycleStates()
     PlayPauseButton.render(screen)
@@ -747,7 +752,7 @@ last_update = time.time()
 
 while run:
     while not gui_running:
-        time.sleep(0.3)
+        time.sleep(0.6)
         pc_data = pcrw.operateProcessCommand(process_command_file)
 
         if pc_data != None:
@@ -770,7 +775,6 @@ while run:
             autoSave = False if settings['disable_auto_save'] else directory["Symphony Auto-Save"][0]["Auto-Save"]
 
             noteMap = ps["noteMap"]
-            tpm = ps["tpm"]
             waveMap = ps["waveMap"]
             key = ps["key"]
             beatLength = ps['beatLength']
@@ -795,8 +799,10 @@ while run:
             pygame.display.init()
             pygame.display.set_caption(f"{title_text} - Symphony v1.1 Beta")
             pygame.display.set_icon(gameIcon)
-            screen = pygame.display.set_mode((width, height), pygame.RESIZABLE, pygame.NOFRAME)
+            screen = pygame.display.set_mode((width, height), pygame.RESIZABLE | pygame.SHOWN)
             MasterPanel.render(screen)
+            pygame.event.pump()
+            pygame.display.flip()
     
     try:
         root = cw.ConsoleWindow(consoleMessages, source_path)
@@ -851,7 +857,7 @@ while run:
                 console.warn("Pygame was quit")
                 break
             elif event.type == pygame.VIDEORESIZE:
-                screen = pygame.display.set_mode((max(event.w, minWidth), max(event.h, minHeight)), pygame.RESIZABLE)
+                screen = pygame.display.set_mode((max(event.w, minWidth), max(event.h, minHeight)), pygame.RESIZABLE | pygame.SHOWN)
                 width, height = (max(event.w, minWidth), max(event.h, minHeight))
 
                 BeatLengthDownButton.setPosition((width - 516, 26))
