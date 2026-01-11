@@ -13,10 +13,13 @@ function ShowInfoModal({ filePath }) {
 
     const fetchInfo = async () => {
       try {
-        const result = await window.electronAPI.runPythonRetrieve(filePath);
+        const result = await window.electronAPI.doProcessCommand(
+          filePath,
+          "retrieve"
+        );
 
-        if (result?.fileInfo) {
-          setFileInfo(result.fileInfo);
+        if (result?.payload?.fileInfo) {
+          setFileInfo(result.payload.fileInfo);
         } else {
           setError(result?.error || "Unknown error retrieving file info");
         }

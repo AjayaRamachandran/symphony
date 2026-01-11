@@ -55,13 +55,13 @@ else:
     platform = 'unknown'
     CMD_KEY = pygame.K_LCTRL
 
-#try:
-    #from ctypes import windll
-    #myappid = 'nimbial.symphony.editor.v1-1' # arbitrary string
-    #windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
-#except ImportError:
-    #console.warn('Error importing windll or setting Unique AppID. You might be gui_running on a non-Windows platform.')
-    #pass # Not on Windows or ctypes is not available
+try:
+    from ctypes import windll
+    myappid = 'nimbial.symphony.editor.v1-1' # arbitrary string
+    windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+except ImportError:
+    console.warn('Error importing windll or setting Unique AppID. You might be gui_running on a non-Windows platform.')
+    pass # Not on Windows or ctypes is not available
 
 ####### SYSARG HANDLING ######
 
@@ -468,6 +468,19 @@ lastTime = time.time()
 
 ###### FUNCTIONS ######
 
+def deleteZeroDurationNotes():
+    '''
+    fields: none
+    outputs: nothing
+    
+    Deletes all notes that have zero duration.
+    '''
+    global noteMap
+
+    for color, notes in noteMap.items():
+        #console.log([n for n in notes if n.duration == 0])
+        noteMap[color] = [n for n in notes if n.duration != 0]
+
 def trimOverlappingNotes():
     '''
     fields: none
@@ -476,6 +489,7 @@ def trimOverlappingNotes():
     Shortens notes so that overlapping notes of the SAME pitch
     in the SAME color channel do not overlap.
     '''
+    global noteMap
 
     for color, notes in noteMap.items():
 
@@ -497,6 +511,9 @@ def trimOverlappingNotes():
                 if next_note.time < current_end:
                     current.duration = max(0, next_note.time - current.time)
 
+def preprocess():
+    trimOverlappingNotes()
+    deleteZeroDurationNotes()
     
 console.log("Initialized Static Methods "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
 lastTime = time.time()
@@ -730,7 +747,7 @@ def handleUnClick():
     if pygame.mouse.get_pos()[1] < 80:
         return
     NoteGrid.selectionRect = None
-    trimOverlappingNotes()
+    preprocess()
     pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
     NotePanel.render(screen)
 
@@ -896,7 +913,17 @@ while run:
                 elif event.type == pygame.KEYDOWN:
                     if event.key in [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7]:
                         numKeyPressed = [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7].index(event.key)
+                        draggingNotes = []
+                        if NoteGrid.mouseInside and pygame.mouse.get_pressed()[0]:
+                            draggingNotes = [note for note in noteMap[justColorNames[ColorButton.currentStateIdx]] if note.selected]
+                            noteMap[justColorNames[ColorButton.currentStateIdx]] = [note for note in noteMap[justColorNames[ColorButton.currentStateIdx]] if not note.selected]
                         ColorButton.setCurrentState(numKeyPressed)
+                        if NoteGrid.mouseInside and pygame.mouse.get_pressed()[0]:
+                            try:
+                                noteMap[justColorNames[ColorButton.currentStateIdx]].append(*draggingNotes)
+                            except Exception as e:
+                                console.warn("Color channel to paste into was empty. Setting instead of appending...")
+                                noteMap[justColorNames[ColorButton.currentStateIdx]] = draggingNotes
                         colorSync()
                     if event.key in [pygame.K_MINUS, pygame.K_EQUALS]: # zoom out horizontally
                         if pygame.key.get_pressed()[CMD_KEY]:

@@ -23,7 +23,8 @@ function NewFile() {
     document.body.style.cursor = "wait";
     const result = await window.electronAPI.doProcessCommand(
       path.join(globalDirectory, `${title}`),
-      "instantiate"
+      "instantiate",
+      {}
     );
     document.body.style.cursor = "default";
     console.log(result);

@@ -47,7 +47,8 @@ function RightPanel() {
     console.log(title);
     const result = await window.electronAPI.doProcessCommand(
       path.join(globalDirectory, `${title}`),
-      "open"
+      "open",
+      {}
     );
     console.log(result);
   };

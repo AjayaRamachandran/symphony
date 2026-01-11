@@ -15,7 +15,11 @@ import Tooltip from "@/components/Tooltip";
 import { useDirectory } from "@/contexts/DirectoryContext";
 import InitExportFolder from "@/modals/InitExportFolder";
 
-const formats = [{ label: "WAV", icon: AudioLines }];
+const formats = [
+  { label: "WAV", icon: AudioLines },
+  { label: "MP3", icon: AudioLines },
+  { label: "FLAC", icon: AudioLines },
+];
 
 function ExportModal({ onClose, onComplete }) {
   const [projectName, setProjectName] = useState(" ");
@@ -57,11 +61,11 @@ function ExportModal({ onClose, onComplete }) {
   const finish = async (pathToFile) => {
     document.body.style.cursor = "wait";
     try {
-      await window.electronAPI.runPythonScript([
-        "export",
+      await window.electronAPI.doProcessCommand(
         path.join(globalDirectory, selectedFile),
-        pathToFile,
-      ]);
+        "export",
+        { dest_file_path: pathToFile, file_path: format.toLowerCase() }
+      );
     } finally {
       document.body.style.cursor = "default";
     }

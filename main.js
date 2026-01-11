@@ -11,6 +11,7 @@ const path = require("path");
 const fs = require("fs");
 const { spawn } = require("child_process");
 const USER_DATA_PATH = app.getPath("userData");
+console.log(USER_DATA_PATH);
 const DIRECTORY_PATH = path.join(USER_DATA_PATH, "directory.json");
 const RECENTLY_VIEWED_PATH = path.join(USER_DATA_PATH, "recently-viewed.json");
 const STARRED_PATH = path.join(USER_DATA_PATH, "starred.json");

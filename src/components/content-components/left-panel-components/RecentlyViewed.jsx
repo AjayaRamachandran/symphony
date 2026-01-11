@@ -59,7 +59,7 @@ function RecentlyViewed() {
     if (item.type === "symphony") {
       try {
         setGlobalUpdateTimestamp(Date.now());
-        const result = await window.electronAPI.runPythonScript([
+        const result = await window.electronAPI.doProcessCommand([
           "open",
           item.name,
           item.fileLocation,

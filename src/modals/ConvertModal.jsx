@@ -7,6 +7,7 @@ import {
   AudioLines,
   FolderClosed,
   KeyboardMusic,
+  FileMusic,
 } from "lucide-react";
 import path from "path-browserify";
 
@@ -16,7 +17,10 @@ import Tooltip from "@/components/Tooltip";
 import { useDirectory } from "@/contexts/DirectoryContext";
 import InitExportFolder from "@/modals/InitExportFolder";
 
-const formats = [{ label: "MIDI", icon: KeyboardMusic }];
+const formats = [
+  { label: "MIDI", icon: KeyboardMusic },
+  { label: "MusicXML", icon: FileMusic },
+];
 
 function ConvertModal({ onClose, onComplete }) {
   const [projectName, setProjectName] = useState(" ");
@@ -58,11 +62,11 @@ function ConvertModal({ onClose, onComplete }) {
   const finish = async (pathToFile) => {
     document.body.style.cursor = "wait";
     try {
-      await window.electronAPI.runPythonScript([
-        "convert",
+      await window.electronAPI.doProcessCommand(
         path.join(globalDirectory, selectedFile),
-        pathToFile,
-      ]);
+        "convert",
+        { destination: pathToFile, fileType: format.toLowerCase() }
+      );
     } finally {
       document.body.style.cursor = "default";
     }

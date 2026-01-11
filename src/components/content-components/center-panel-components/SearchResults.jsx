@@ -56,7 +56,7 @@ function SearchResults({
     if (ext === ".symphony") {
       try {
         setGlobalUpdateTimestamp(Date.now());
-        const result = await window.electronAPI.runPythonScript([
+        const result = await window.electronAPI.doProcessCommand([
           "open",
           basename,
           dirname,

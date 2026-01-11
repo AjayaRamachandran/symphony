@@ -306,7 +306,11 @@ class NoteGrid(gui.Interactive):
                     raise ValueError(f'Invalid data type for note: {note.__class__()}')
         
         if self.color != 6 and len(list(self.noteMap.items())) > 0:
-            colorChannel = list(self.noteMap.items())[self.color]
+            try:
+                colorChannel = list(self.noteMap.items())[self.color]
+            except Exception as e:
+                console.warn("Viewing an empty color channel.")
+                pass
             colorName = colorChannel[0]
             colorNotes = colorChannel[1]
 

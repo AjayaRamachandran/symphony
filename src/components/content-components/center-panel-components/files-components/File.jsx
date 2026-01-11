@@ -52,7 +52,8 @@ function File({ name }) {
     setGlobalUpdateTimestamp(Date.now);
     const result = await window.electronAPI.doProcessCommand(
       path.join(globalDirectory, `${title}`),
-      "open"
+      "open",
+      {}
     );
     console.log(result);
   };
