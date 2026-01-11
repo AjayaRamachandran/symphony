@@ -1,8 +1,13 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
-import './dropdown.css/';
+import React, { useState, useRef, useEffect } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import "./dropdown.css/";
 
-const Dropdown = ({ options, onSelect, value, placeholder = 'Select an option' }) => {
+const Dropdown = ({
+  options,
+  onSelect,
+  value,
+  placeholder = "Select an option",
+}) => {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(null);
   const dropdownRef = useRef(null);
@@ -29,15 +34,19 @@ const Dropdown = ({ options, onSelect, value, placeholder = 'Select an option' }
         setOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   return (
     <div className="dropdown" ref={dropdownRef}>
       <button className="dropdown-toggle" onClick={() => setOpen(!open)}>
-        <span className='truncate'>{selected ? selected.label : placeholder}</span>
-        <span className="chevron">{open ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}</span>
+        <span className="truncate">
+          {selected ? selected.label : placeholder}
+        </span>
+        <span className="chevron">
+          {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        </span>
       </button>
       {open && (
         <ul className="dropdown-menu">
@@ -47,8 +56,10 @@ const Dropdown = ({ options, onSelect, value, placeholder = 'Select an option' }
               className="dropdown-item"
               onClick={() => handleOnSelect(opt)}
             >
-              {opt.icon && <span className="icon">{<opt.icon size={16} />}</span>}
-              <span className='truncate'>{opt.label}</span>
+              {opt.icon && (
+                <span className="icon">{<opt.icon size={16} />}</span>
+              )}
+              <span className="truncate">{opt.label}</span>
             </li>
           ))}
         </ul>

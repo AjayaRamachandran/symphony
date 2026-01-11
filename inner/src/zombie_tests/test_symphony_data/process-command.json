@@ -1,1 +1,10 @@
-{"command": "kill", "id": "b26deca8-f0f3-4efe-8ec7-1bfc4bc1bc94", "pc_file_path": "c:\\Code\\React Projects\\Editor NEW\\inner\\src\\zombie_tests\\test_symphony_data\\process-command.json", "args": {"project_file_name": "testfile", "project_folder_path": "c:\\Code\\React Projects\\Editor NEW\\inner\\src\\zombie_tests\\test_projects", "symphony_data_path": "c:\\Code\\React Projects\\Editor NEW\\inner\\src\\zombie_tests\\test_symphony_data"}}
+{
+  "command": "kill",
+  "id": "4a9b1983-4c39-4db6-9bb4-d844736936b9",
+  "pc_file_path": "c:\\Code\\React Projects\\Editor NEW\\inner\\src\\zombie_tests\\test_symphony_data\\process-command.json",
+  "args": {
+    "project_file_name": "testfile",
+    "project_folder_path": "c:\\Code\\React Projects\\Editor NEW\\inner\\src\\zombie_tests\\test_projects",
+    "symphony_data_path": "c:\\Code\\React Projects\\Editor NEW\\inner\\src\\zombie_tests\\test_symphony_data"
+  }
+}

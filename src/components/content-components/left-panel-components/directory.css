@@ -1,7 +1,7 @@
 .directory {
   flex: 1;
   border-radius: 7px;
-  border: 1px #3C3C3C solid;
+  border: 1px #3c3c3c solid;
   color: #bbbbbb;
   background-color: #252525;
   padding: 10px 10px 10px 15px;
@@ -34,34 +34,39 @@
   flex-direction: row;
   z-index: 10;
   margin-top: 1px;
-  }
-  .directory-medium:hover {
-    filter: brightness(1.2);
-    cursor: pointer;
-  }
+}
+.directory-medium:hover {
+  filter: brightness(1.2);
+  cursor: pointer;
+}
 
-  .directory-text {
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    max-width: 200px;
-    flex: 1;
-  } .directory-medium:hover .directory-text {
-    max-width: 150px;
-  }
+.directory-text {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  max-width: 200px;
+  flex: 1;
+}
+.directory-medium:hover .directory-text {
+  max-width: 150px;
+}
 
+.directory-medium .del-dir-button {
+  opacity: 0;
+  pointer-events: none;
+}
 
-  .directory-medium .del-dir-button {
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  .directory-medium:hover .del-dir-button {
-    opacity: 1;
-    pointer-events: auto;
-  }
+.directory-medium:hover .del-dir-button {
+  opacity: 1;
+  pointer-events: auto;
+}
 
 @keyframes blink-animation {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
 }

@@ -1,12 +1,18 @@
 import React, { useEffect, useCallback, useState } from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import HomePage from "./pages/HomePage";
-import { useDirectory } from '@/contexts/DirectoryContext';
-import path from 'path-browserify';
+import { useDirectory } from "@/contexts/DirectoryContext";
+import path from "path-browserify";
 
 function App() {
   const {
-    selectedFile, globalDirectory, clipboardFile, setClipboardFile, clipboardCut, setClipboardCut, setGlobalUpdateTimestamp
+    selectedFile,
+    globalDirectory,
+    clipboardFile,
+    setClipboardFile,
+    clipboardCut,
+    setClipboardCut,
+    setGlobalUpdateTimestamp,
   } = useDirectory();
 
   // Operator functions
@@ -33,7 +39,10 @@ function App() {
       while (await window.electronAPI.fileExists(finalDest)) {
         const ext = path.extname(baseName);
         const name = path.basename(baseName, ext);
-        finalDest = path.join(globalDirectory, `${name} (copy${counter > 1 ? ' ' + counter : ''})${ext}`);
+        finalDest = path.join(
+          globalDirectory,
+          `${name} (copy${counter > 1 ? " " + counter : ""})${ext}`
+        );
         counter++;
       }
       await window.electronAPI.copyFile(clipboardFile, finalDest);
@@ -44,7 +53,14 @@ function App() {
         setClipboardCut(false);
       }
     }
-  }, [clipboardFile, clipboardCut, globalDirectory, setClipboardFile, setClipboardCut, setGlobalUpdateTimestamp]);
+  }, [
+    clipboardFile,
+    clipboardCut,
+    globalDirectory,
+    setClipboardFile,
+    setClipboardCut,
+    setGlobalUpdateTimestamp,
+  ]);
 
   const handleDuplicate = useCallback(async () => {
     if (selectedFile && globalDirectory) {
@@ -56,7 +72,10 @@ function App() {
       while (await window.electronAPI.fileExists(finalDest)) {
         const ext = path.extname(baseName);
         const name = path.basename(baseName, ext);
-        finalDest = path.join(globalDirectory, `${name} (copy${counter > 1 ? ' ' + counter : ''})${ext}`);
+        finalDest = path.join(
+          globalDirectory,
+          `${name} (copy${counter > 1 ? " " + counter : ""})${ext}`
+        );
         counter++;
       }
       await window.electronAPI.copyFile(srcPath, finalDest);
@@ -68,16 +87,16 @@ function App() {
     const handler = async (e) => {
       const isAccelKey = e.ctrlKey || e.metaKey;
 
-      if (e.key === 'F12') {
+      if (e.key === "F12") {
         window.electronAPI.toggleDevTools();
       }
-      if (isAccelKey && e.key.toLowerCase() === 'c') handleCopy();
-      if (isAccelKey && e.key.toLowerCase() === 'x') handleCut();
-      if (isAccelKey && e.key.toLowerCase() === 'v') await handlePaste();
-      if (isAccelKey && e.key.toLowerCase() === 'd') await handleDuplicate();
+      if (isAccelKey && e.key.toLowerCase() === "c") handleCopy();
+      if (isAccelKey && e.key.toLowerCase() === "x") handleCut();
+      if (isAccelKey && e.key.toLowerCase() === "v") await handlePaste();
+      if (isAccelKey && e.key.toLowerCase() === "d") await handleDuplicate();
     };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
   }, [handleCopy, handleCut, handlePaste, handleDuplicate]);
 
   // Attach operator functions to window for Toolbar access
@@ -91,9 +110,8 @@ function App() {
   return (
     <>
       <HomePage />
-
     </>
-  )
+  );
 }
 
-export default App
+export default App;

@@ -1,6 +1,6 @@
 {
-  "Projects": [ ],
-  "Exports": [ ],
+  "Projects": [],
+  "Exports": [],
   "Symphony Auto-Save": [
     {
       "Auto-Save": "C:\\Code\\React Projects\\Editor NEW\\inner\\src\\zombie_tests\\test_symphony_data\\auto_save"

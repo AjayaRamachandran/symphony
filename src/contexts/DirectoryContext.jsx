@@ -4,9 +4,11 @@ const DirectoryContext = createContext();
 
 export function DirectoryProvider({ children }) {
   const [globalDirectory, setGlobalDirectory] = useState(null);
-  const [globalUpdateTimestamp, setGlobalUpdateTimestamp] = useState(Date.now());
+  const [globalUpdateTimestamp, setGlobalUpdateTimestamp] = useState(
+    Date.now()
+  );
   const [selectedFile, setSelectedFile] = useState(null);
-  const [viewType, setViewType] = useState('grid');
+  const [viewType, setViewType] = useState("grid");
   const [clipboardFile, setClipboardFile] = useState(null);
   const [clipboardCut, setClipboardCut] = useState(false);
   const [isFieldSelected, setIsFieldSelected] = useState(false); // Add field selection state
@@ -15,28 +17,30 @@ export function DirectoryProvider({ children }) {
   const [showSplashScreen, setShowSplashScreen] = useState(false);
 
   return (
-    <DirectoryContext.Provider value={{
-      globalDirectory,
-      setGlobalDirectory,
-      globalUpdateTimestamp,
-      setGlobalUpdateTimestamp,
-      selectedFile,
-      setSelectedFile,
-      viewType,
-      setViewType,
-      clipboardFile,
-      setClipboardFile,
-      clipboardCut,
-      setClipboardCut,
-      isFieldSelected,
-      setIsFieldSelected,
-      tempFileName,
-      setTempFileName,
-      globalStars,
-      setGlobalStars,
-      showSplashScreen,
-      setShowSplashScreen
-    }}>
+    <DirectoryContext.Provider
+      value={{
+        globalDirectory,
+        setGlobalDirectory,
+        globalUpdateTimestamp,
+        setGlobalUpdateTimestamp,
+        selectedFile,
+        setSelectedFile,
+        viewType,
+        setViewType,
+        clipboardFile,
+        setClipboardFile,
+        clipboardCut,
+        setClipboardCut,
+        isFieldSelected,
+        setIsFieldSelected,
+        tempFileName,
+        setTempFileName,
+        globalStars,
+        setGlobalStars,
+        showSplashScreen,
+        setShowSplashScreen,
+      }}
+    >
       {children}
     </DirectoryContext.Provider>
   );

@@ -1,7 +1,7 @@
 .recently-viewed {
   flex: 1;
   border-radius: 7px;
-  border: 1px #3C3C3C solid;
+  border: 1px #3c3c3c solid;
   color: #bbbbbb;
   background-color: #252525;
   padding: 15px;
@@ -28,11 +28,11 @@
   display: flex;
   flex-direction: row;
   width: 100%;
-  }
-  .recently-viewed-medium:hover {
-    filter: brightness(1.2);
-    cursor: pointer;
-  }
+}
+.recently-viewed-medium:hover {
+  filter: brightness(1.2);
+  cursor: pointer;
+}
 
 .truncated-text {
   white-space: nowrap;

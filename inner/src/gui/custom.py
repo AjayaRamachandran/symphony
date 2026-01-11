@@ -293,6 +293,9 @@ class NoteGrid(gui.Interactive):
             x += 1
 
         for colorIdx, colorChannel in enumerate(self.noteMap.items()):
+            if self.color != 6 and (colorIdx == self.color):
+                continue # skip rendering the selected color
+
             colorName = colorChannel[0]
             colorNotes = colorChannel[1]
 
@@ -302,6 +305,17 @@ class NoteGrid(gui.Interactive):
                 else:
                     raise ValueError(f'Invalid data type for note: {note.__class__()}')
         
+        if self.color != 6 and len(list(self.noteMap.items())) > 0:
+            colorChannel = list(self.noteMap.items())[self.color]
+            colorName = colorChannel[0]
+            colorNotes = colorChannel[1]
+
+            for note in colorNotes:
+                if isinstance(note, Note):
+                    note.render(screen, colors[self.color], False, [0,0])
+                else:
+                    raise ValueError(f'Invalid data type for note: {note.__class__()}')
+
         if self.selectionRect:
             pygame.draw.rect(screen, (255, 255, 255, 255), self.selectionRect, 1)
 

@@ -84,7 +84,12 @@
 }
 .mac-btn.close:hover {
   background-color: #ff5f57;
-  background: radial-gradient(#cc4e47 0%, #cc4e47 40%, #ff5f57 41%, #ff5f57 100%);
+  background: radial-gradient(
+    #cc4e47 0%,
+    #cc4e47 40%,
+    #ff5f57 41%,
+    #ff5f57 100%
+  );
 }
 
 .mac-btn.minimize {
@@ -92,7 +97,12 @@
 }
 .mac-btn.minimize:hover {
   background-color: #ffbd2e;
-  background: radial-gradient(#c29940 0%, #c29940 40%, #ffbd2e 41%, #ffbd2e 100%);
+  background: radial-gradient(
+    #c29940 0%,
+    #c29940 40%,
+    #ffbd2e 41%,
+    #ffbd2e 100%
+  );
 }
 
 .mac-btn.maximize {
@@ -100,7 +110,12 @@
 }
 .mac-btn.maximize:hover {
   background-color: #28c840;
-  background: radial-gradient(#359944 0%, #359944 40%, #28c840 41%, #28c840 100%);
+  background: radial-gradient(
+    #359944 0%,
+    #359944 40%,
+    #28c840 41%,
+    #28c840 100%
+  );
 }
 
 /* When window is unfocused, fade to gray */
@@ -145,9 +160,9 @@
   max-width: 280px !important;
   flex: 0 0 280px !important;
   border-radius: 7px;
-  border: 1px #3C3C3C solid;
+  border: 1px #3c3c3c solid;
   color: #bbbbbb;
-  background-color: #2A2A2A;
+  background-color: #2a2a2a;
   padding: 15px;
   display: flex;
   flex-direction: column;
@@ -174,7 +189,7 @@
 
 .tooltip-text {
   visibility: hidden;
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   background-color: #333;
   border: 1px solid #444;
   color: #fff;
@@ -187,7 +202,7 @@
   transform: translateX(-50%);
   white-space: nowrap;
   opacity: 0 !important;
-  transition: opacity 1s cubic-bezier(1,0,.86,-0.64);
+  transition: opacity 1s cubic-bezier(1, 0, 0.86, -0.64);
   z-index: 1;
   font-weight: 300;
   box-shadow: 0 3px 9px #00000066;
@@ -223,7 +238,12 @@
 }
 .call-to-action.inactive {
   border: 2px solid hsl(23, 0%, 56%);
-  background: linear-gradient(90deg, #2a2a2a 0%, #2a2a2a 50%, hsl(23, 0%, 31%) 100%);
+  background: linear-gradient(
+    90deg,
+    #2a2a2a 0%,
+    #2a2a2a 50%,
+    hsl(23, 0%, 31%) 100%
+  );
 }
 
 .call-to-action-2 {
@@ -249,7 +269,8 @@
 }
 
 /* If you have right-panel, add similar rules */
-.right-panel, .left-panel {
+.right-panel,
+.left-panel {
   width: 280px !important;
   min-width: 280px !important;
   max-width: 280px !important;
@@ -265,8 +286,12 @@
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .spin {

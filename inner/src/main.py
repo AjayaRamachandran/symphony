@@ -18,7 +18,7 @@ import webbrowser
 
 ###### INTERNAL MODULES ######
 
-import console_controls.console_window as cw
+#import console_controls.console_window as cw
 from console_controls.console import *
 
 console.log("Imported Libraries "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
@@ -55,13 +55,13 @@ else:
     platform = 'unknown'
     CMD_KEY = pygame.K_LCTRL
 
-try:
-    from ctypes import windll
-    myappid = 'nimbial.symphony.editor.v1-1' # arbitrary string
-    windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
-except ImportError:
-    console.warn('Error importing windll or setting Unique AppID. You might be gui_running on a non-Windows platform.')
-    pass # Not on Windows or ctypes is not available
+#try:
+    #from ctypes import windll
+    #myappid = 'nimbial.symphony.editor.v1-1' # arbitrary string
+    #windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+#except ImportError:
+    #console.warn('Error importing windll or setting Unique AppID. You might be gui_running on a non-Windows platform.')
+    #pass # Not on Windows or ctypes is not available
 
 ####### SYSARG HANDLING ######
 
@@ -303,7 +303,7 @@ def playPauseToggle():
     PlayPauseButton.cycleStates()
     PlayPauseButton.render(screen)
     if playing:
-        play_obj = sp.playFull(noteMap, waveMap, PlayHead.time, tpm, 0.2,
+        play_obj = sp.playFull(noteMap, waveMap, PlayHead.time, tpm, 0.4,
                                channel='all' if ColorButton.currentStateIdx == 6 else ColorButton.currentStateIdx)
         PlayHead.play(tpm)
     else:
@@ -752,7 +752,7 @@ last_update = time.time()
 
 while run:
     while not gui_running:
-        time.sleep(0.6)
+        time.sleep(0.3)
         pc_data = pcrw.operateProcessCommand(process_command_file)
 
         if pc_data != None:
@@ -811,145 +811,151 @@ while run:
         root = None
 
     while gui_running:
-        events.pump()
-
-        # Tkinter GUI updates
-        if root is not None:
-            try:
-                now = time.time()
-                if now - last_update > 0.05:  # Limit updates
-                    root.update()
-                    root.update_console()
-                    last_update = now
-            except Exception as e:
-                console.error(f"[Console closed or failed: {e}]")
-                root = None  # Fully disable Tkinter from now on
-
-        saveFrame += 60 * (1 / fps)
-        if round(saveFrame) == 20:
-            pc_data = pcrw.operateProcessCommand(process_command_file)
-        if saveFrame > 1200: # Saves every 20 seconds
-            saveFrame = 0
-            myPath = working_file_path
-            worldMessage = fio.dumpToFile(
-                                    myPath,
-                                    myPath,
-                                    sl.newProgramState(key, mode, tpm, noteMap, waveMap, beatLength, beatsPerMeasure),
-                                    autoSave,
-                                    title_text,
-                                    sessionID)
-
-        NoteGrid.setNoteMap(noteMap)
         try:
-            MasterPanel.update(screen)
+            events.pump()
+
+            # Tkinter GUI updates
+            if root is not None:
+                try:
+                    now = time.time()
+                    if now - last_update > 0.05:  # Limit updates
+                        root.update()
+                        root.update_console()
+                        last_update = now
+                except Exception as e:
+                    console.error(f"[Console closed or failed: {e}]")
+                    root = None  # Fully disable Tkinter from now on
+
+            saveFrame += 60 * (1 / fps)
+            if round(saveFrame) == 20:
+                pc_data = pcrw.operateProcessCommand(process_command_file)
+            if saveFrame > 1200: # Saves every 20 seconds
+                saveFrame = 0
+                working_file_path
+                worldMessage = fio.dumpToFile(
+                                        working_file_path,
+                                        working_file_path,
+                                        sl.newProgramState(key, mode, tpm, noteMap, waveMap, beatLength, beatsPerMeasure),
+                                        autoSave,
+                                        title_text,
+                                        sessionID)
+
+            NoteGrid.setNoteMap(noteMap)
+            try:
+                MasterPanel.update(screen)
+                for event in events.get():
+                    if event.type == pygame.QUIT:
+                        gui_running = False
+            except pygame.error as e:
+                traceback.print_exc()
+                console.log('Pygame display was likely quit outside of the main module. Handling and closing properly...\nIf this was unexpected, investigate.')
+                gui_running = False
+                break
+
             for event in events.get():
                 if event.type == pygame.QUIT:
                     gui_running = False
-        except pygame.error as e:
-            traceback.print_exc()
-            console.log('Pygame display was likely quit outside of the main module. Handling and closing properly...\nIf this was unexpected, investigate.')
-            gui_running = False
-            break
+                    console.warn("Pygame was quit")
+                    break
+                elif event.type == pygame.VIDEORESIZE:
+                    screen = pygame.display.set_mode((max(event.w, minWidth), max(event.h, minHeight)), pygame.RESIZABLE | pygame.SHOWN)
+                    width, height = (max(event.w, minWidth), max(event.h, minHeight))
 
-        for event in events.get():
-            if event.type == pygame.QUIT:
-                gui_running = False
-                console.warn("Pygame was quit")
+                    BeatLengthDownButton.setPosition((width - 516, 26))
+                    BeatLengthTextBox.setPosition((width - 491, 26))
+                    BeatLengthUpButton.setPosition((width - 456, 26))
+
+                    BeatsPerMeasureDownButton.setPosition((width - 412, 26))
+                    BeatsPerMeasureTextBox.setPosition((width - 387, 26))
+                    BeatsPerMeasureUpButton.setPosition((width - 352, 26))
+
+                    ColorButton.setPosition((width - 308, 26))
+                    WaveButton.setPosition((width - 275, 26))
+                    KeyDropdown.setPosition((width - 223, 26))
+                    ModeDropdown.setPosition((width - 178, 26))
+                    QuestionButton.setPosition((width - 54, 26))
+
+                    BeatsPerMeasureControls.setRect((0, 0, width, height))
+                    TempoControls.setRect((0, 0, width, height))
+
+                    LeftToolbar.setRect((0, 0, width, height))
+                    RightToolbar.setRect((0, 0, width, height))
+
+                    PitchPanel.setRect((0, 80, 80, height - 80))
+                    NotePanel.setRect((80, 80, width - 80, height - 80))
+                    NoteGrid.width = width
+                    NoteGrid.height = height
+                    PitchList.height = height
+                    NoteGrid.viewBounds()
+
+                    ToolBar.setRect((0, 0, width, 80))
+                    GridPanel.setRect((0, 80, width, height - 80))
+                    MasterPanel.setRect((0, 0, width, height))
+
+                    MasterPanel.render(screen)
+                elif event.type == pygame.KEYDOWN:
+                    if event.key in [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7]:
+                        numKeyPressed = [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7].index(event.key)
+                        ColorButton.setCurrentState(numKeyPressed)
+                        colorSync()
+                    if event.key in [pygame.K_MINUS, pygame.K_EQUALS]: # zoom out horizontally
+                        if pygame.key.get_pressed()[CMD_KEY]:
+                            zoomIndex = zoomDimensions.index((custom.tileWidth, custom.tileHeight))
+                            if event.key == pygame.K_MINUS:
+                                zoomIndex = max(zoomIndex - 1, 0)
+                            elif event.key == pygame.K_EQUALS:
+                                zoomIndex = min(zoomIndex + 1, len(zoomDimensions) - 1)
+                            custom.tileWidth, custom.tileHeight = zoomDimensions[zoomIndex]
+                            GridPanel.render(screen)
+                    if event.key == pygame.K_BACKSPACE or event.key == pygame.K_DELETE: # Delete all selected notes
+                        for colorName in noteMap:
+                            noteMap[colorName] = [
+                                note for note in noteMap[colorName]
+                                if not note.selected
+                            ]
+                        NotePanel.render(screen)
+                    elif event.key == CMD_KEY: # Switch to eraser momentarily
+                        brushType = "eraser"
+                        BrushButton.setCurrentState(1)
+                        BrushButton.render(screen)
+                    elif event.key == pygame.K_LSHIFT: # Switch to select permanently
+                        brushType = "select"
+                        BrushButton.setCurrentState(2)
+                        BrushButton.render(screen)
+                    elif event.key == pygame.K_SPACE: # Play / pause
+                        playPauseToggle()
+                    elif event.key == pygame.K_s:
+                        if pygame.key.get_pressed()[CMD_KEY]: # if the user presses Ctrl+S (to save)
+                            worldMessage = fio.dumpToFile(working_file_path, working_file_path, sl.newProgramState(key, mode, tpm, noteMap, waveMap, beatLength, beatsPerMeasure), autoSave, title_text, sessionID)
+                            saveFrame = 0
+                elif event.type == pygame.KEYUP:
+                    if event.key == CMD_KEY: # Switches away from eraser when Ctrl is let go
+                        brushType = "brush"
+                        BrushButton.setCurrentState(0)
+                        BrushButton.render(screen)
+                        for color, colorChannel in noteMap.items():
+                            for note in colorChannel:
+                                note.selected = False
+                        NotePanel.render(screen)
+                elif event.type == pygame.WINDOWFOCUSLOST:
+                    console.warn("Window unfocused")
+                    MasterPanel.render(screen)
+                elif event.type == pygame.WINDOWFOCUSGAINED:
+                    console.warn("Window focused")
+                    MasterPanel.render(screen)
+
+            if gui_running == False:
                 break
-            elif event.type == pygame.VIDEORESIZE:
-                screen = pygame.display.set_mode((max(event.w, minWidth), max(event.h, minHeight)), pygame.RESIZABLE | pygame.SHOWN)
-                width, height = (max(event.w, minWidth), max(event.h, minHeight))
-
-                BeatLengthDownButton.setPosition((width - 516, 26))
-                BeatLengthTextBox.setPosition((width - 491, 26))
-                BeatLengthUpButton.setPosition((width - 456, 26))
-
-                BeatsPerMeasureDownButton.setPosition((width - 412, 26))
-                BeatsPerMeasureTextBox.setPosition((width - 387, 26))
-                BeatsPerMeasureUpButton.setPosition((width - 352, 26))
-
-                ColorButton.setPosition((width - 308, 26))
-                WaveButton.setPosition((width - 275, 26))
-                KeyDropdown.setPosition((width - 223, 26))
-                ModeDropdown.setPosition((width - 178, 26))
-                QuestionButton.setPosition((width - 54, 26))
-
-                BeatsPerMeasureControls.setRect((0, 0, width, height))
-                TempoControls.setRect((0, 0, width, height))
-
-                LeftToolbar.setRect((0, 0, width, height))
-                RightToolbar.setRect((0, 0, width, height))
-
-                PitchPanel.setRect((0, 80, 80, height - 80))
-                NotePanel.setRect((80, 80, width - 80, height - 80))
-                NoteGrid.width = width
-                NoteGrid.height = height
-                PitchList.height = height
-                NoteGrid.viewBounds()
-
-                ToolBar.setRect((0, 0, width, 80))
-                GridPanel.setRect((0, 80, width, height - 80))
-                MasterPanel.setRect((0, 0, width, height))
-
-                MasterPanel.render(screen)
-            elif event.type == pygame.KEYDOWN:
-                if event.key in [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7]:
-                    numKeyPressed = [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7].index(event.key)
-                    ColorButton.setCurrentState(numKeyPressed)
-                    colorSync()
-                if event.key in [pygame.K_MINUS, pygame.K_EQUALS]: # zoom out horizontally
-                    if pygame.key.get_pressed()[CMD_KEY]:
-                        zoomIndex = zoomDimensions.index((custom.tileWidth, custom.tileHeight))
-                        if event.key == pygame.K_MINUS:
-                            zoomIndex = max(zoomIndex - 1, 0)
-                        elif event.key == pygame.K_EQUALS:
-                            zoomIndex = min(zoomIndex + 1, len(zoomDimensions) - 1)
-                        custom.tileWidth, custom.tileHeight = zoomDimensions[zoomIndex]
-                        GridPanel.render(screen)
-                if event.key == pygame.K_BACKSPACE or event.key == pygame.K_DELETE: # Delete all selected notes
-                    for colorName in noteMap:
-                        noteMap[colorName] = [
-                            note for note in noteMap[colorName]
-                            if not note.selected
-                        ]
-                    NotePanel.render(screen)
-                elif event.key == CMD_KEY: # Switch to eraser momentarily
-                    brushType = "eraser"
-                    BrushButton.setCurrentState(1)
-                    BrushButton.render(screen)
-                elif event.key == pygame.K_LSHIFT: # Switch to select permanently
-                    brushType = "select"
-                    BrushButton.setCurrentState(2)
-                    BrushButton.render(screen)
-                elif event.key == pygame.K_SPACE: # Play / pause
-                    playPauseToggle()
-                elif event.key == pygame.K_s:
-                    if pygame.key.get_pressed()[CMD_KEY]: # if the user presses Ctrl+S (to save)
-                        worldMessage = fio.dumpToFile(working_file_path, myPath, sl.newProgramState(key, mode, tpm, noteMap, waveMap, beatLength, beatsPerMeasure), autoSave, title_text, sessionID)
-                        saveFrame = 0
-            elif event.type == pygame.KEYUP:
-                if event.key == CMD_KEY: # Switches away from eraser when Ctrl is let go
-                    brushType = "brush"
-                    BrushButton.setCurrentState(0)
-                    BrushButton.render(screen)
-                    for color, colorChannel in noteMap.items():
-                        for note in colorChannel:
-                            note.selected = False
-                    NotePanel.render(screen)
-            elif event.type == pygame.WINDOWFOCUSLOST:
-                console.warn("Window unfocused")
-                MasterPanel.render(screen)
-            elif event.type == pygame.WINDOWFOCUSGAINED:
-                console.warn("Window focused")
-                MasterPanel.render(screen)
-
-        if gui_running == False:
-            break
-        clock.tick(fps)
-        pygame.display.flip()  # Update the display
+            clock.tick(fps)
+            pygame.display.flip()  # Update the display
+        except Exception as e:
+            running = False
+            traceback.print_exc()
 
     worldMessage = fio.dumpToFile(working_file_path, working_file_path, sl.newProgramState(key, mode, tpm, noteMap, waveMap, beatLength, beatsPerMeasure), autoSave, title_text, sessionID)
         
     # quit loop
     pygame.display.quit()
     pcrw.gui_is_open = False
+
+console.log("Daemon was quit.")

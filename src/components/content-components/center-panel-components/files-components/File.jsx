@@ -1,32 +1,32 @@
-import React, { useState, useEffect } from 'react';
-import { Plus } from 'lucide-react';
-import path from 'path-browserify';
+import React, { useState, useEffect } from "react";
+import { Plus } from "lucide-react";
+import path from "path-browserify";
 
-import fileIcon from '@/assets/file-icon.svg';
-import wavIcon from '@/assets/wav-icon.svg';
-import mp3Icon from '@/assets/mp3-icon.svg';
-import midiIcon from '@/assets/midi-icon.svg';
-import { useDirectory } from '@/contexts/DirectoryContext';
+import fileIcon from "@/assets/file-icon.svg";
+import wavIcon from "@/assets/wav-icon.svg";
+import mp3Icon from "@/assets/mp3-icon.svg";
+import midiIcon from "@/assets/midi-icon.svg";
+import { useDirectory } from "@/contexts/DirectoryContext";
 
 import "./file.css";
 
 const fileTypeMap = {
-  '.symphony': {
+  ".symphony": {
     icon: fileIcon,
-    label: 'SYMPHONY File',
+    label: "SYMPHONY File",
   },
-  '.wav': {
+  ".wav": {
     icon: wavIcon,
-    label: 'WAV Lossless Audio File',
+    label: "WAV Lossless Audio File",
   },
-  '.mp3': {
+  ".mp3": {
     icon: mp3Icon,
-    label: 'MP3 Compressed Audio File',
+    label: "MP3 Compressed Audio File",
   },
-  '.mid': {
+  ".mid": {
     icon: midiIcon,
-    label: 'Musical Instrument Digital Interface (MIDI) File',
-  }
+    label: "Musical Instrument Digital Interface (MIDI) File",
+  },
 };
 
 function File({ name }) {
@@ -40,7 +40,7 @@ function File({ name }) {
     globalUpdateTimestamp,
     viewType,
     tempFileName,
-    globalStars
+    globalStars,
   } = useDirectory();
 
   const [fileName, setFileName] = useState(name);
@@ -50,7 +50,10 @@ function File({ name }) {
   const runProcessCommand = async (title) => {
     console.log(title);
     setGlobalUpdateTimestamp(Date.now);
-    const result = await window.electronAPI.doProcessCommand(path.join(globalDirectory, `${title}`), 'open');
+    const result = await window.electronAPI.doProcessCommand(
+      path.join(globalDirectory, `${title}`),
+      "open"
+    );
     console.log(result);
   };
 
@@ -60,15 +63,17 @@ function File({ name }) {
 
   useEffect(() => {
     if (globalDirectory) {
-      const fullPath = path.join(globalDirectory, fileName).replace(/\\/g, '/');
+      const fullPath = path.join(globalDirectory, fileName).replace(/\\/g, "/");
       setIsStarred(globalStars.includes(fullPath));
     }
   }, [globalStars, fileName, globalDirectory]);
 
   useEffect(() => {
     setDisplayName(
-      selectedFile === name && selectedFile.endsWith('.symphony') && tempFileName
-        ? tempFileName + '.symphony'
+      selectedFile === name &&
+        selectedFile.endsWith(".symphony") &&
+        tempFileName
+        ? tempFileName + ".symphony"
         : fileName
     );
   }, [name, tempFileName, fileName, selectedFile]);
@@ -78,26 +83,36 @@ function File({ name }) {
     displayName.toLowerCase().endsWith(ext)
   )?.[1] || {
     icon: fileIcon,
-    label: 'Unknown File Type',
+    label: "Unknown File Type",
   };
 
   return (
     <>
       <button
         className={
-          'file-select-box' +
-          (viewType === 'grid' ? '' : viewType === 'content' ? '-content' : '-list') +
-          (selectedFile === fileName ? ' highlighted' : '')
+          "file-select-box" +
+          (viewType === "grid"
+            ? ""
+            : viewType === "content"
+            ? "-content"
+            : "-list") +
+          (selectedFile === fileName ? " highlighted" : "")
         }
         style={{
           opacity:
-            clipboardFile && path.basename(clipboardFile) === fileName && clipboardCut ? 0.6 : 1
+            clipboardFile &&
+            path.basename(clipboardFile) === fileName &&
+            clipboardCut
+              ? 0.6
+              : 1,
         }}
         draggable
         onDragStart={(e) => {
           e.preventDefault();
-          const filePath = path.join(globalDirectory, displayName).replace(/\\/g, '/');
-          console.log('Dragging file:', filePath);
+          const filePath = path
+            .join(globalDirectory, displayName)
+            .replace(/\\/g, "/");
+          console.log("Dragging file:", filePath);
           window.electronAPI.startFileDrag(filePath);
         }}
         onClick={(e) => {
@@ -106,10 +121,12 @@ function File({ name }) {
           console.log(fileName);
         }}
         onDoubleClick={async () => {
-          if (displayName.endsWith('.symphony')) {
+          if (displayName.endsWith(".symphony")) {
             runProcessCommand(selectedFile);
           } else {
-            await window.electronAPI.openNativeApp(path.join(globalDirectory, displayName));
+            await window.electronAPI.openNativeApp(
+              path.join(globalDirectory, displayName)
+            );
             setGlobalUpdateTimestamp(Date.now());
           }
         }}
@@ -118,41 +135,50 @@ function File({ name }) {
           src={fileType.icon}
           alt="File icon"
           color="#606060"
-          height={viewType === 'grid' ? 78 : viewType === 'content' ? 55 : 21}
-          style={{ marginTop: viewType === 'list' ? '3px' : '0' }}
+          height={viewType === "grid" ? 78 : viewType === "content" ? 55 : 21}
+          style={{ marginTop: viewType === "list" ? "3px" : "0" }}
         />
-        <div style={{ display: 'flex', flexDirection: viewType === 'content' ? 'column' : 'row' }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: viewType === "content" ? "column" : "row",
+          }}
+        >
           <span
             style={{
-              display: 'block',
-              width: '100%',
-              textAlign: viewType === 'grid' ? 'center' : 'left',
-              fontSize: '1em',
-              marginTop: viewType === 'grid' ? '1px' : '2px',
-              wordBreak: 'break-word',
-              overflowWrap: 'break-word',
-              whiteSpace: 'normal'
+              display: "block",
+              width: "100%",
+              textAlign: viewType === "grid" ? "center" : "left",
+              fontSize: "1em",
+              marginTop: viewType === "grid" ? "1px" : "2px",
+              wordBreak: "break-word",
+              overflowWrap: "break-word",
+              whiteSpace: "normal",
             }}
           >
             {displayName}
             {isStarred && (
               <i
                 className="bi bi-star-fill"
-                style={{ margin: '0px 4px', fontSize: '10px', color: '#b8a463' }}
+                style={{
+                  margin: "0px 4px",
+                  fontSize: "10px",
+                  color: "#b8a463",
+                }}
               ></i>
             )}
           </span>
-          {viewType === 'grid' ? null : viewType === 'content' ? (
-            <span style={{ opacity: 0.5, fontSize: '0.8em', marginTop: '7px' }}>
+          {viewType === "grid" ? null : viewType === "content" ? (
+            <span style={{ opacity: 0.5, fontSize: "0.8em", marginTop: "7px" }}>
               {fileType.label}
             </span>
           ) : (
             <span
               style={{
                 opacity: 0.5,
-                fontSize: '1em',
-                marginTop: '3px',
-                width: '100%'
+                fontSize: "1em",
+                marginTop: "3px",
+                width: "100%",
               }}
             >
               {fileType.label}

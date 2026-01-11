@@ -1,15 +1,15 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { Info, LoaderCircle } from 'lucide-react';
+import React, { useEffect, useState, useRef } from "react";
+import { Info, LoaderCircle } from "lucide-react";
 
 function ShowInfoModal({ filePath }) {
   const [fileInfo, setFileInfo] = useState(null);
   const [error, setError] = useState(null);
-  const hasFetched = useRef(false);  // <-- Track if fetch has already run
+  const hasFetched = useRef(false); // <-- Track if fetch has already run
 
   useEffect(() => {
     if (hasFetched.current || !filePath) return;
 
-    hasFetched.current = true;  // prevent future runs
+    hasFetched.current = true; // prevent future runs
 
     const fetchInfo = async () => {
       try {
@@ -18,10 +18,10 @@ function ShowInfoModal({ filePath }) {
         if (result?.fileInfo) {
           setFileInfo(result.fileInfo);
         } else {
-          setError(result?.error || 'Unknown error retrieving file info');
+          setError(result?.error || "Unknown error retrieving file info");
         }
       } catch (err) {
-        setError(err.message || 'Failed to retrieve info');
+        setError(err.message || "Failed to retrieve info");
       }
     };
 
@@ -30,28 +30,47 @@ function ShowInfoModal({ filePath }) {
 
   return (
     <>
-      <div className="modal-title" text-style="display" style={{ display: 'flex', marginBottom: '15px', alignItems: 'center' }}>
+      <div
+        className="modal-title"
+        text-style="display"
+        style={{ display: "flex", marginBottom: "15px", alignItems: "center" }}
+      >
         File Properties
       </div>
 
       {error && (
-        <div className="modal-paragraph text-red-500">
-          Error: {error}
-        </div>
+        <div className="modal-paragraph text-red-500">Error: {error}</div>
       )}
 
       {!fileInfo && !error && (
-        <div className="modal-paragraph text-gray-500" style={{display: 'flex', flexDirection: 'row', gap: '10px', alignItems: 'center', marginBottom: '5px'}}>
-          <LoaderCircle className="spin"/>Loading file info...
+        <div
+          className="modal-paragraph text-gray-500"
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            gap: "10px",
+            alignItems: "center",
+            marginBottom: "5px",
+          }}
+        >
+          <LoaderCircle className="spin" />
+          Loading file info...
         </div>
       )}
 
       {fileInfo && (
-        <div className="modal-paragraph space-y-2" style={{marginBottom: '10px'}}>
+        <div
+          className="modal-paragraph space-y-2"
+          style={{ marginBottom: "10px" }}
+        >
           {Object.entries(fileInfo).map(([key, value]) => (
             <div key={key}>
-              <strong style={{marginRight: '4px'}}>{key[0].toUpperCase() + key.slice(1)}:</strong>{' '}
-              {typeof value === 'object' ? JSON.stringify(value[0].toUpperCase() + value.slice(1)) : String(value)[0].toUpperCase() + String(value).slice(1)}
+              <strong style={{ marginRight: "4px" }}>
+                {key[0].toUpperCase() + key.slice(1)}:
+              </strong>{" "}
+              {typeof value === "object"
+                ? JSON.stringify(value[0].toUpperCase() + value.slice(1))
+                : String(value)[0].toUpperCase() + String(value).slice(1)}
             </div>
           ))}
         </div>

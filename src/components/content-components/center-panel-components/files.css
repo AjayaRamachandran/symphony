@@ -19,12 +19,13 @@
 .drop-zone {
   border: 2px dashed transparent;
   border-image: repeating-linear-gradient(
-    90deg,
-    white 0px,
-    white 10px,
-    transparent 10px,
-    transparent 20px
-  ) 1;
+      90deg,
+      white 0px,
+      white 10px,
+      transparent 10px,
+      transparent 20px
+    )
+    1;
   animation: dash-move 1s linear infinite;
   padding: 1rem;
   border-radius: 8px;
@@ -51,7 +52,6 @@
     );
   }
 }
-
 
 .empty-box {
   padding: 60px 15px;
@@ -136,10 +136,14 @@
   gap: 8px;
   justify-content: center;
 }
-.file-select-box.new, .file-select-box-content.new, .file-select-box-list.new {
+.file-select-box.new,
+.file-select-box-content.new,
+.file-select-box-list.new {
   color: #737373;
 }
-.file-select-box.highlighted, .file-select-box-content.highlighted, .file-select-box-list.highlighted {
+.file-select-box.highlighted,
+.file-select-box-content.highlighted,
+.file-select-box-list.highlighted {
   filter: brightness(1.2);
   outline-offset: -1px;
   outline: 1px solid #2d699b;

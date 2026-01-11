@@ -1,24 +1,24 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Search } from 'lucide-react';
-import { useDirectory } from '@/contexts/DirectoryContext';
+import React, { useEffect, useRef, useState } from "react";
+import { Search } from "lucide-react";
+import { useDirectory } from "@/contexts/DirectoryContext";
 
-import './field.css';
+import "./field.css";
 
 const Field = ({
   value: controlledValue,
   onChange,
   onFocus = () => {}, // default to no-op
   onBlur = () => {},
-  initialValue = '',
-  height = '33px',
-  fontSize = '1.3em',
-  whiteSpace = 'auto',
-  defaultText = '',
-  className = 'field',
-  lightDark = ['#606060', '#c2c2c2'],
-  width = '100%',
+  initialValue = "",
+  height = "33px",
+  fontSize = "1.3em",
+  whiteSpace = "auto",
+  defaultText = "",
+  className = "field",
+  lightDark = ["#606060", "#c2c2c2"],
+  width = "100%",
   searchField = false,
-  singleLine = false // new prop
+  singleLine = false, // new prop
 }) => {
   const isControlled = controlledValue !== undefined && onChange !== undefined;
   const [uncontrolledValue, setUncontrolledValue] = useState(initialValue);
@@ -38,14 +38,14 @@ const Field = ({
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       // Optionally call onBlur if you have one
       // if (onBlur) onBlur(e);
 
       setEditing(false);
       e.target.blur(); // unfocus input or textarea on Enter
     }
-    if (e.key === 'Tab') {
+    if (e.key === "Tab") {
       e.preventDefault(); // prevent default tab behavior if needed
       // implement custom tab navigation if needed
     }
@@ -74,7 +74,7 @@ const Field = ({
           value={value}
           autoFocus
           onChange={handleChange}
-          onBlur={e => {
+          onBlur={(e) => {
             setIsFieldSelected(false);
             setTimeout(() => setEditing(false), 300);
             if (onBlur) onBlur(e);
@@ -83,16 +83,16 @@ const Field = ({
           onFocus={() => {
             onFocus();
             setIsFieldSelected(true);
-            console.log('focused');
+            console.log("focused");
           }}
-          className={className + '-span scrollable dark-bg'}
+          className={className + "-span scrollable dark-bg"}
           style={{
             height,
             fontSize,
-            whiteSpace: 'nowrap',
+            whiteSpace: "nowrap",
             width,
-            color: value === '' ? lightDark[0] : lightDark[1],
-            overflowX: 'auto'
+            color: value === "" ? lightDark[0] : lightDark[1],
+            overflowX: "auto",
           }}
         />
       );
@@ -104,7 +104,7 @@ const Field = ({
           value={value}
           autoFocus
           onChange={handleChange}
-          onBlur={e => {
+          onBlur={(e) => {
             setIsFieldSelected(false);
             setTimeout(() => setEditing(false), 300);
             if (onBlur) onBlur(e);
@@ -113,17 +113,17 @@ const Field = ({
           onFocus={() => {
             onFocus();
             setIsFieldSelected(true);
-            console.log('focused');
+            console.log("focused");
           }}
-          className={className + '-span scrollable dark-bg'}
+          className={className + "-span scrollable dark-bg"}
           style={{
             height,
             fontSize,
             whiteSpace,
-            paddingTop: '7px',
+            paddingTop: "7px",
             width,
-            color: value === '' ? lightDark[0] : lightDark[1],
-            overflow: 'auto',
+            color: value === "" ? lightDark[0] : lightDark[1],
+            overflow: "auto",
           }}
         />
       );
@@ -135,44 +135,44 @@ const Field = ({
       onClick={() => {
         if (!editing) setEditing(true);
       }}
-      className={className + ' scrollable dark-bg'}
+      className={className + " scrollable dark-bg"}
       style={{
         height,
         fontSize,
-        whiteSpace: singleLine ? 'nowrap' : 'pre-wrap',
+        whiteSpace: singleLine ? "nowrap" : "pre-wrap",
         width,
-        color: value === '' ? lightDark[0] : lightDark[1],
-        overflowX: singleLine ? 'hidden' : 'auto',
-        overflowY: singleLine ? 'hidden' : 'auto',
-        cursor: 'text',
-        display: 'flex'
+        color: value === "" ? lightDark[0] : lightDark[1],
+        overflowX: singleLine ? "hidden" : "auto",
+        overflowY: singleLine ? "hidden" : "auto",
+        cursor: "text",
+        display: "flex",
       }}
       onFocus={() => {
         onFocus();
         setIsFieldSelected(true);
-        console.log('focused');
+        console.log("focused");
       }}
       tabIndex={0}
     >
       {searchField ? (
-        <Search size={15} style={{ marginRight: '5px', flexShrink: 0 }} />
+        <Search size={15} style={{ marginRight: "5px", flexShrink: 0 }} />
       ) : (
-        ''
+        ""
       )}
       <span
         className="scrollable dark-bg"
         style={{
-          overflowX: singleLine ? 'hidden' : 'auto',
-          overflowY: singleLine ? 'hidden' : 'auto',
-          whiteSpace: singleLine ? 'nowrap' : 'pre-wrap',
-          wordBreak: singleLine ? 'normal' : 'break-word',
-          padding: !searchField ? '7px' : '0px',
+          overflowX: singleLine ? "hidden" : "auto",
+          overflowY: singleLine ? "hidden" : "auto",
+          whiteSpace: singleLine ? "nowrap" : "pre-wrap",
+          wordBreak: singleLine ? "normal" : "break-word",
+          padding: !searchField ? "7px" : "0px",
           flex: 1,
         }}
         onFocus={() => {
           onFocus();
           setIsFieldSelected(true);
-          console.log('focused');
+          console.log("focused");
         }}
       >
         {searchField ? value || defaultText : value || defaultText}
