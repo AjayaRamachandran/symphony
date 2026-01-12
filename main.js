@@ -23,6 +23,7 @@ let INNER_DIST_PATH = path.join(
   "inner",
   "dist"
 );
+let persistEditor = true;
 
 let config = {};
 try {
@@ -124,7 +125,6 @@ app.whenReady().then(() => {
       mainWindow.maximize();
     }
   });
-  ipcMain.on("close", () => mainWindow.close());
   ipcMain.on("toggle-devtools", () => {
     if (mainWindow.webContents.isDevToolsOpened()) {
       mainWindow.webContents.closeDevTools();
@@ -138,6 +138,74 @@ app.whenReady().then(() => {
   mainWindow.on("unmaximize", () => {
     mainWindow.webContents.send("window-state", false);
   });
+  mainWindow.on("close", () => {
+    persistEditor = false;
+    doProcessCommand("", "kill");
+    mainWindow.destroy(); // force close after completion
+  });
+  ipcMain.on("close", () => {
+    mainWindow.close();
+  });
+
+  async function doProcessCommand(symphonyFilePath, command, extraArgs = {}) {
+    const id = crypto.randomUUID();
+    const projectFolderPath = path.dirname(symphonyFilePath);
+    const projectFileName = path.basename(symphonyFilePath, ".symphony");
+
+    const processCommand = {
+      command,
+      id,
+      pc_file_path: PROCESS_COMMAND_PATH,
+      args: {
+        project_file_name: projectFileName,
+        project_folder_path: projectFolderPath,
+        symphony_data_path: USER_DATA_PATH,
+        ...extraArgs,
+      },
+    };
+
+    fs.writeFileSync(
+      PROCESS_COMMAND_PATH,
+      JSON.stringify(processCommand, null, 2),
+      "utf-8"
+    );
+
+    await new Promise((res) => setTimeout(res, 1000));
+
+    const maxWaitMs = 15000;
+    const pollIntervalMs = 100;
+    let waited = 0;
+
+    return new Promise((resolve) => {
+      const poll = () => {
+        try {
+          if (!fs.existsSync(PROCESS_COMMAND_PATH)) {
+            waited += pollIntervalMs;
+            return waited >= maxWaitMs
+              ? resolve({ timeout: true })
+              : setTimeout(poll, pollIntervalMs);
+          }
+
+          const data = JSON.parse(
+            fs.readFileSync(PROCESS_COMMAND_PATH, "utf-8")
+          );
+
+          if (data.id === id && data.status) {
+            return resolve(data);
+          }
+        } catch {}
+
+        waited += pollIntervalMs;
+        if (waited >= maxWaitMs) {
+          resolve(JSON.parse(fs.readFileSync(PROCESS_COMMAND_PATH, "utf-8")));
+        } else {
+          setTimeout(poll, pollIntervalMs);
+        }
+      };
+
+      poll();
+    });
+  }
 
   // function to spawn the editor program
   function runEditorProgram() {
@@ -191,15 +259,17 @@ app.whenReady().then(() => {
         // Restart the process on crash or close
         child.on("exit", (code) => {
           if (code !== 0) {
-            console.error(
-              `Editor process crashed with code ${code}. Restarting...`
-            );
+            console.error(`Editor process crashed with code ${code}.`);
           } else {
-            console.log("Editor process exited. Restarting...");
+            console.log("Editor process exited.");
           }
-          spawnEditor(); // Restart the process
+          if (persistEditor) {
+            console.log("Restarting...");
+            spawnEditor(); // Restart the process
+          } else {
+            console.log("Allowing stop...");
+          }
         });
-
         return child;
       }
 
@@ -589,54 +659,7 @@ app.whenReady().then(() => {
   ipcMain.handle(
     "do-process-command",
     async (event, symphonyFilePath, command, extraArgs = {}) => {
-      const id = crypto.randomUUID();
-      const projectFolderPath = path.dirname(symphonyFilePath);
-      const projectFileName = path.basename(symphonyFilePath, ".symphony");
-      const processCommand = {
-        command,
-        id,
-        pc_file_path: PROCESS_COMMAND_PATH,
-        args: {
-          project_file_name: projectFileName,
-          project_folder_path: projectFolderPath,
-          symphony_data_path: USER_DATA_PATH,
-          ...extraArgs,
-        },
-      };
-      fs.writeFileSync(
-        PROCESS_COMMAND_PATH,
-        JSON.stringify(processCommand, null, 2),
-        "utf-8"
-      );
-      await new Promise((res) => setTimeout(res, 1000));
-      const maxWaitMs = 15000;
-      const pollIntervalMs = 100;
-      let waited = 0;
-      return new Promise((resolve) => {
-        const poll = () => {
-          try {
-            if (!fs.existsSync(PROCESS_COMMAND_PATH)) {
-              waited += pollIntervalMs;
-              return waited >= maxWaitMs
-                ? resolve({ timeout: true })
-                : setTimeout(poll, pollIntervalMs);
-            }
-            const data = JSON.parse(
-              fs.readFileSync(PROCESS_COMMAND_PATH, "utf-8")
-            );
-            if (data.id === id && data.status) {
-              return resolve(data);
-            }
-          } catch (e) {}
-          waited += pollIntervalMs;
-          if (waited >= maxWaitMs) {
-            resolve(JSON.parse(fs.readFileSync(PROCESS_COMMAND_PATH, "utf-8")));
-          } else {
-            setTimeout(poll, pollIntervalMs);
-          }
-        };
-        poll();
-      });
+      return doProcessCommand(symphonyFilePath, command, extraArgs);
     }
   );
 });
