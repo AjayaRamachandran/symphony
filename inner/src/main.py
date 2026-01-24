@@ -12,6 +12,7 @@ import dill as pkl
 import json
 from os import path
 import pygame
+from pygame._sdl2.video import Window as SDLWindow
 import sys
 import traceback
 import webbrowser
@@ -822,10 +823,30 @@ while run:
             BeatsPerMeasureTextBox.setText(str(beatsPerMeasure))
             NoteGrid.setIntervals(beatLength, beatsPerMeasure)
             
-            pygame.display.init()
-            pygame.display.set_caption(f"{title_text} - Symphony v1.1 Beta")
-            pygame.display.set_icon(gameIcon)
-            screen = pygame.display.set_mode((width, height), pygame.RESIZABLE | pygame.SHOWN)
+            # On macOS, show the hidden window; on other platforms, reinitialize
+            if platform == 'mac' and pygame.display.get_init():
+                # Window was hidden, not destroyed - show it and update
+                try:
+                    sdl_window = SDLWindow.from_display_module()
+                    sdl_window.show()
+                    pygame.display.set_caption(f"{title_text} - Symphony v1.1 Beta")
+                    screen = pygame.display.get_surface()
+                    if screen is None or screen.get_size() != (width, height):
+                        screen = pygame.display.set_mode((width, height), pygame.RESIZABLE | pygame.SHOWN)
+                except Exception as e:
+                    console.warn(f"Error showing hidden window: {e}")
+                    # Fallback to full init
+                    pygame.display.init()
+                    pygame.display.set_caption(f"{title_text} - Symphony v1.1 Beta")
+                    pygame.display.set_icon(gameIcon)
+                    screen = pygame.display.set_mode((width, height), pygame.RESIZABLE | pygame.SHOWN)
+            else:
+                # Standard initialization for Windows/Linux or first run
+                pygame.display.init()
+                pygame.display.set_caption(f"{title_text} - Symphony v1.1 Beta")
+                pygame.display.set_icon(gameIcon)
+                screen = pygame.display.set_mode((width, height), pygame.RESIZABLE | pygame.SHOWN)
+            
             MasterPanel.render(screen)
             pygame.event.pump()
             pygame.display.flip()
@@ -974,27 +995,26 @@ while run:
     worldMessage = fio.dumpToFile(working_file_path, working_file_path, sl.newProgramState(key, mode, tpm, noteMap, waveMap, beatLength, beatsPerMeasure), autoSave, title_text, sessionID)
     
     try:
-        # Pump events to let macOS start processing the close
+        # On macOS, hiding the window works better than destroying it
+        # pygame.display.quit() doesn't properly close the window on macOS
         if platform == 'mac':
-            for _ in range(5):
-                pygame.event.pump()
-                time.sleep(0.02)
-        else:
-            pygame.event.pump()
-        
-        # Only quit the display, keep other subsystems alive for the daemon
-        # This allows us to continue pumping events on macOS
-        if pygame.display.get_init():
-            pygame.display.quit()
-        
-        # Pump more events after display quit to let macOS finish window destruction
-        if platform == 'mac':
-            for _ in range(10):
-                try:
+            try:
+                sdl_window = SDLWindow.from_display_module()
+                sdl_window.hide()
+                # Pump events to let macOS process the hide
+                for _ in range(5):
                     pygame.event.pump()
-                except:
-                    pass
-                time.sleep(0.01)
+                    time.sleep(0.02)
+            except Exception as e:
+                console.warn(f"Error hiding window on macOS: {e}")
+                # Fallback to display quit
+                if pygame.display.get_init():
+                    pygame.display.quit()
+        else:
+            # On Windows/Linux, display quit works fine
+            pygame.event.pump()
+            if pygame.display.get_init():
+                pygame.display.quit()
     
     except Exception as e:
         console.warn(f"Error during pygame cleanup: {e}")
