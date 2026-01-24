@@ -138,10 +138,11 @@ app.whenReady().then(() => {
   mainWindow.on("unmaximize", () => {
     mainWindow.webContents.send("window-state", false);
   });
-  mainWindow.on("close", () => {
+  mainWindow.on("close", async () => {
     persistEditor = false;
-    doProcessCommand("", "kill");
+    await doProcessCommand("", "kill");
     mainWindow.destroy(); // force close after completion
+    app.quit(); // Quit the app on all platforms (including macOS)
   });
   ipcMain.on("close", () => {
     mainWindow.close();
