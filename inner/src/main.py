@@ -771,9 +771,7 @@ last_update = time.time()
 while run:
     while not gui_running:
         time.sleep(0.3)
-        
-        # macOS needs the event loop serviced even when no window is open
-        # to properly finish processing window destruction
+
         if platform == 'mac':
             try:
                 pygame.event.pump()
@@ -995,23 +993,23 @@ while run:
     worldMessage = fio.dumpToFile(working_file_path, working_file_path, sl.newProgramState(key, mode, tpm, noteMap, waveMap, beatLength, beatsPerMeasure), autoSave, title_text, sessionID)
     
     try:
-        # On macOS, hiding the window works better than destroying it
+        # on macOS, hiding the window works better than destroying it, i think
         # pygame.display.quit() doesn't properly close the window on macOS
         if platform == 'mac':
             try:
                 sdl_window = SDLWindow.from_display_module()
                 sdl_window.hide()
-                # Pump events to let macOS process the hide
+                # pump events to let macOS process the hide
                 for _ in range(5):
                     pygame.event.pump()
                     time.sleep(0.02)
             except Exception as e:
                 console.warn(f"Error hiding window on macOS: {e}")
-                # Fallback to display quit
+                # fallback to display quit
                 if pygame.display.get_init():
                     pygame.display.quit()
         else:
-            # On Windows/Linux, display quit works fine
+            # on Windows/Linux, display quit works fine
             pygame.event.pump()
             if pygame.display.get_init():
                 pygame.display.quit()
@@ -1026,7 +1024,7 @@ while run:
     
     pcrw.gui_is_open = False
 
-# Full pygame quit only when daemon is completely done
+# full pygame quit only when daemon is completely done
 try:
     pygame.quit()
 except:
