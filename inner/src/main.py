@@ -770,6 +770,15 @@ last_update = time.time()
 while run:
     while not gui_running:
         time.sleep(0.3)
+        
+        # macOS needs the event loop serviced even when no window is open
+        # to properly finish processing window destruction
+        if platform == 'mac':
+            try:
+                pygame.event.pump()
+            except:
+                pass
+        
         pc_data = pcrw.operateProcessCommand(process_command_file)
 
         if pc_data != None:
@@ -820,28 +829,10 @@ while run:
             MasterPanel.render(screen)
             pygame.event.pump()
             pygame.display.flip()
-    
-    try:
-        root = cw.ConsoleWindow(consoleMessages, source_path)
-    except Exception as e:
-        console.error(f"Failed to open console window: {e}")
-        root = None
 
     while gui_running:
         try:
             events.pump()
-
-            # Tkinter GUI updates
-            if root is not None:
-                try:
-                    now = time.time()
-                    if now - last_update > 0.05:  # Limit updates
-                        root.update()
-                        root.update_console()
-                        last_update = now
-                except Exception as e:
-                    console.error(f"[Console closed or failed: {e}]")
-                    root = None  # Fully disable Tkinter from now on
 
             saveFrame += 60 * (1 / fps)
             if round(saveFrame) == 20:
@@ -976,13 +967,49 @@ while run:
             clock.tick(fps)
             pygame.display.flip()  # Update the display
         except Exception as e:
-            running = False
+            gui_running = False
             traceback.print_exc()
+            break
 
     worldMessage = fio.dumpToFile(working_file_path, working_file_path, sl.newProgramState(key, mode, tpm, noteMap, waveMap, beatLength, beatsPerMeasure), autoSave, title_text, sessionID)
+    
+    try:
+        # Pump events to let macOS start processing the close
+        if platform == 'mac':
+            for _ in range(5):
+                pygame.event.pump()
+                time.sleep(0.02)
+        else:
+            pygame.event.pump()
         
-    # quit loop
-    pygame.display.quit()
+        # Only quit the display, keep other subsystems alive for the daemon
+        # This allows us to continue pumping events on macOS
+        if pygame.display.get_init():
+            pygame.display.quit()
+        
+        # Pump more events after display quit to let macOS finish window destruction
+        if platform == 'mac':
+            for _ in range(10):
+                try:
+                    pygame.event.pump()
+                except:
+                    pass
+                time.sleep(0.01)
+    
+    except Exception as e:
+        console.warn(f"Error during pygame cleanup: {e}")
+        try:
+            if pygame.display.get_init():
+                pygame.display.quit()
+        except:
+            pass
+    
     pcrw.gui_is_open = False
+
+# Full pygame quit only when daemon is completely done
+try:
+    pygame.quit()
+except:
+    pass
 
 console.log("Daemon was quit.")
