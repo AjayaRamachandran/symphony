@@ -204,16 +204,16 @@ def createFullSound(noteMap, waveMap, playhead=0, tpm=120, volume=0.2, sample_ra
             part = np.sign(np.sin(2 * np.pi * freq * t))
         elif wave_type == 1:  # triangle
             part = (2 / np.pi) * np.arcsin(np.sin(2 * np.pi * freq * t))
-
-            # --- small fade-out to avoid pop ---
-            fade_time = 0.005  # 5 ms
-            fade_len = int(sample_rate * fade_time)
-            if fade_len > 0 and fade_len < len(part):
-                fade = np.linspace(1, 0, fade_len)
-                part[-fade_len:] *= fade
-            # ----------------------------------
         else:  # sawtooth
             part = 2 * (t * freq - np.floor(0.5 + t * freq))
+
+        # --- small fade-out to avoid pop ---
+        fade_time = 0.005  # 5 ms
+        fade_len = int(sample_rate * fade_time)
+        if fade_len > 0 and fade_len < len(part):
+            fade = np.linspace(1, 0, fade_len)
+            part[-fade_len:] *= fade
+        # ----------------------------------
 
         part *= noteToMagnitude(note.pitch, wave_type)
 

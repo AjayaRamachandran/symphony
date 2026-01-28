@@ -79,7 +79,7 @@ function Toolbar() {
   const openFileLocation = () => {
     if (selectedFile && globalDirectory) {
       window.electronAPI.openFileLocation(
-        path.join(globalDirectory, selectedFile)
+        path.join(globalDirectory, selectedFile),
       );
     } else if (globalDirectory) {
       window.electronAPI.openNativeApp(globalDirectory);
@@ -313,8 +313,8 @@ function Toolbar() {
             </button>
           </div>
         </div>
-        <hr />
-        <div className="toolbar-section">
+        {/* <hr /> */}
+        {/* <div className="toolbar-section">
           VIEW
           <div className="toolbar-subsection">
             <button
@@ -348,7 +348,7 @@ function Toolbar() {
               <Rows2 size={iconSize} />
             </button>
           </div>
-        </div>
+        </div> */}
       </div>
       <GenericModal
         isOpen={showDeleteConfirm}

@@ -244,7 +244,7 @@ BeatsPerMeasureControls = frame.Panel((0, 0, width, height), gui.EMPTY_COLOR,
 
 colorStates = custom.getColorStates(28, 28, source_path)
 ColorButton = gui.Button(pos=(width - 308, 26), width=28, height=28, states=colorStates)
-WaveButton = gui.Button(pos=(width - 275, 26), width=28, height=28, states=[squareWaveImage, triangleWaveImage, sawtoothWaveImage])
+WaveButton = gui.Button(pos=(width - 275, 26), width=28, height=28, states=[squareWaveImage, triangleWaveImage, sawtoothWaveImage, "Pno"])
 KeyDropdown = gui.Dropdown(pos=(width - 223, 26), width=40, height=28, states=NOTES_FLAT, image=upDownChevronImage)
 ModeDropdown = gui.Dropdown(pos=(width - 178, 26), width=100, height=28, states=modes, image=upDownChevronImage)
 QuestionButton = gui.Button(pos=(width - 54, 26), width=28, height=28, states=[questionImage])
@@ -267,7 +267,9 @@ NoteGrid = custom.NoteGrid(pos=(0, 0), width=width, height=height)
 PitchList = custom.PitchList(pos=(0, 80), width=80, height=height-80, notes=NOTES_FLAT)
 PlayHead = custom.PlayHead()
 
-def bumpRight(): custom.viewCol += 25
+def bumpRight():
+    if playing: custom.viewCol += 25
+
 PlayHead.onExitView(bumpRight)
 
 NotePanel = frame.Panel(rect=(80, 80, width-80, height-80), bgColor=gui.BG_COLOR, elements=[NoteGrid, PlayHead],
@@ -282,6 +284,7 @@ PitchList.setLinkedPanels(PitchPanel)
 GridPanel = frame.Panel((0, 80, width, height-80), (0, 0, 0, 0), [NotePanel, PitchPanel],
                         name="GridPanel")
 NoteGrid.setNoteMap(noteMap)
+NoteGrid.setColorNames(justColorNames)
 
 MasterPanel = frame.Panel((0, 0, width, height), gui.BG_COLOR, [GridPanel, ToolBar],
                           name="MasterPanel")
@@ -454,6 +457,12 @@ def colorSync():
     PitchList.setWave(WaveButton.currentStateIdx)
     WaveButton.render(screen)
     NoteGrid.color = ColorButton.currentStateIdx
+    
+    # Clear selections when switching to universal view (channel 6)
+    if ColorButton.currentStateIdx == 6:
+        for color, notes in noteMap.items():
+            clearSelection(notes)
+    
     NotePanel.render(screen)
 
 def cycleColor():
@@ -562,7 +571,7 @@ def handleClick():
     mouseTime, mousePitch = custom.convertWorldToGrid(pygame.mouse.get_pos())
 
     drawStartPos = (mouseTime, mousePitch)
-    if mouseTime is None or ColorButton.currentStateIdx == 6:
+    if mouseTime is None:
         return
     if head:
         head = False
@@ -571,6 +580,8 @@ def handleClick():
         PlayheadButton.setCurrentState(0)
         PlayheadButton.render(screen)
         NotePanel.render(screen)
+        return
+    if ColorButton.currentStateIdx == 6:
         return
 
     currColorName = colorsList[ColorButton.currentStateIdx][0]
@@ -821,6 +832,12 @@ while run:
             BeatsPerMeasureTextBox.setText(str(beatsPerMeasure))
             NoteGrid.setIntervals(beatLength, beatsPerMeasure)
             
+            # Initialize view position and color channel when opening GUI
+            custom.viewRow = 50
+            custom.viewCol = 0
+            ColorButton.setCurrentState(0)
+            NoteGrid.color = 0
+            
             # On macOS, show the hidden window; on other platforms, reinitialize
             if platform == 'mac' and pygame.display.get_init():
                 # Window was hidden, not destroyed - show it and update
@@ -845,6 +862,7 @@ while run:
                 pygame.display.set_icon(gameIcon)
                 screen = pygame.display.set_mode((width, height), pygame.RESIZABLE | pygame.SHOWN)
             
+            PlayHead.setHome(0)
             MasterPanel.render(screen)
             pygame.event.pump()
             pygame.display.flip()
@@ -924,11 +942,12 @@ while run:
                     if event.key in [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7]:
                         numKeyPressed = [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7].index(event.key)
                         draggingNotes = []
-                        if NoteGrid.mouseInside and pygame.mouse.get_pressed()[0]:
+                        # Only move notes when dragging to channels 1-6 (indices 0-5), not to universal view (channel 7, index 6)
+                        if numKeyPressed < 6 and NoteGrid.mouseInside and pygame.mouse.get_pressed()[0]:
                             draggingNotes = [note for note in noteMap[justColorNames[ColorButton.currentStateIdx]] if note.selected]
                             noteMap[justColorNames[ColorButton.currentStateIdx]] = [note for note in noteMap[justColorNames[ColorButton.currentStateIdx]] if not note.selected]
                         ColorButton.setCurrentState(numKeyPressed)
-                        if NoteGrid.mouseInside and pygame.mouse.get_pressed()[0]:
+                        if numKeyPressed < 6 and NoteGrid.mouseInside and pygame.mouse.get_pressed()[0]:
                             try:
                                 noteMap[justColorNames[ColorButton.currentStateIdx]].append(*draggingNotes)
                             except Exception as e:

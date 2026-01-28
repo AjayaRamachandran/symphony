@@ -17,8 +17,8 @@ import events
 
 ###### INITIALIZE ######
 
-viewRow = 50
-viewCol = 0
+viewRow = 0  # will be initialized when GUI opens
+viewCol = 0  # will be initialized when GUI opens
 tileWidth = 30
 tileHeight = 30
 
@@ -162,6 +162,7 @@ class NoteGrid(gui.Interactive):
         super().__init__(pos, width, height)
         self.noteMap = {}
         self.color = 0
+        self.colorNames = []  # List of color names in order: ["orange", "purple", "cyan", "lime", "blue", "pink", "all"]
         self.scVel = [0, 0]
         self.beatLength = 4
         self.beatsPerMeasure = 4
@@ -201,6 +202,15 @@ class NoteGrid(gui.Interactive):
         Updates the internal noteMap to match the main noteMap.
         '''
         self.noteMap = noteMap
+    
+    def setColorNames(self, colorNames):
+        '''
+        fields:
+            colorNames (list) - list of color names in order
+        
+        Sets the color names list for proper color channel lookup.
+        '''
+        self.colorNames = colorNames
 
     def setIntervals(self, beatLength: int, beatsPerMeasure: int):
         '''
@@ -292,33 +302,30 @@ class NoteGrid(gui.Interactive):
             offsetX += tileWidth
             x += 1
 
-        for colorIdx, colorChannel in enumerate(self.noteMap.items()):
-            if self.color != 6 and (colorIdx == self.color):
-                continue # skip rendering the selected color
-
-            colorName = colorChannel[0]
-            colorNotes = colorChannel[1]
-
+        # render all color channels except the selected one
+        for colorName, colorNotes in self.noteMap.items():
+            try: colorIdx = self.colorNames.index(colorName) if self.colorNames else 0
+            except ValueError: continue
+            
+            # skip rendering the selected color (it will be rendered separately)
+            if self.color != 6 and colorIdx == self.color:
+                continue
             for note in colorNotes:
                 if isinstance(note, Note):
-                    note.render(screen, colors[colorIdx], self.color != 6 and self.color != colorIdx, [0,0])
+                    note.render(screen, colors[colorIdx] if colorIdx < len(colors) else colors[0], self.color != 6 and self.color != colorIdx, [0,0])
                 else:
                     raise ValueError(f'Invalid data type for note: {note.__class__()}')
         
-        if self.color != 6 and len(list(self.noteMap.items())) > 0:
-            try:
-                colorChannel = list(self.noteMap.items())[self.color]
-            except Exception as e:
-                console.warn("Viewing an empty color channel.")
-                pass
-            colorName = colorChannel[0]
-            colorNotes = colorChannel[1]
-
-            for note in colorNotes:
-                if isinstance(note, Note):
-                    note.render(screen, colors[self.color], False, [0,0])
-                else:
-                    raise ValueError(f'Invalid data type for note: {note.__class__()}')
+        # Render the selected color channel (if not "all" and it exists)
+        if self.color != 6 and len(self.colorNames) > self.color:
+            selectedColorName = self.colorNames[self.color]
+            if selectedColorName in self.noteMap:
+                colorNotes = self.noteMap[selectedColorName]
+                for note in colorNotes:
+                    if isinstance(note, Note):
+                        note.render(screen, colors[self.color], False, [0,0])
+                    else:
+                        raise ValueError(f'Invalid data type for note: {note.__class__()}')
 
         if self.selectionRect:
             pygame.draw.rect(screen, (255, 255, 255, 255), self.selectionRect, 1)

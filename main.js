@@ -21,7 +21,7 @@ let INNER_DIST_PATH = path.join(
   process.resourcesPath,
   "app.asar.unpacked",
   "inner",
-  "dist"
+  "dist",
 );
 let persistEditor = true;
 
@@ -70,7 +70,7 @@ app.whenReady().then(() => {
           fs.writeFileSync(
             dest,
             JSON.stringify(defaultContent, null, 2),
-            "utf-8"
+            "utf-8",
           );
         }
       } catch (e) {
@@ -82,7 +82,7 @@ app.whenReady().then(() => {
   ensureFile(
     path.join(assetDir, "user-settings.json"),
     USER_SETTINGS_PATH,
-    DEFAULT_SETTINGS
+    DEFAULT_SETTINGS,
   );
   ensureFile(path.join(assetDir, "directory.json"), DIRECTORY_PATH, {
     Projects: [],
@@ -93,7 +93,7 @@ app.whenReady().then(() => {
   ensureFile(
     path.join(assetDir, "recently-viewed.json"),
     RECENTLY_VIEWED_PATH,
-    []
+    [],
   );
   mainWindow = new BrowserWindow({
     width: 1300,
@@ -168,7 +168,7 @@ app.whenReady().then(() => {
     fs.writeFileSync(
       PROCESS_COMMAND_PATH,
       JSON.stringify(processCommand, null, 2),
-      "utf-8"
+      "utf-8",
     );
 
     await new Promise((res) => setTimeout(res, 1000));
@@ -188,7 +188,7 @@ app.whenReady().then(() => {
           }
 
           const data = JSON.parse(
-            fs.readFileSync(PROCESS_COMMAND_PATH, "utf-8")
+            fs.readFileSync(PROCESS_COMMAND_PATH, "utf-8"),
           );
 
           if (data.id === id && data.status) {
@@ -220,7 +220,7 @@ app.whenReady().then(() => {
       fs.writeFileSync(
         PROCESS_COMMAND_PATH,
         JSON.stringify({}, null, 2),
-        "utf-8"
+        "utf-8",
       );
 
       // Determine if the target is a Python script
@@ -289,7 +289,7 @@ app.whenReady().then(() => {
     mainWindow.webContents.startDrag({
       file: filePath,
       icon: nativeImage.createFromPath(
-        path.join(__dirname, "src", "assets", "icon-dark32x32.png")
+        path.join(__dirname, "src", "assets", "icon-dark32x32.png"),
       ),
     });
   });
@@ -297,7 +297,7 @@ app.whenReady().then(() => {
     shell.openExternal(url);
   });
   ipcMain.handle("file-exists", async (event, filePath) =>
-    fs.existsSync(filePath)
+    fs.existsSync(filePath),
   );
   ipcMain.handle("delete-file", async (event, filePath) => {
     try {
@@ -355,7 +355,7 @@ app.whenReady().then(() => {
       } catch (error) {
         return { success: false, error: error.message };
       }
-    }
+    },
   );
 
   // Directory Operations
@@ -377,10 +377,10 @@ app.whenReady().then(() => {
           directory[destination] = [];
         }
         const nameExists = directory[destination].some(
-          (entry) => entry[projectName]
+          (entry) => entry[projectName],
         );
         const locationExists = directory[destination].some((entry) =>
-          Object.values(entry).includes(sourceLocation)
+          Object.values(entry).includes(sourceLocation),
         );
         if (nameExists || locationExists) {
           return { success: false, error: "Duplicate entry" };
@@ -389,13 +389,13 @@ app.whenReady().then(() => {
         fs.writeFileSync(
           DIRECTORY_PATH,
           JSON.stringify(directory, null, 2),
-          "utf-8"
+          "utf-8",
         );
         return { success: true };
       } catch (err) {
         return { success: false, error: err.message };
       }
-    }
+    },
   );
   ipcMain.handle("get-directory", async () => {
     try {
@@ -407,7 +407,7 @@ app.whenReady().then(() => {
         };
         fs.writeFileSync(
           DIRECTORY_PATH,
-          JSON.stringify(defaultDirectory, null, 2)
+          JSON.stringify(defaultDirectory, null, 2),
         );
         return defaultDirectory;
       }
@@ -425,12 +425,12 @@ app.whenReady().then(() => {
       if (!directory[section])
         return { success: false, error: "Section not found" };
       directory[section] = directory[section].filter(
-        (obj) => Object.keys(obj)[0] !== dirName
+        (obj) => Object.keys(obj)[0] !== dirName,
       );
       fs.writeFileSync(
         DIRECTORY_PATH,
         JSON.stringify(directory, null, 2),
-        "utf-8"
+        "utf-8",
       );
       return { success: true };
     } catch (err) {
@@ -443,7 +443,7 @@ app.whenReady().then(() => {
         return { error: "Directory data not found." };
       }
       const directoryData = JSON.parse(
-        fs.readFileSync(DIRECTORY_PATH, "utf-8")
+        fs.readFileSync(DIRECTORY_PATH, "utf-8"),
       );
 
       for (const [section, entries] of Object.entries(directoryData)) {
@@ -516,13 +516,13 @@ app.whenReady().then(() => {
         fs.writeFileSync(
           RECENTLY_VIEWED_PATH,
           JSON.stringify(recentlyViewed, null, 2),
-          "utf-8"
+          "utf-8",
         );
         return { success: true };
       } catch (err) {
         return { success: false, error: err.message };
       }
-    }
+    },
   );
 
   // Starred Files
@@ -561,7 +561,7 @@ app.whenReady().then(() => {
       const data = fs.readFileSync(STARRED_PATH, "utf-8");
       let stars = JSON.parse(data);
       stars = stars.filter(
-        (star) => star.replace(/\\/g, "/") !== filePath.replace(/\\/g, "/")
+        (star) => star.replace(/\\/g, "/") !== filePath.replace(/\\/g, "/"),
       );
       fs.writeFileSync(STARRED_PATH, JSON.stringify(stars, null, 2), "utf-8");
       return stars;
@@ -586,7 +586,7 @@ app.whenReady().then(() => {
       // Save merged settings back to file (in case new keys were added)
       fs.writeFileSync(
         USER_SETTINGS_PATH,
-        JSON.stringify(updatedSettings, null, 2)
+        JSON.stringify(updatedSettings, null, 2),
       );
 
       return updatedSettings;
@@ -638,14 +638,15 @@ app.whenReady().then(() => {
         fileLocation: path.dirname(filePath),
       };
       recent = recent.filter(
-        (r) => !(r.name === entry.name && r.fileLocation === entry.fileLocation)
+        (r) =>
+          !(r.name === entry.name && r.fileLocation === entry.fileLocation),
       );
       recent.unshift(entry);
       if (recent.length > 20) recent = recent.slice(0, 20);
       fs.writeFileSync(
         RECENTLY_VIEWED_PATH,
         JSON.stringify(recent, null, 2),
-        "utf-8"
+        "utf-8",
       );
     } catch (e) {
       return { success: false, error: e };
@@ -661,8 +662,89 @@ app.whenReady().then(() => {
     "do-process-command",
     async (event, symphonyFilePath, command, extraArgs = {}) => {
       return doProcessCommand(symphonyFilePath, command, extraArgs);
-    }
+    },
   );
+
+  ipcMain.handle("check-if-exists", async (event, data) => {
+    try {
+      const data = fs.readFileSync(directoryPath, 'utf-8');
+      const directory = JSON.parse(data);
+      console.log(JSON.stringify(directory))
+
+      if (!directory[destination]) {
+        return { success: true };
+      }
+      const entries = directory[destination];
+
+      const nameCount = entries.filter(entry => entry[projectName] !== undefined).length;
+      const locationCount = entries.filter(entry =>
+        Object.values(entry).includes(sourceLocation)
+      ).length;
+
+      const isDuplicate = nameCount > 0 || locationCount > 0;
+      console.log(isDuplicate);
+
+      return {
+        success: isDuplicate,
+      };
+
+    } catch (err) {
+      return {
+        success: false
+      };
+    }
+  });
+
+  ipcMain.handle("open-file-location", async (event, filePath) => {
+    const folder = path.dirname(filePath);
+    // Windows: explorer, Mac: open, Linux: xdg-open
+    const command = process.platform === 'win32' ? 'explorer' : process.platform === 'darwin' ? 'open' : 'xdg-open';
+    const arg = process.platform === 'win32' ? folder.replace(/\//g, '\\') : folder;
+    require('child_process').spawn(command, [arg], { detached: true });
+    return true;
+  });
+
+  ipcMain.handle("save-directory", async (event, data) => {
+    try {
+      const data = fs.readFileSync(directoryPath, 'utf-8');
+      const directory = JSON.parse(data);
+
+      if (!directory[destination]) {
+        directory[destination] = [];
+      }
+
+      const nameExists = directory[destination].some(entry => entry[projectName]);
+      if (nameExists) {
+        return {
+          success: false,
+          error: `Project name "${projectName}" already exists in "${destination}".`,
+          errorType: 409,
+        };
+      }
+
+      const locationExists = directory[destination].some(entry =>
+        Object.values(entry).includes(sourceLocation)
+      );
+      if (locationExists) {
+        return {
+          success: false,
+          error: `Source location "${sourceLocation}" already exists in "${destination}".`,
+          errorType: 409,
+        };
+      }
+
+      directory[destination].push({ [projectName]: sourceLocation });
+      fs.writeFileSync(directoryPath, JSON.stringify(directory, null, 2), 'utf-8');
+
+      return { success: true };
+    } catch (err) {
+      return {
+        success: false,
+        error: err.message,
+        errorType: 400
+      };
+    }
+  });
 });
 
 app.on("window-all-closed", () => {

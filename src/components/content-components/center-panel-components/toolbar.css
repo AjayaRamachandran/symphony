@@ -3,17 +3,18 @@
   margin-top: 13px;
   box-sizing: border-box;
   border-radius: 7px;
-  border: 1px #3c3c3c solid;
+  border: 1px #3C3C3C solid;
   color: #bbbbbb;
-  background-color: #2a2a2a;
+  background-color: #2A2A2A;
   display: flex;
   flex-direction: row;
   justify-content: left;
   height: 90px;
-  padding: 20px 20px 0px calc(max(20px, (100vw - 1345px) / 2));
+  padding: 20px 20px 0px calc(max(20px, (100vw - 1170px) / 2));
   overflow-x: scroll;
   overflow-y: hidden;
 }
+
 
 .toolbar-section {
   display: flex;
@@ -43,7 +44,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #2a2a2a;
+  background-color: #2A2A2A;
   padding: 5px;
 }
 
