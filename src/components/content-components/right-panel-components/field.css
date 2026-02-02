@@ -5,9 +5,9 @@
 
   font: inherit;
   border-radius: 7px;
-  border: 1px #3c3c3c solid;
+  border: 1px var(--tinted-background) solid;
   color: #c2c2c2;
-  background-color: #222222;
+  background-color: var(--background);
   font-size: 1.3em;
   letter-spacing: 0.01em;
 
@@ -18,7 +18,9 @@
   box-shadow: none;
   cursor: text;
 
-  transition: border-color 0.4s, box-shadow 0.4s;
+  transition:
+    border-color 0.4s,
+    box-shadow 0.4s;
 }
 .field-span {
   display: block;
@@ -27,9 +29,9 @@
 
   font: inherit;
   border-radius: 7px;
-  border: 1px #3c3c3c solid;
+  border: 1px var(--tinted-background) solid;
   color: #c2c2c2;
-  background-color: #222222;
+  background-color: var(--background);
   font-size: 1.3em;
   letter-spacing: 0.01em;
   padding: 7px;
@@ -41,10 +43,12 @@
   box-shadow: none;
   cursor: text;
 
-  transition: border-color 0.4s, box-shadow 0.4s;
+  transition:
+    border-color 0.4s,
+    box-shadow 0.4s;
 }
 
 .field-span:focus {
-  border-color: #c56ec9;
-  box-shadow: 0px 0px 50px #c56ec922;
+  border-color: var(--secondary);
+  box-shadow: 0px 0px 50px var(--secondary) 22;
 }

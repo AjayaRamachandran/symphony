@@ -8,6 +8,7 @@ import {
   KeyboardMusic,
 } from "lucide-react";
 
+
 import Field from "../right-panel-components/Field";
 import Tooltip from "@/components/Tooltip";
 import "./search-results.css";
@@ -168,14 +169,14 @@ function SearchResults({
                             ext === ""
                               ? null
                               : ext === "symphony"
-                              ? "accent-color-2"
-                              : ext === "wav" || ext === "mp3"
-                              ? "accent-color"
-                              : "icon-color"
+                                ? "accent-color-2"
+                                : ext === "wav" || ext === "mp3"
+                                  ? "accent-color"
+                                  : "icon-color"
                           }
                         />
                         <span className="chip-name">
-                          <span style={{ fontWeight: "400", color: "#939393" }}>
+                          <span style={{ fontWeight: "400", color: "var(--muted-foreground)" }}>
                             {"..." + dirname.slice(-30) + "/"}
                           </span>
                           <span style={{ fontWeight: "700" }}>

@@ -40,7 +40,7 @@ function SearchBar() {
         listOfFiles.forEach((el) => {
           if (
             el.toLowerCase().includes(searchContent.toLowerCase()) &&
-            results.length < 20
+            results.length < 5
           ) {
             results.push({ el, fullPath: path.join(dir, el) });
             console.log({ el, fullPath: path.join(dir, el) });
@@ -64,17 +64,14 @@ function SearchBar() {
   };
 
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === "Enter" && focused) {
-        //setFocused(false);
-        doSearch(searchContent);
+    const debounceTimer = setTimeout(() => {
+      if (searchContent !== lastSearchContent) {
+        doSearch();
       }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
+    }, 300);
 
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
+      clearTimeout(debounceTimer);
     };
   }, [searchContent]);
 

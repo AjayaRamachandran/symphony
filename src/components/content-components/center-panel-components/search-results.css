@@ -12,8 +12,8 @@
   font-style: italic;
   border-radius: 8px;
   border: 1px #4f4f4f solid;
-  color: #737373;
-  background-color: #303030;
+  color: var(--gray-50);
+  background-color: var(--alternate-background);
   padding: 7px 9px 5px 9px;
   box-shadow: 0px 5px 14px #00000066;
 
@@ -23,7 +23,9 @@
 
   white-space: nowrap;
 
-  transition: border-color 0.4s, box-shadow 0.4s;
+  transition:
+    border-color 0.4s,
+    box-shadow 0.4s;
   z-index: 300;
 }
 
@@ -40,7 +42,7 @@
   text-align: left;
   background-color: #434343;
   border: 1px solid #535353;
-  color: #d9d9d9;
+  color: var(--foreground);
   border-radius: 12px;
   padding: 4px 8px;
   margin-right: 8px;
@@ -56,10 +58,11 @@
   display: inline-flex;
   align-items: center;
   text-align: left;
-  background-color: #3c3c3c;
-  color: #d9d9d9;
-  border-radius: 7px;
-  padding: 6px 6px;
+  /* background-color: var(--tinted-background); */
+  border-top: 1px solid var(--tinted-background);
+  color: var(--foreground);
+  border-radius: 0px;
+  padding: 9px 6px 6px 6px;
   margin-bottom: 2px;
   margin-top: 2px;
   cursor: pointer;
@@ -85,9 +88,9 @@
 }
 
 .results-label {
-  margin: 8px 0px 5px 0px;
+  margin: 15px 0px 5px 0px;
   font-style: italic;
-  color: #d9d9d9;
+  color: var(--foreground);
   font-weight: 500;
 }
 
@@ -97,7 +100,7 @@
   font-size: 0.9em;
   letter-spacing: 1px;
   font-weight: 700;
-  color: #737373;
+  color: var(--gray-50);
   justify-content: space-between;
   align-items: center;
 }

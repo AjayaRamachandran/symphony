@@ -5,8 +5,8 @@
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  background: #222222;
-  color: #bbbbbb;
+  background: var(--background);
+  color: var(--tinted-foreground);
   padding: 0px 0px 0px 8px;
 }
 .titlebar-center {
@@ -160,9 +160,9 @@
   max-width: 280px !important;
   flex: 0 0 280px !important;
   border-radius: 7px;
-  border: 1px #3c3c3c solid;
-  color: #bbbbbb;
-  background-color: #2a2a2a;
+  border: 1px var(--tinted-background) solid;
+  color: var(--tinted-foreground);
+  background-color: var(--alternate-background);
   padding: 15px;
   display: flex;
   flex-direction: column;
@@ -176,7 +176,7 @@
 .content-nopanel-container {
   width: calc(min(100%, 100vw - 590px));
   border-radius: 7px;
-  color: #bbbbbb;
+  color: var(--tinted-foreground);
   padding: 3px;
   display: flex;
   flex-direction: column;
@@ -211,7 +211,7 @@
   flex-direction: row;
 }
 .tooltip-inner-alt {
-  color: #888;
+  color: var(--muted-foreground);
   padding-left: 2px;
 }
 
@@ -222,7 +222,7 @@
 }
 
 .call-to-action {
-  border: 2px solid #ea7b36;
+  border: 2px solid var(--primary);
   font-size: 1.4em;
   font-weight: 600;
   padding: 5px;
@@ -234,14 +234,19 @@
   flex-direction: row;
   box-sizing: border-box;
   border-radius: 5px;
-  background: linear-gradient(90deg, #2a2a2a 0%, #2a2a2a 50%, #74482c 100%);
+  background: linear-gradient(
+    90deg,
+    var(--alternate-background) 0%,
+    var(--alternate-background) 50%,
+    #74482c 100%
+  );
 }
 .call-to-action.inactive {
   border: 2px solid hsl(23, 0%, 56%);
   background: linear-gradient(
     90deg,
-    #2a2a2a 0%,
-    #2a2a2a 50%,
+    var(--alternate-background) 0%,
+    var(--alternate-background) 50%,
     hsl(23, 0%, 31%) 100%
   );
 }
@@ -259,12 +264,14 @@
   flex-direction: row;
   box-sizing: border-box;
   border-radius: 7px;
-  background: #bc4512;
-  transition: filter 0.25s, background-color 0.25s;
+  background: var(--dark-primary);
+  transition:
+    filter 0.25s,
+    background-color 0.25s;
   gap: 7px;
 }
 .call-to-action-2.locked {
-  background: #606060;
+  background: var(--gray-50);
   cursor: not-allowed;
 }
 

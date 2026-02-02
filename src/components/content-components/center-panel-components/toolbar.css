@@ -3,9 +3,9 @@
   margin-top: 13px;
   box-sizing: border-box;
   border-radius: 7px;
-  border: 1px #3C3C3C solid;
-  color: #bbbbbb;
-  background-color: #2A2A2A;
+  border: 1px var(--tinted-background) solid;
+  color: var(--tinted-foreground);
+  background-color: var(--alternate-background);
   display: flex;
   flex-direction: row;
   justify-content: left;
@@ -14,7 +14,6 @@
   overflow-x: scroll;
   overflow-y: hidden;
 }
-
 
 .toolbar-section {
   display: flex;
@@ -26,14 +25,14 @@
   margin-top: 4px;
   /* outline: 1px solid white; */
   letter-spacing: 0.1em;
-  color: #737373;
+  color: var(--gray-50);
 }
 
 .toolbar-subsection {
   display: flex;
   justify-content: center;
   flex-direction: row;
-  color: #bbbbbb;
+  color: var(--tinted-foreground);
 }
 
 .icon-button {
@@ -44,7 +43,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #2A2A2A;
+  background-color: var(--alternate-background);
   padding: 5px;
 }
 

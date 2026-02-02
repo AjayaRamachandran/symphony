@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { FolderOpen } from "lucide-react";
 
+
 import Tooltip from "@/components/Tooltip";
 
 function AddAutoSave({ onClose }) {
@@ -9,7 +10,7 @@ function AddAutoSave({ onClose }) {
   const projectName = "Auto-Save";
 
   const openFolderDialog = async () => {
-    console.log("Button clicked");
+    console.log("button clicked");
     const result = await window.electronAPI.openDirectory();
     console.log("Dialog result:" + result);
     if (result) {

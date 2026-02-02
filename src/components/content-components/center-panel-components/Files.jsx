@@ -114,7 +114,7 @@ function Files() {
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           style={{
-            outline: isDragging ? "1px dashed #737373" : "none",
+            outline: isDragging ? "1px dashed var(--muted-foreground)" : "none",
             filter: isDragging ? "brightness(1.1)" : "none",
           }}
         >

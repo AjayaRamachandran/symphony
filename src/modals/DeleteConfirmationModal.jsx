@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 
+
 function DeleteConfirmationModal({
   onComplete,
   action = "Delete",
@@ -19,7 +20,7 @@ function DeleteConfirmationModal({
         action cannot be undone.
       </div>
       <button
-        className={"call-to-action-2"}
+        className={"call-to-action-2 red"}
         text-style="display"
         onClick={() => onComplete()}
       >

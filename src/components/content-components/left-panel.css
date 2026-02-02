@@ -16,8 +16,8 @@
 
 .settings-button {
   margin-top: 4px;
-  color: #737373;
-  background-color: #2a2a2a;
+  color: var(--gray-50);
+  background-color: var(--alternate-background);
   border-radius: 5px;
   align-items: center;
   display: flex;
@@ -32,7 +32,7 @@
   margin-bottom: 5px;
   margin-left: 3px;
   letter-spacing: 0.1em;
-  color: #606060;
+  color: var(--gray-50);
 }
 
 .rotated {

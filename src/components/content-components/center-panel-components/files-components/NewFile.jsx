@@ -6,6 +6,7 @@ import "./new-file.css";
 import { useDirectory } from "@/contexts/DirectoryContext";
 import fileIconAdd from "@/assets/file-icon-add.svg";
 
+
 import GenericModal from "@/modals/GenericModal";
 import NewFileModal from "@/modals/NewFileModal";
 
@@ -24,7 +25,7 @@ function NewFile() {
     const result = await window.electronAPI.doProcessCommand(
       path.join(globalDirectory, `${title}`),
       "instantiate",
-      {}
+      {},
     );
     document.body.style.cursor = "default";
     console.log(result);
@@ -40,8 +41,8 @@ function NewFile() {
           (viewType === "grid"
             ? ""
             : viewType === "content"
-            ? "-content"
-            : "-list") +
+              ? "-content"
+              : "-list") +
           " new"
         }
         onClick={() => setShowNewFile(true)}
@@ -49,7 +50,7 @@ function NewFile() {
         <img
           src={fileIconAdd}
           alt="File icon"
-          color="#606060"
+          color="var(--gray-50)"
           height={viewType === "grid" ? 78 : viewType === "content" ? 55 : 21}
           style={{ marginTop: viewType === "list" ? "3px" : "0" }}
         />
@@ -59,8 +60,8 @@ function NewFile() {
               viewType == "grid"
                 ? "0px"
                 : viewType == "content"
-                ? "15px"
-                : "3px",
+                  ? "15px"
+                  : "3px",
           }}
         >
           New Symphony

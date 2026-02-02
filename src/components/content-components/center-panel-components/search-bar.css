@@ -6,8 +6,8 @@
   font: inherit;
   border-radius: 999px;
   border: 1px #767676 solid;
-  color: #d9d9d9;
-  background-color: #3c3c3c;
+  color: var(--foreground);
+  background-color: var(--tinted-background);
   padding: 7px 9px 7px 9px;
 
   overflow: hidden;
@@ -19,7 +19,9 @@
 
   white-space: nowrap;
 
-  transition: border-color 0.4s, box-shadow 0.4s;
+  transition:
+    border-color 0.4s,
+    box-shadow 0.4s;
 }
 
 .search-field-span {
@@ -30,8 +32,8 @@
   font: inherit;
   border-radius: 999px;
   border: 1px #767676 solid;
-  color: #d9d9d9;
-  background-color: #3c3c3c;
+  color: var(--foreground);
+  background-color: var(--tinted-background);
   padding: 7px 9px 7px 9px;
 
   overflow: hidden;
@@ -43,10 +45,12 @@
 
   white-space: nowrap;
 
-  transition: border-color 0.4s, box-shadow 0.4s;
+  transition:
+    border-color 0.4s,
+    box-shadow 0.4s;
 }
 
 .search-field-span:focus {
-  border-color: #c56ec9;
-  box-shadow: 0px 0px 50px #c56ec922;
+  border-color: var(--secondary);
+  box-shadow: 0px 0px 50px var(--secondary) 22;
 }

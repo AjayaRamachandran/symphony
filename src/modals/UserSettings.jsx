@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+
 import { TriangleAlert, Users, Settings } from "lucide-react";
 
 import Field from "@/components/content-components/right-panel-components/Field";
@@ -50,7 +51,7 @@ function UserSettings({ onComplete }) {
       </div>
       <div
         className="modal-paragraph"
-        style={{ width: "100%", color: "#939393" }}
+        style={{ width: "100%", color: "var(--muted-foreground)" }}
       >
         Configure your Symphony to work best for you. These settings can be
         reverted at any time.

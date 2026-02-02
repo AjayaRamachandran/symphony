@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { FolderClosed, Plus, Pencil, X } from "lucide-react";
 import path from "path-browserify";
 
+
 import Tooltip from "@/components/Tooltip";
 import GenericModal from "@/modals/GenericModal";
 import NewFolder from "@/modals/NewFolder";
@@ -125,7 +126,7 @@ function Directory() {
         file.name.endsWith(".symphony") ||
         file.name.endsWith(".wav") ||
         file.name.endsWith(".mid") ||
-        file.name.endsWith(".mp3")
+        file.name.endsWith(".mp3"),
     );
 
     if (symphonyFiles.length === 0) {
@@ -210,13 +211,13 @@ function Directory() {
                 onDragOver={onDragOver}
                 onDragLeave={(e) => onDragLeave(e, elementPair[1])}
                 onDrop={(e) => onDrop(e, elementPair[1])}
-                // onMouseEnter={() => {setHoverDir(elementPair[1].replace(/\\/g, '/')); console.log(elementPair[1].replace(/\\/g, '/'))}}
+              // onMouseEnter={() => {setHoverDir(elementPair[1].replace(/\\/g, '/')); console.log(elementPair[1].replace(/\\/g, '/'))}}
               >
                 <FolderClosed
                   style={{ flexShrink: 0 }}
                   size={16}
                   strokeWidth={1.5}
-                  color="#606060"
+                  color="var(--gray-50)"
                 />
                 <div
                   style={{

@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import path from "path-browserify";
 
+
 import Tooltip from "@/components/Tooltip";
 import "@/components/content-components/left-panel-components/recently-viewed.css";
 import GenericModal from "@/modals/GenericModal";
@@ -101,7 +102,7 @@ function SplashScreen({ onComplete }) {
       <div className="banner">
         <img src={banner} style={{ width: "500px", display: "block" }}></img>
       </div>
-      <div style={{ padding: "30px", borderTop: "1px solid #3c3c3c" }}>
+      <div style={{ padding: "30px", borderTop: "1px solid var(--tinted-background)" }}>
         <div
           className="modal-big-title"
           text-style="display"
@@ -148,8 +149,8 @@ function SplashScreen({ onComplete }) {
                             item.type === "mp3" || item.type === "wav"
                               ? "accent-color"
                               : item.type === "symphony"
-                              ? "accent-color-2"
-                              : "icon-color"
+                                ? "accent-color-2"
+                                : "icon-color"
                           }
                         />
                       )}

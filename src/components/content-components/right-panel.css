@@ -10,7 +10,7 @@
   margin-top: 27px;
   margin-left: 2px;
   margin-bottom: 5px;
-  color: #898989;
+  color: var(--muted-foreground);
   /* margin-left: 3px; */
 }
 
@@ -18,7 +18,7 @@
   font-size: 14px;
   font-weight: 500;
   margin-top: 15px;
-  color: #737373;
+  color: var(--gray-50);
 }
 
 .rotated-2 {

@@ -8,6 +8,7 @@ import {
   Check,
 } from "lucide-react";
 
+
 import Field from "@/components/content-components/right-panel-components/Field";
 import Dropdown from "@/components/Dropdown";
 import Tooltip from "@/components/Tooltip";
@@ -62,7 +63,7 @@ function EditModal({
     options.find((opt) => opt.label === destination) || null;
 
   const openFolderDialog = async () => {
-    console.log("Button clicked");
+    console.log("button clicked");
     const result = await window.electronAPI.openDirectory();
     console.log("Dialog result:" + result);
     if (result) {
@@ -203,8 +204,8 @@ function EditModal({
           className={
             "call-to-action-2 green" +
             (params.dir !== sourceLocation ||
-            params.dest !== destination ||
-            params.name !== projectName
+              params.dest !== destination ||
+              params.name !== projectName
               ? ""
               : " locked")
           }
@@ -212,12 +213,12 @@ function EditModal({
           text-style="display"
           onClick={
             params.dir !== sourceLocation ||
-            params.dest !== destination ||
-            params.name !== projectName
+              params.dest !== destination ||
+              params.name !== projectName
               ? async () => {
-                  onRemove();
-                  await changeFields();
-                }
+                onRemove();
+                await changeFields();
+              }
               : undefined
           }
         >

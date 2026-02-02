@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+
 import {
   Music,
   ChartNoAxesGantt,
@@ -120,8 +121,8 @@ function RecentlyViewed() {
                         item.type === "mp3" || item.type === "wav"
                           ? "accent-color"
                           : item.type === "symphony"
-                          ? "accent-color-2"
-                          : "icon-color"
+                            ? "accent-color-2"
+                            : "icon-color"
                       }
                     />
                   )}

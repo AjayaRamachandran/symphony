@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { FolderOpen, ChartNoAxesGantt, Music, Save } from "lucide-react";
 import path from "path-browserify";
 
+
 import Field from "@/components/content-components/right-panel-components/Field";
 import Dropdown from "@/components/Dropdown";
 import Tooltip from "@/components/Tooltip";
@@ -30,7 +31,7 @@ function NewFolder({ defaultDestProp = "", onClose, onConflict }) {
     options.find((opt) => opt.label === destination) || null;
 
   const openFolderDialog = async () => {
-    console.log("Button clicked");
+    console.log("button clicked");
     const result = await window.electronAPI.openDirectory();
     console.log("Dialog result:" + result);
     if (result) {

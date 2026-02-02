@@ -1,13 +1,13 @@
 .dropdown {
   position: relative;
-  color: #d9d9d9;
+  color: var(--foreground);
   font-size: 13px;
 }
 
 .dropdown-toggle {
   padding: 6px 8px;
   background: #2c2c2c;
-  border: 1px solid #3c3c3c;
+  border: 1px solid var(--tinted-background);
   border-radius: 7px;
   cursor: pointer;
   min-width: 160px;
@@ -22,7 +22,7 @@
   top: 100%;
   left: 0;
   background: #2c2c2c;
-  border: 1px solid #3c3c3c;
+  border: 1px solid var(--tinted-background);
   margin-top: 4px;
   border-radius: 7px;
   padding-left: 0;

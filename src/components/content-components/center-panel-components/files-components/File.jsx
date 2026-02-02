@@ -6,6 +6,7 @@ import fileIcon from "@/assets/file-icon.svg";
 import wavIcon from "@/assets/wav-icon.svg";
 import mp3Icon from "@/assets/mp3-icon.svg";
 import midiIcon from "@/assets/midi-icon.svg";
+
 import { useDirectory } from "@/contexts/DirectoryContext";
 
 import "./file.css";
@@ -95,15 +96,15 @@ function File({ name }) {
           (viewType === "grid"
             ? ""
             : viewType === "content"
-            ? "-content"
-            : "-list") +
+              ? "-content"
+              : "-list") +
           (selectedFile === fileName ? " highlighted" : "")
         }
         style={{
           opacity:
             clipboardFile &&
-            path.basename(clipboardFile) === fileName &&
-            clipboardCut
+              path.basename(clipboardFile) === fileName &&
+              clipboardCut
               ? 0.6
               : 1,
         }}
@@ -135,7 +136,7 @@ function File({ name }) {
         <img
           src={fileType.icon}
           alt="File icon"
-          color="#606060"
+          color="var(--muted-foreground)"
           height={viewType === "grid" ? 78 : viewType === "content" ? 55 : 21}
           style={{ marginTop: viewType === "list" ? "3px" : "0" }}
         />

@@ -18,6 +18,7 @@ import {
 import path from "path-browserify";
 
 import mscz from "@/assets/mscz-icon.svg";
+
 import Tooltip from "@/components/Tooltip";
 import GenericModal from "@/modals/GenericModal";
 import DeleteConfirmationModal from "@/modals/DeleteConfirmationModal";
@@ -125,7 +126,7 @@ function Toolbar() {
       isStarred(path.join(globalDirectory, selectedFile)).then((result) => {
         setItemIsStarred(result);
       });
-    } catch (e) {}
+    } catch (e) { }
   }, [selectedFile]);
 
   const handleStarToggle = async () => {
@@ -229,7 +230,7 @@ function Toolbar() {
               <Tooltip text="Export to..." />
               <Shapes size={iconSize} />
             </button>
-            {/* <button className={'icon-button tooltip grayed'}><Tooltip text="Export to MuseScore (Coming Soon)"/><img src={mscz} color={"#737373"} alt="mscz icon" width={iconSize} height={iconSize} /></button> */}
+            {/* <button className={'icon-button tooltip grayed'}><Tooltip text="Export to MuseScore (Coming Soon)"/><img src={mscz} color={"var(--gray-50)"} alt="mscz icon" width={iconSize} height={iconSize} /></button> */}
             <button
               className={
                 "icon-button tooltip" +
@@ -309,7 +310,7 @@ function Toolbar() {
               }}
             >
               <Tooltip text="Delete" altText={`(Del/Bkspc)`} />
-              <Trash2 size={iconSize} color="#E46767" />
+              <Trash2 size={iconSize} color="var(--inactive-bad)" />
             </button>
           </div>
         </div>

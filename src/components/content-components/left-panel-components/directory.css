@@ -1,16 +1,16 @@
 .directory {
   flex: 1;
   border-radius: 7px;
-  border: 1px #3c3c3c solid;
-  color: #bbbbbb;
-  background-color: #252525;
+  border: 1px var(--tinted-background) solid;
+  color: var(--tinted-foreground);
+  background-color: var(--background);
   padding: 10px 10px 10px 15px;
   overflow-y: auto;
   overflow-x: hidden;
 }
 
 .directory-large {
-  color: #898989;
+  color: var(--muted-foreground);
   font-size: 1.35em;
   font-weight: 300;
   margin: 9px 3px 5px 3px;
@@ -22,8 +22,8 @@
 .directory-medium {
   flex: 1;
   padding: 4px 3px 4px 12px;
-  color: #d9d9d9;
-  background-color: #252525;
+  color: var(--foreground);
+  background-color: var(--background);
   border-radius: 4px;
   font-size: 1.2em;
 

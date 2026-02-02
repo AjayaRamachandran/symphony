@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+
 import {
   FolderOpen,
   ChartNoAxesGantt,
@@ -139,11 +140,11 @@ function ConvertModal({ onClose, onComplete }) {
               format === "" || destination === "" || projectName === ""
                 ? null
                 : async () => {
-                    await finish(selectedFolder.value);
-                    setGlobalDirectory(selectedFolder.value);
-                    setSelectedFile(null);
-                    onClose();
-                  }
+                  await finish(selectedFolder.value);
+                  setGlobalDirectory(selectedFolder.value);
+                  setSelectedFile(null);
+                  onClose();
+                }
             }
           >
             Export

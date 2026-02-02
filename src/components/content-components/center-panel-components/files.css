@@ -13,7 +13,7 @@
   flex: 1 1 0;
   box-sizing: border-box;
   grid-auto-rows: min-content;
-  background-color: #222222;
+  background-color: var(--background);
 }
 
 .drop-zone {
@@ -66,7 +66,7 @@
   text-align: center;
   align-items: center;
   gap: 10px;
-  color: #606060;
+  color: var(--gray-50);
 }
 
 .files-row {
@@ -83,14 +83,14 @@
   overflow-x: hidden;
   flex: 1 1 0;
   box-sizing: border-box;
-  background-color: #222222;
+  background-color: var(--background);
 }
 
 .file-select-box {
   margin: 0px 0px;
   padding: 15px;
   display: flex;
-  background-color: #222222;
+  background-color: var(--background);
   flex-direction: column;
   width: 140px;
   border-radius: 7px;
@@ -105,7 +105,7 @@
 .file-select-box-content {
   padding: 15px;
   display: flex;
-  background-color: #222222;
+  background-color: var(--background);
   flex-direction: row;
   width: 100%;
   border-radius: 7px;
@@ -124,7 +124,7 @@
   padding: 5px 5px 7px 5px;
   display: grid;
   grid-template-columns: 1fr 15fr 1fr;
-  background-color: #222222;
+  background-color: var(--background);
   width: 100%;
   border-radius: 5px;
   min-height: fit-content;
@@ -139,7 +139,7 @@
 .file-select-box.new,
 .file-select-box-content.new,
 .file-select-box-list.new {
-  color: #737373;
+  color: var(--gray-50);
 }
 .file-select-box.highlighted,
 .file-select-box-content.highlighted,
@@ -150,7 +150,7 @@
 }
 
 .rounded-rect-icon {
-  border: 2px solid #606060;
+  border: 2px solid var(--gray-50);
   border-radius: 10px;
   width: 47px;
   height: 47px;
@@ -161,7 +161,7 @@
   margin-top: 2px;
 }
 .rounded-rect-icon.content {
-  border: 2px solid #606060;
+  border: 2px solid var(--gray-50);
   border-radius: 8px;
   width: 70px;
   max-width: 70px;
@@ -176,7 +176,7 @@
 }
 
 .rounded-rect-icon.list {
-  border: 2px solid #606060;
+  border: 2px solid var(--gray-50);
   border-radius: 3px;
   width: 14px;
   max-width: 14px;
