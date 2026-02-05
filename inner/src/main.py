@@ -245,7 +245,7 @@ BeatsPerMeasureControls = frame.Panel((0, 0, width, height), gui.EMPTY_COLOR,
 
 colorStates = custom.getColorStates(28, 28, source_path)
 ColorButton = gui.Button(pos=(width - 308, 26), width=28, height=28, states=colorStates)
-WaveButton = gui.Button(pos=(width - 275, 26), width=28, height=28, states=[squareWaveImage, triangleWaveImage, sawtoothWaveImage, "Pno"])
+WaveButton = gui.Button(pos=(width - 275, 26), width=28, height=28, states=[squareWaveImage, triangleWaveImage, sawtoothWaveImage])
 KeyDropdown = gui.Dropdown(pos=(width - 223, 26), width=40, height=28, states=NOTES_FLAT, image=upDownChevronImage)
 ModeDropdown = gui.Dropdown(pos=(width - 178, 26), width=100, height=28, states=modes, image=upDownChevronImage)
 QuestionButton = gui.Button(pos=(width - 54, 26), width=28, height=28, states=[questionImage])
