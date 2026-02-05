@@ -1,3 +1,9 @@
+.plus-button {
+  display: flex;
+  height: fit-content;
+  margin-bottom: 3px;
+}
+
 .directory {
   flex: 1;
   border-radius: 7px;
@@ -13,7 +19,7 @@
   color: var(--muted-foreground);
   font-size: 1.35em;
   font-weight: 300;
-  margin: 9px 3px 5px 3px;
+  margin: 11px 3px 5px 3px;
 
   justify-content: space-between;
   display: flex;
@@ -28,6 +34,10 @@
   font-size: 1.2em;
 
   display: flex;
+  justify-content: left;
+  align-items: start;
+  text-align: left;
+  gap: 4px;
   width: 98%;
 
   box-sizing: border-box;
@@ -36,7 +46,6 @@
   margin-top: 1px;
 }
 .directory-medium:hover {
-  filter: brightness(1.2);
   cursor: pointer;
 }
 

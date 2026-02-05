@@ -30,7 +30,6 @@
   width: 100%;
 }
 .recently-viewed-medium:hover {
-  filter: brightness(1.2);
   cursor: pointer;
 }
 

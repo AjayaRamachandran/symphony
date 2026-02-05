@@ -61,12 +61,13 @@ def convertGridToWorld(time, pitch, tileSize: tuple[int | float] = None, view: t
 
     return [(time - viewCol) * _tileWidth + 80, ((84 - viewRow) - pitch) * _tileHeight + 80]
 
-def convertWorldToGrid(mousePos, tileSize: tuple[int | float] = None, view: tuple[int | float] = None):
+def convertWorldToGrid(mousePos, tileSize: tuple[int | float] = None, view: tuple[int | float] = None, timeInt = True):
     '''
     fields:
         mousePos (tuple[number]) - the mouse coordinates in world/screen space
         tileSize (tuple[number]) - the coordinate dimensions of the grid tiles
         view (tuple[number]) - the coordinates of the view camera in relation to the GRID
+        timeInt (boolean) - whether or not to round the values
     outputs: tuple[number]
     
     Converts Screen (world) coordinates to Grid coordinates.
@@ -83,7 +84,7 @@ def convertWorldToGrid(mousePos, tileSize: tuple[int | float] = None, view: tupl
     time = (mouseX - 80) / _tileWidth + _viewCol
     pitch = (84 - _viewRow) - (mouseY - 80) / _tileHeight
 
-    return floor(time), ceil(pitch)
+    return floor(time) if timeInt else time, ceil(pitch)
 
 
 ###### CLASSES ######
@@ -325,7 +326,7 @@ class NoteGrid(gui.Interactive):
                     if isinstance(note, Note):
                         note.render(screen, colors[self.color], False, [0,0])
                     else:
-                        raise ValueError(f'Invalid data type for note: {note.__class__()}')
+                        raise ValueError(f'Invalid data type for note: {note}')
 
         if self.selectionRect:
             pygame.draw.rect(screen, (255, 255, 255, 255), self.selectionRect, 1)
@@ -338,7 +339,7 @@ class PlayHead():
         # playhead properties
         self.time = 0
         self.home = 0
-        self.tpm = 360
+        self.tempo = 360
         self.playing = False
         self.lastPlayTime = time.time()
 
@@ -348,9 +349,9 @@ class PlayHead():
         self.home = home
         self.time = self.home
 
-    def play(self, tpm):
+    def play(self, tempo):
         self.playing = True
-        self.tpm = tpm
+        self.tempo = tempo
         self.lastPlayTime = time.time()
 
     def stop(self):
@@ -364,7 +365,7 @@ class PlayHead():
         if self.playing:
             secondsPassed = time.time() - self.lastPlayTime
             minutesPassed = secondsPassed / 60
-            tilesPassed = minutesPassed * self.tpm
+            tilesPassed = minutesPassed * self.tempo
             self.time = self.home + tilesPassed
 
             if self.panel != None:

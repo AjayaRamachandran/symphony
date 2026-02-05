@@ -140,6 +140,7 @@ app.whenReady().then(() => {
   });
   mainWindow.on("close", async () => {
     persistEditor = false;
+    console.log('--> Sending KILL to python process..')
     await doProcessCommand("", "kill");
     mainWindow.destroy(); // force close after completion
     app.quit(); // Quit the app on all platforms (including macOS)

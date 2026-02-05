@@ -51,11 +51,12 @@ body,
 
   /* Brand / primary */
   --primary: #ea7b36;
-  --muted-primary: #f38665;
+  /* --muted-primary: #f38665; */
   --dark-primary: #bc4512;
 
   /* Secondary */
-  --secondary: #c56ec9;
+  --secondary: #c56ec9ff;
+  --muted-secondary: #c56ec922;
 
   /* Status: good */
   --active-good: #4caf50;
@@ -69,28 +70,14 @@ body,
   /* Neutrals */
   --gray-50: #666666;
 
-
   background-color: var(--background);
 }
-
-
 
 [text-style="display"] {
   font-family:
     Instrument Sans,
     sans-serif;
   color: var(--foreground);
-}
-
-[color-type="accent-color"] {
-  color: var(--secondary);
-}
-[color-type="accent-2"] {
-  color: var(--muted-primary);
-}
-
-[color-type="icon-color"] {
-  color: var(--gray-50);
 }
 
 a {
@@ -131,13 +118,13 @@ button {
   cursor: pointer;
   padding: 0;
   border-radius: 3px;
-  transition: background-color 0.2s;
+  transition: box-shadow 0.2s;
 }
 [topbar-buttons="true"] {
   background-color: var(--background);
 }
 button:hover {
-  background-color: #ffffff08;
+  box-shadow: inset 0 0 0 9999px #ffffff09;
 }
 button:focus {
   outline: none;

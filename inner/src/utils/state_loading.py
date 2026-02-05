@@ -11,6 +11,15 @@ from gui.custom import Note
 
 ###### INITIALIZE ######
 
+DEFAULT_NOTE_MAP = {
+    "orange": [],
+    "purple": [],
+    "cyan": [],
+    "lime": [],
+    "blue": [],
+    "pink": []
+}
+
 DEFAULT_WAVE_MAP = {
     "orange": 0,
     "purple": 0,
@@ -55,9 +64,9 @@ def toProgramState(state):
         stateMeta = state.get("meta", DEFAULT_META_FIELD)
         stateKey = state.get("key", "Eb")
         stateMode = state.get("mode", "Lydian")
-        stateTpm = state.get("tpm", 360)
+        stateTpm = round(state.get("tpm", 360))
         stateWaves = state.get("waveMap", DEFAULT_WAVE_MAP)
-        newNoteMap = fromSavable(state.get("noteMap", {})) # load from dict back into note format
+        newNoteMap = fromSavable(state.get("noteMap", DEFAULT_NOTE_MAP)) # load from dict back into note format
         stateBeatLength = state.get("beatLength", 4)
         stateBeatsPerMeasure = state.get("beatsPerMeasure", 4)
     else:
@@ -66,12 +75,13 @@ def toProgramState(state):
         stateKey = getattr(state, "key", "Eb")
         stateMode = getattr(state, "mode", "Lydian")
         stateWaves = getattr(state, "waveMap", getattr(state, "wavemap", DEFAULT_WAVE_MAP))
-        stateTpm = 3600 / getattr(state, "ticksPerTile", 10) # Migration of ticksPerTile to tpm storage in 1.1+
+        stateTpm = round(int(3600 / getattr(state, "ticksPerTile", 10))) # Migration of ticksPerTile to tpm storage in 1.1+
         stateBeatLength = 4 # ProgramState is also older than BeatLength being stored in the file
         stateBeatsPerMeasure = 4 # ProgramState is also older than BeatsPerMeasure being stored in the file
 
-        newNoteMap = getattr(state, "noteMap", {})
+        newNoteMap = getattr(state, "noteMap", DEFAULT_NOTE_MAP)
         newNoteMap = noteMap1_0To1_1(newNoteMap)
+    #console.log(stateTpm)
 
     return {
         "meta" : stateMeta,
@@ -114,8 +124,8 @@ def noteMap1_0To1_1(noteMap : dict):
 
     Converts the 1.0 noteMap into 1.1 format.
     '''
-    newNoteMap = {}
-    for color, count in DEFAULT_WAVE_MAP.items():
+    newNoteMap = DEFAULT_NOTE_MAP
+    for color, _empty in DEFAULT_NOTE_MAP.items():
         strikeList = []
         for el, note in noteMap.items():
             if (note.lead and note.color == color):
@@ -142,7 +152,7 @@ def toSavable(noteMap: dict):
     Converts an active noteMap into save-ready format (Note -> dict).
     Note: this method is repeat-safe; if input is already save-ready, nothing should break.
     '''
-    output = {}
+    output = DEFAULT_NOTE_MAP
     for color, notes in noteMap.items():
         channel = []
         for note in notes:
@@ -153,7 +163,7 @@ def toSavable(noteMap: dict):
             else:
                 raise ValueError('invalid note type')
         output[color] = channel
-    return output
+    return copy.deepcopy(output)
 
 def fromSavable(noteMap: dict):
     '''
@@ -163,7 +173,7 @@ def fromSavable(noteMap: dict):
     Converts an active noteMap FROM save-ready format (dict -> Note).
     Note: this method is repeat-safe; if input is already Note-format, nothing should break.
     '''
-    output = {}
+    output = DEFAULT_NOTE_MAP
     for color, notes in noteMap.items():
         channel = []
         for note in notes:
@@ -174,4 +184,4 @@ def fromSavable(noteMap: dict):
             else:
                 raise ValueError('invalid note type')
         output[color] = channel
-    return output
+    return copy.deepcopy(output)

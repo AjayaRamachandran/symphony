@@ -57,11 +57,11 @@ function SearchResults({
     if (ext === ".symphony") {
       try {
         setGlobalUpdateTimestamp(Date.now());
-        const result = await window.electronAPI.doProcessCommand([
+        const result = await window.electronAPI.doProcessCommand(
+          path.join(filePath.slice(0, -9)),
           "open",
-          basename,
-          dirname,
-        ]);
+          {}
+        );
         console.log("Python script succeeded:", result.output);
       } catch (err) {
         console.error("Python script failed:", err.error || err);
@@ -129,7 +129,7 @@ function SearchResults({
                 );
               })
             ) : (
-              <>No Starred Files.</>
+              <div style={{marginBottom: '3px'}}>No Starred Files</div>
             )}
           </div>
           {getSearchTerm() !== "" && (
@@ -165,15 +165,15 @@ function SearchResults({
                       >
                         <Icon
                           size={14}
-                          color-type={
+                          style={{ color : `var(--${
                             ext === ""
                               ? null
                               : ext === "symphony"
-                                ? "accent-color-2"
+                                ? "primary"
                                 : ext === "wav" || ext === "mp3"
-                                  ? "accent-color"
-                                  : "icon-color"
-                          }
+                                  ? "secondary"
+                                  : "gray-50"})`
+                          }}
                         />
                         <span className="chip-name">
                           <span style={{ fontWeight: "400", color: "var(--muted-foreground)" }}>

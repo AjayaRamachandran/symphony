@@ -123,7 +123,7 @@ def playNotes(notes=[], waves=0, duration=1, volume=0.2, sample_rate=SAMPLE_RATE
         console.error(f"NoteError: {e}")
         return None
 
-def playFull(noteMap, waveMap, playhead=0, tpm=120, volume=0.2, sample_rate=SAMPLE_RATE, channel='all'):
+def playFull(noteMap, waveMap, playhead=0, tpm=360, volume=0.2, sample_rate=SAMPLE_RATE, channel='all'):
     '''
     fields:
         noteMap (dict) - noteMap in standard format\n
@@ -150,7 +150,7 @@ def playFull(noteMap, waveMap, playhead=0, tpm=120, volume=0.2, sample_rate=SAMP
         console.error(f"playFull Error: {e}")
         return None
 
-def createFullSound(noteMap, waveMap, playhead=0, tpm=120, volume=0.2, sample_rate=SAMPLE_RATE, channel='all'):
+def createFullSound(noteMap, waveMap, playhead=0, tpm=360, volume=0.2, sample_rate=SAMPLE_RATE, channel='all'):
     '''
     fields:
         noteMap (dict) - noteMap in stanard format\n

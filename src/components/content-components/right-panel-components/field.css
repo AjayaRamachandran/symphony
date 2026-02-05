@@ -50,5 +50,5 @@
 
 .field-span:focus {
   border-color: var(--secondary);
-  box-shadow: 0px 0px 50px var(--secondary) 22;
+  box-shadow: 0px 0px 50px var(--muted-secondary);
 }

@@ -130,6 +130,7 @@ questions_url = "https://docs.nimbial.com/symphony/4"
 
 key = 'Eb'
 mode = 'Lydian'
+tempo = 360
 
 play_obj = None # global to hold the last Channel/Sound so it doesn't get garbage-collected
 
@@ -195,7 +196,7 @@ brushType = "brush"
 beatLength = 4
 beatsPerMeasure = 4
 
-tpm = 360
+tempo = 360
 
 mainFont = f'{source_path}/assets/InterVariable.ttf'
 gui.init(source_path)
@@ -302,14 +303,14 @@ KeyDropdown.setCurrentState(keyIndex)
 ModeDropdown.setCurrentState(modes.index(mode))
 
 def playPauseToggle():
-    global playing, play_obj, tpm
+    global playing, play_obj, tempo
     playing = not playing
     PlayPauseButton.cycleStates()
     PlayPauseButton.render(screen)
     if playing:
-        play_obj = sp.playFull(noteMap, waveMap, PlayHead.time, tpm, 0.4,
+        play_obj = sp.playFull(noteMap, waveMap, PlayHead.time, tempo, 0.4,
                                channel='all' if ColorButton.currentStateIdx == 6 else ColorButton.currentStateIdx)
-        PlayHead.play(tpm)
+        PlayHead.play(tempo)
     else:
         PlayHead.stop()
         NotePanel.render(screen)
@@ -346,6 +347,7 @@ BeatsPerMeasureTextBox.setStateRestrictions(lambda x : (len(x) > 0 and int(x) > 
 def tempoSync():
     global tempo
     tempo = int(TempoTextBox.getText().replace(' tpm', ''))
+    tempo = max(10, tempo)
     TempoTextBox.setText(str(tempo) + ' tpm')
 
     TempoControls.render(screen)
@@ -461,6 +463,7 @@ def colorSync():
     # Clear selections when switching to universal view (channel 6)
     if ColorButton.currentStateIdx == 6:
         for color, notes in noteMap.items():
+            # console.log(notes)
             clearSelection(notes)
     
     NotePanel.render(screen)
@@ -546,7 +549,7 @@ def getNoteAt(notes, time, pitch):
 
 def getExtendingNote(notes, time, pitch):
     for note in notes:
-        if note.pitch == pitch and (note.time + note.duration - 1) <= time < note.time + note.duration:
+        if note.pitch == pitch and (note.time + note.duration - 0.42) <= time < note.time + note.duration:
             return note
     return False
 
@@ -569,6 +572,7 @@ def handleClick():
             return
 
     mouseTime, mousePitch = custom.convertWorldToGrid(pygame.mouse.get_pos())
+    mouseTimeExact, _mousePitch = custom.convertWorldToGrid(pygame.mouse.get_pos(), timeInt=False)
 
     drawStartPos = (mouseTime, mousePitch)
     if mouseTime is None:
@@ -576,7 +580,7 @@ def handleClick():
     if head:
         head = False
         PlayHead.setHome(mouseTime)
-        console.log(f"home: {mouseTime}")
+        # console.log(f"home: {mouseTime}")
         PlayheadButton.setCurrentState(0)
         PlayheadButton.render(screen)
         NotePanel.render(screen)
@@ -616,7 +620,7 @@ def handleClick():
     clickedNote = getNoteAt(notes, mouseTime, mousePitch)
     shiftHeld = pygame.key.get_pressed()[pygame.K_LSHIFT]
     altHeld = pygame.key.get_pressed()[pygame.K_LALT]
-    extendingNote = getExtendingNote(notes, mouseTime, mousePitch)
+    extendingNote = getExtendingNote(notes, mouseTimeExact, mousePitch)
 
     if clickedNote:
         if extendingNote:
@@ -810,7 +814,7 @@ while run:
 
             autoSave = False if settings['disable_auto_save'] else directory["Symphony Auto-Save"][0]["Auto-Save"]
 
-            noteMap = ps["noteMap"]
+            noteMap : dict[str: list] = ps["noteMap"]
             waveMap = ps["waveMap"]
             key = ps["key"]
             beatLength = ps['beatLength']
@@ -822,12 +826,13 @@ while run:
                 keyIndex = NOTES_FLAT.index(key)
                 accidentals = "flats"
             mode = ps["mode"]
-            tpm = ps["tpm"]
+            tempo = ps["tpm"]
 
             NoteGrid.setModeKey(key = NOTES_SHARP.index(key) if ('#' in key) else NOTES_FLAT.index(key),
                         mode = modesMap[mode])
             KeyDropdown.setCurrentState(keyIndex)
             ModeDropdown.setCurrentState(modes.index(mode))
+            TempoTextBox.setText(str(tempo) + ' tpm')
             BeatLengthTextBox.setText(str(beatLength))
             BeatsPerMeasureTextBox.setText(str(beatsPerMeasure))
             NoteGrid.setIntervals(beatLength, beatsPerMeasure)
@@ -880,7 +885,7 @@ while run:
                 worldMessage = fio.dumpToFile(
                                         working_file_path,
                                         working_file_path,
-                                        sl.newProgramState(key, mode, tpm, noteMap, waveMap, beatLength, beatsPerMeasure),
+                                        sl.newProgramState(key, mode, tempo, noteMap, waveMap, beatLength, beatsPerMeasure),
                                         autoSave,
                                         title_text,
                                         sessionID)
@@ -982,7 +987,7 @@ while run:
                         playPauseToggle()
                     elif event.key == pygame.K_s:
                         if pygame.key.get_pressed()[CMD_KEY]: # if the user presses Ctrl+S (to save)
-                            worldMessage = fio.dumpToFile(working_file_path, working_file_path, sl.newProgramState(key, mode, tpm, noteMap, waveMap, beatLength, beatsPerMeasure), autoSave, title_text, sessionID)
+                            worldMessage = fio.dumpToFile(working_file_path, working_file_path, sl.newProgramState(key, mode, tempo, noteMap, waveMap, beatLength, beatsPerMeasure), autoSave, title_text, sessionID)
                             saveFrame = 0
                 elif event.type == pygame.KEYUP:
                     if event.key == CMD_KEY: # Switches away from eraser when Ctrl is let go
@@ -1009,7 +1014,7 @@ while run:
             traceback.print_exc()
             break
 
-    worldMessage = fio.dumpToFile(working_file_path, working_file_path, sl.newProgramState(key, mode, tpm, noteMap, waveMap, beatLength, beatsPerMeasure), autoSave, title_text, sessionID)
+    worldMessage = fio.dumpToFile(working_file_path, working_file_path, sl.newProgramState(key, mode, tempo, noteMap, waveMap, beatLength, beatsPerMeasure), autoSave, title_text, sessionID)
     
     try:
         # on macOS, hiding the window works better than destroying it, i think

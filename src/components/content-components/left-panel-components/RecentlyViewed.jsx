@@ -114,16 +114,15 @@ function RecentlyViewed() {
                 >
                   {Icon && (
                     <Icon
-                      style={{ flexShrink: 0 }}
                       size={16}
                       strokeWidth={1.5}
-                      color-type={
-                        item.type === "mp3" || item.type === "wav"
-                          ? "accent-color"
-                          : item.type === "symphony"
-                            ? "accent-color-2"
-                            : "icon-color"
-                      }
+                      style={{ flexShrink: 0, color : `var(--${
+                            item.type === "symphony"
+                                ? "primary"
+                                : item.type === "wav" || item.type === "mp3"
+                                  ? "secondary"
+                                  : "gray-50"})`
+                          }}
                     />
                   )}
                   <div className="truncated-text" style={{ marginLeft: "6px" }}>

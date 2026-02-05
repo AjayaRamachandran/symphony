@@ -156,7 +156,7 @@ function Directory() {
             {section !== "Symphony Auto-Save" && (
               <>
                 <button
-                  className="tooltip"
+                  className="plus-button tooltip"
                   onClick={() => setOpenSection(section)}
                 >
                   <Tooltip
@@ -190,7 +190,7 @@ function Directory() {
             const isDragOver = dragOverDir === elementPair[1];
 
             return (
-              <div
+              <button
                 key={elementPairIndex}
                 className="directory-medium"
                 style={{
@@ -267,7 +267,7 @@ function Directory() {
                     )}
                   </span>
                 </div>
-              </div>
+              </button>
             );
           })}
         </React.Fragment>
