@@ -1,7 +1,7 @@
 <p align="center">
   <img src="https://www.dropbox.com/scl/fi/l0q1c2el848gt3wqeyvc2/SymphonyLogo.png?rlkey=rs2kxjanpmnpw3fywwqj3vj80&st=0ba0ujkq&raw=1" width="198" height="208">
   <h1 align='center'><b>Symphony</b></h1>
-  <p style="font-size: 16px;" align='center'>Create something amazing.</p>
+  <p style="font-size: 16px;" align='center'>Let's create something amazing.</p>
 </p>
 
 <p align="center">
@@ -9,7 +9,7 @@
 <img src="https://img.shields.io/badge/Node-darkgreen?logo=Node.js">
 <img src="https://img.shields.io/badge/Python-navy?logo=Python">
 <img src="https://img.shields.io/badge/Electron-gray?logo=Electron">  ˙ ˙ ˙  
-<img src="https://img.shields.io/badge/Render-black?logo=Render">
+<img src="https://img.shields.io/badge/Vercel-black?logo=Vercel">
 <img src="https://img.shields.io/badge/Lucide-darkred?logo=Lucide">
 </p>
 
