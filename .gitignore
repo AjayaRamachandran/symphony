@@ -6,4 +6,8 @@ src/assets/user-settings.json
 dist/
 # build/
 venv/
+.env
 inner/src/build/main
+.vscode/
+__pycache__
+*.pyc
