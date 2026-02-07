@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 
 import { TriangleAlert, Users, Settings } from "lucide-react";
 
-import Field from "@/components/content-components/right-panel-components/Field";
+import Field from "@/ui/Field";
 
 function UserSettings({ onComplete }) {
   const [focused, setFocused] = useState(false);

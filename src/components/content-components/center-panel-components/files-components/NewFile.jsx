@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { Plus } from "lucide-react";
 import path from "path-browserify";
 
-import "./new-file.css";
 import { useDirectory } from "@/contexts/DirectoryContext";
 import fileIconAdd from "@/assets/file-icon-add.svg";
 

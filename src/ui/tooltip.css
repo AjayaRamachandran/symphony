@@ -1,0 +1,62 @@
+.tooltip-text {
+  overflow: hidden;
+  pointer-events: none;
+  font-family: "Inter", sans-serif;
+  background-color: #333;
+  border: 1px solid #444;
+  color: #fff;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  opacity: 0 !important;
+  transition: opacity 0.1s ease-out, scale 0.2s ease-out, translate 0.2s ease-out, filter 0.2s ease-out;
+  translate: 0 3px !important;
+  scale: 96% !important;
+  z-index: 1;
+  font-weight: 300;
+  box-shadow: 0 3px 11px #00000036;
+  letter-spacing: 0.3px;
+  flex-direction: row;
+  filter: blur(2px);
+}
+
+.tooltip-wrapper {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+.tooltip-wrapper.align-horizontal {
+  align-items: center;
+}
+
+.tooltip-wrapper.tooltip-block {
+  display: flex;
+}
+.tooltip-inner-alt {
+  color: var(--muted-foreground);
+  padding-left: 2px;
+}
+.tooltip-text.tooltip-top {
+  position: absolute;
+  bottom: 100%;
+  transform: translate(0px, -1px);
+}
+.tooltip-text.tooltip-left {
+  position: absolute;
+  right: 100%;
+  transform: translate(-5px, -1px);
+}
+
+.tooltip-wrapper:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1 !important;
+  z-index: auto !important;
+  translate: 0 0px !important;
+  scale: 100% !important;
+  filter: blur(0);
+  pointer-events: all;
+
+  transition: opacity 1s cubic-bezier(1,-1.47,.55,1), scale 1000ms cubic-bezier(1,-1.47,.55,1), translate 1000ms cubic-bezier(1,-1.47,.55,1), filter 1000ms cubic-bezier(1,-1.47,.55,1);
+  
+}

@@ -51,7 +51,7 @@ function TitleBar() {
 
         <div className="titlebar-center">
           <img src={Icon} width="16px" />
-          <div>Project Manager - Symphony v1.0 Beta</div>
+          <div>Project Manager - Symphony v1.1</div>
         </div>
 
         {!isMac && (

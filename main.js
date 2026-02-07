@@ -140,7 +140,7 @@ app.whenReady().then(() => {
   });
   mainWindow.on("close", async () => {
     persistEditor = false;
-    console.log('--> Sending KILL to python process..')
+    console.log("--> Sending KILL to python process..");
     await doProcessCommand("", "kill");
     mainWindow.destroy(); // force close after completion
     app.quit(); // Quit the app on all platforms (including macOS)
@@ -153,6 +153,14 @@ app.whenReady().then(() => {
     const id = crypto.randomUUID();
     const projectFolderPath = path.dirname(symphonyFilePath);
     const projectFileName = path.basename(symphonyFilePath, ".symphony");
+
+    if (command === "open" && symphonyFilePath) {
+      try {
+        addRecentlyViewed(symphonyFilePath);
+      } catch (e) {
+        console.error("Failed to add to recently viewed on open:", e);
+      }
+    }
 
     const processCommand = {
       command,
@@ -483,6 +491,36 @@ app.whenReady().then(() => {
   });
 
   // Recently Viewed
+  function addRecentlyViewed(filePath) {
+    if (!filePath) return;
+    try {
+      let recent = [];
+      if (fs.existsSync(RECENTLY_VIEWED_PATH)) {
+        recent = JSON.parse(fs.readFileSync(RECENTLY_VIEWED_PATH, "utf-8"));
+      }
+      const fileName = path.basename(filePath);
+      const fileType = path.extname(fileName).replace(".", "").toLowerCase();
+      const entry = {
+        type: fileType,
+        name: fileName,
+        fileLocation: path.dirname(filePath),
+      };
+      recent = recent.filter(
+        (r) =>
+          !(r.name === entry.name && r.fileLocation === entry.fileLocation),
+      );
+      recent.unshift(entry);
+      if (recent.length > 20) recent = recent.slice(0, 20);
+      fs.writeFileSync(
+        RECENTLY_VIEWED_PATH,
+        JSON.stringify(recent, null, 2),
+        "utf-8",
+      );
+    } catch (err) {
+      console.error("Failed to update recently viewed:", err);
+      throw err;
+    }
+  }
   ipcMain.handle("get-recently-viewed", async () => {
     try {
       if (!fs.existsSync(RECENTLY_VIEWED_PATH)) {
@@ -627,30 +665,9 @@ app.whenReady().then(() => {
       return { success: false, error: result };
     }
     try {
-      let recent = [];
-      if (fs.existsSync(RECENTLY_VIEWED_PATH)) {
-        recent = JSON.parse(fs.readFileSync(RECENTLY_VIEWED_PATH, "utf-8"));
-      }
-      const fileName = path.basename(filePath);
-      const fileType = path.extname(fileName).replace(".", "").toLowerCase();
-      const entry = {
-        type: fileType,
-        name: fileName,
-        fileLocation: path.dirname(filePath),
-      };
-      recent = recent.filter(
-        (r) =>
-          !(r.name === entry.name && r.fileLocation === entry.fileLocation),
-      );
-      recent.unshift(entry);
-      if (recent.length > 20) recent = recent.slice(0, 20);
-      fs.writeFileSync(
-        RECENTLY_VIEWED_PATH,
-        JSON.stringify(recent, null, 2),
-        "utf-8",
-      );
+      addRecentlyViewed(filePath);
     } catch (e) {
-      return { success: false, error: e };
+      return { success: false, error: e?.message || String(e) };
     }
     return { success: true };
   });
@@ -668,18 +685,20 @@ app.whenReady().then(() => {
 
   ipcMain.handle("check-if-exists", async (event, data) => {
     try {
-      const data = fs.readFileSync(directoryPath, 'utf-8');
+      const data = fs.readFileSync(directoryPath, "utf-8");
       const directory = JSON.parse(data);
-      console.log(JSON.stringify(directory))
+      console.log(JSON.stringify(directory));
 
       if (!directory[destination]) {
         return { success: true };
       }
       const entries = directory[destination];
 
-      const nameCount = entries.filter(entry => entry[projectName] !== undefined).length;
-      const locationCount = entries.filter(entry =>
-        Object.values(entry).includes(sourceLocation)
+      const nameCount = entries.filter(
+        (entry) => entry[projectName] !== undefined,
+      ).length;
+      const locationCount = entries.filter((entry) =>
+        Object.values(entry).includes(sourceLocation),
       ).length;
 
       const isDuplicate = nameCount > 0 || locationCount > 0;
@@ -688,10 +707,9 @@ app.whenReady().then(() => {
       return {
         success: isDuplicate,
       };
-
     } catch (err) {
       return {
-        success: false
+        success: false,
       };
     }
   });
@@ -699,22 +717,30 @@ app.whenReady().then(() => {
   ipcMain.handle("open-file-location", async (event, filePath) => {
     const folder = path.dirname(filePath);
     // Windows: explorer, Mac: open, Linux: xdg-open
-    const command = process.platform === 'win32' ? 'explorer' : process.platform === 'darwin' ? 'open' : 'xdg-open';
-    const arg = process.platform === 'win32' ? folder.replace(/\//g, '\\') : folder;
-    require('child_process').spawn(command, [arg], { detached: true });
+    const command =
+      process.platform === "win32"
+        ? "explorer"
+        : process.platform === "darwin"
+          ? "open"
+          : "xdg-open";
+    const arg =
+      process.platform === "win32" ? folder.replace(/\//g, "\\") : folder;
+    require("child_process").spawn(command, [arg], { detached: true });
     return true;
   });
 
   ipcMain.handle("save-directory", async (event, data) => {
     try {
-      const data = fs.readFileSync(directoryPath, 'utf-8');
+      const data = fs.readFileSync(directoryPath, "utf-8");
       const directory = JSON.parse(data);
 
       if (!directory[destination]) {
         directory[destination] = [];
       }
 
-      const nameExists = directory[destination].some(entry => entry[projectName]);
+      const nameExists = directory[destination].some(
+        (entry) => entry[projectName],
+      );
       if (nameExists) {
         return {
           success: false,
@@ -723,8 +749,8 @@ app.whenReady().then(() => {
         };
       }
 
-      const locationExists = directory[destination].some(entry =>
-        Object.values(entry).includes(sourceLocation)
+      const locationExists = directory[destination].some((entry) =>
+        Object.values(entry).includes(sourceLocation),
       );
       if (locationExists) {
         return {
@@ -735,14 +761,18 @@ app.whenReady().then(() => {
       }
 
       directory[destination].push({ [projectName]: sourceLocation });
-      fs.writeFileSync(directoryPath, JSON.stringify(directory, null, 2), 'utf-8');
+      fs.writeFileSync(
+        directoryPath,
+        JSON.stringify(directory, null, 2),
+        "utf-8",
+      );
 
       return { success: true };
     } catch (err) {
       return {
         success: false,
         error: err.message,
-        errorType: 400
+        errorType: 400,
       };
     }
   });

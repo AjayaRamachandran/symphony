@@ -9,17 +9,17 @@ import {
   Star,
   FolderOpen,
   Trash2,
-  FileAudio2,
+  FileVolume,
   LayoutGrid,
   List,
   Rows2,
-  Shapes,
+  FileMusic,
 } from "lucide-react";
 import path from "path-browserify";
 
 import mscz from "@/assets/mscz-icon.svg";
 
-import Tooltip from "@/components/Tooltip";
+import Tooltip from "@/ui/Tooltip";
 import GenericModal from "@/modals/GenericModal";
 import DeleteConfirmationModal from "@/modals/DeleteConfirmationModal";
 import ShowInfoModal from "@/modals/ShowInfoModal";
@@ -126,7 +126,7 @@ function Toolbar() {
       isStarred(path.join(globalDirectory, selectedFile)).then((result) => {
         setItemIsStarred(result);
       });
-    } catch (e) { }
+    } catch (e) {}
   }, [selectedFile]);
 
   const handleStarToggle = async () => {
@@ -162,156 +162,154 @@ function Toolbar() {
         <div className="toolbar-section">
           EDIT
           <div className="toolbar-subsection">
-            <button
-              className={
-                "icon-button tooltip" + (!selectedFile ? " grayed" : "")
-              }
-              onClick={() => {
-                selectedFile ? callOp("handleCopy") : undefined;
-              }}
-            >
-              <Tooltip text="Copy" altText={`(${actionKey}+C)`} />
-              <Copy size={iconSize} />
-            </button>
-            <button
-              className={
-                "icon-button tooltip" + (!selectedFile ? " grayed" : "")
-              }
-              onClick={() => {
-                selectedFile ? callOp("handleCut") : undefined;
-              }}
-            >
-              <Tooltip text="Cut" altText={`(${actionKey}+X)`} />
-              <Scissors size={iconSize} />
-            </button>
-            <button
-              className={
-                "icon-button tooltip" + (!clipboardFile ? " grayed" : "")
-              }
-              onClick={() => {
-                selectedFile ? callOp("handlePaste") : undefined;
-              }}
-            >
-              <Tooltip text="Paste" altText={`(${actionKey}+V)`} />
-              <Clipboard size={iconSize} />
-            </button>
-            <button
-              className={
-                "icon-button tooltip" + (!selectedFile ? " grayed" : "")
-              }
-              onClick={() => {
-                selectedFile ? callOp("handleDuplicate") : undefined;
-              }}
-            >
-              <Tooltip text="Duplicate" altText={`(${actionKey}+D)`} />
-              <CopyPlus size={iconSize} />
-            </button>
+            <Tooltip text="Copy" altText={`(${actionKey}+C)`}>
+              <button
+                className={"icon-button" + (!selectedFile ? " grayed" : "")}
+                onClick={() => {
+                  selectedFile ? callOp("handleCopy") : undefined;
+                }}
+              >
+                <Copy size={iconSize} />
+              </button>
+            </Tooltip>
+            <Tooltip text="Cut" altText={`(${actionKey}+X)`}>
+              <button
+                className={"icon-button" + (!selectedFile ? " grayed" : "")}
+                onClick={() => {
+                  selectedFile ? callOp("handleCut") : undefined;
+                }}
+              >
+                <Scissors size={iconSize} />
+              </button>
+            </Tooltip>
+            <Tooltip text="Paste" altText={`(${actionKey}+V)`}>
+              <button
+                className={"icon-button" + (!clipboardFile ? " grayed" : "")}
+                onClick={() => {
+                  selectedFile ? callOp("handlePaste") : undefined;
+                }}
+              >
+                <Clipboard size={iconSize} />
+              </button>
+            </Tooltip>
+            <Tooltip text="Duplicate" altText={`(${actionKey}+D)`}>
+              <button
+                className={"icon-button" + (!selectedFile ? " grayed" : "")}
+                onClick={() => {
+                  selectedFile ? callOp("handleDuplicate") : undefined;
+                }}
+              >
+                <CopyPlus size={iconSize} />
+              </button>
+            </Tooltip>
           </div>
         </div>
         <hr />
         <div className="toolbar-section">
-          SHARE / EXPORT
+          SHARE
           <div className="toolbar-subsection">
-            <button className={"icon-button tooltip grayed"}>
-              <Tooltip text="Collaborate (Coming Soon)" />
-              <Users size={iconSize} />
-            </button>
-            <button
-              className={
-                "icon-button tooltip" +
-                (!selectedFile || !selectingSymphony ? " grayed" : "")
-              }
-              onClick={() => {
-                selectedFile && selectingSymphony
-                  ? setShowConvertModal(true)
-                  : undefined;
-              }}
-            >
-              <Tooltip text="Export to..." />
-              <Shapes size={iconSize} />
-            </button>
+            <Tooltip text="Collaborate (Coming Soon)">
+              <button className={"icon-button grayed"}>
+                <Users size={iconSize} />
+              </button>
+            </Tooltip>
+            <Tooltip text="Convert">
+              <button
+                className={
+                  "icon-button" +
+                  (!selectedFile || !selectingSymphony ? " grayed" : "")
+                }
+                onClick={() => {
+                  selectedFile && selectingSymphony
+                    ? setShowConvertModal(true)
+                    : undefined;
+                }}
+              >
+                <FileMusic size={iconSize} />
+              </button>
+            </Tooltip>
             {/* <button className={'icon-button tooltip grayed'}><Tooltip text="Export to MuseScore (Coming Soon)"/><img src={mscz} color={"var(--gray-50)"} alt="mscz icon" width={iconSize} height={iconSize} /></button> */}
-            <button
-              className={
-                "icon-button tooltip" +
-                (!selectedFile || !selectingSymphony ? " grayed" : "")
-              }
-              onClick={() => {
-                selectedFile && selectingSymphony
-                  ? setShowExportModal(true)
-                  : undefined;
-              }}
-            >
-              <Tooltip text="Export to Audio" />
-              <FileAudio2 size={iconSize} />
-            </button>
+            <Tooltip text="Export">
+              <button
+                className={
+                  "icon-button" +
+                  (!selectedFile || !selectingSymphony ? " grayed" : "")
+                }
+                onClick={() => {
+                  selectedFile && selectingSymphony
+                    ? setShowExportModal(true)
+                    : undefined;
+                }}
+              >
+                <FileVolume size={iconSize} />
+              </button>
+            </Tooltip>
           </div>
         </div>
         <hr />
         <div className="toolbar-section">
           FILE
           <div className="toolbar-subsection">
-            <button
-              className={
-                "icon-button tooltip" +
-                (!selectedFile || !selectingSymphony ? " grayed" : "")
-              }
-              onClick={() => {
-                selectedFile && selectingSymphony
-                  ? setShowInfo(true)
-                  : undefined;
-              }}
-            >
-              <Tooltip text="See Properties" />
-              <Info size={iconSize} />
-            </button>
-            <button
-              className={
-                "icon-button tooltip" + (!selectedFile ? " grayed" : "")
-              }
-              onClick={handleStarToggle}
-              disabled={!selectedFile}
-            >
-              <Tooltip text="Star File" />
-              {itemIsStarred && selectedFile ? (
-                <>
-                  <i
-                    className="bi bi-star-fill"
-                    style={{ fontSize: "20px" }}
-                  ></i>
-                </>
-              ) : (
-                <>
-                  <i className="bi bi-star" style={{ fontSize: "20px" }}></i>
-                </>
-              )}
-            </button>
-            <button
-              className={
-                "icon-button tooltip" + (!globalDirectory ? " grayed" : "")
-              }
-              onClick={() => {
-                globalDirectory ? openFileLocation() : undefined;
-              }}
-            >
-              <Tooltip text="Open File Location" />
-              <FolderOpen size={iconSize} />
-            </button>
-            <button
-              className={
-                "icon-button tooltip" + (!selectedFile ? " grayed" : "")
-              }
-              onClick={() => {
-                if (settingsShowDelete) {
-                  selectedFile ? setShowDeleteConfirm(true) : undefined;
-                } else {
-                  selectedFile ? handleDelete() : undefined;
+            <Tooltip text="See Properties">
+              <button
+                className={
+                  "icon-button" +
+                  (!selectedFile || !selectingSymphony ? " grayed" : "")
                 }
-              }}
-            >
-              <Tooltip text="Delete" altText={`(Del/Bkspc)`} />
-              <Trash2 size={iconSize} color="var(--inactive-bad)" />
-            </button>
+                onClick={() => {
+                  selectedFile && selectingSymphony
+                    ? setShowInfo(true)
+                    : undefined;
+                }}
+              >
+                <Info size={iconSize} />
+              </button>
+            </Tooltip>
+            <Tooltip text="Star File">
+              <button
+                className={"icon-button" + (!selectedFile ? " grayed" : "")}
+                onClick={handleStarToggle}
+                disabled={!selectedFile}
+              >
+                {itemIsStarred && selectedFile ? (
+                  <>
+                    {/* <i
+                      className="bi bi-star-fill"
+                      style={{ fontSize: "20px" }}
+                    ></i> */}
+                    <Star size={iconSize} fill="var(--tinted-foreground)" />
+                  </>
+                ) : (
+                  <>
+                    <Star size={iconSize} />
+                  </>
+                )}
+              </button>
+            </Tooltip>
+            <Tooltip text="Open File Location">
+              <button
+                className={"icon-button" + (!globalDirectory ? " grayed" : "")}
+                onClick={() => {
+                  globalDirectory ? openFileLocation() : undefined;
+                }}
+              >
+                <FolderOpen size={iconSize} />
+              </button>
+            </Tooltip>
+            <Tooltip text="Delete" altText={`(Del/Bkspc)`}>
+              <button
+                className={"icon-button" + (!selectedFile ? " grayed" : "")}
+                onClick={() => {
+                  if (settingsShowDelete) {
+                    selectedFile ? setShowDeleteConfirm(true) : undefined;
+                  } else {
+                    selectedFile ? handleDelete() : undefined;
+                  }
+                }}
+              >
+                <Trash2 size={iconSize} color="var(--inactive-bad)" />
+              </button>
+            </Tooltip>
           </div>
         </div>
         {/* <hr /> */}

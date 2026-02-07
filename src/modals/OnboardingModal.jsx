@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 
 import { ArrowRight, LoaderCircle } from "lucide-react";
-import Field from "@/components/content-components/right-panel-components/Field";
-import Tooltip from "@/components/Tooltip";
+import Field from "@/ui/Field";
+import Tooltip from "@/ui/Tooltip";
 
 import note from "@/assets/note-element.svg";
 
@@ -22,9 +22,12 @@ function OnboardingModal({ onComplete }) {
 
   useEffect(() => {
     if (page === 1) {
-      const timeout = setTimeout(() => {
-        handleUpdateUser();
-      }, 4000 + Math.random() * 500);
+      const timeout = setTimeout(
+        () => {
+          handleUpdateUser();
+        },
+        4000 + Math.random() * 500,
+      );
 
       return () => clearTimeout(timeout);
     }
@@ -66,14 +69,15 @@ function OnboardingModal({ onComplete }) {
               isControlled={true}
               width={"300px"}
             />
-            <button
-              className={"onboarding-button tooltip"}
-              text-style="display"
-              onClick={() => setPage(1)}
-            >
-              <Tooltip text={userName ? "Continue" : "Skip"} />
-              <ArrowRight />
-            </button>
+            <Tooltip text={userName ? "Continue" : "Skip"}>
+              <button
+                className={"onboarding-button"}
+                text-style="display"
+                onClick={() => setPage(1)}
+              >
+                <ArrowRight />
+              </button>
+            </Tooltip>
           </div>
         </>
       ) : (

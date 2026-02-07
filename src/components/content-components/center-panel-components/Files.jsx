@@ -102,10 +102,7 @@ function Files() {
       ) : null}
       {symphonyFiles === "no files" ? null : (
         <div
-          className={
-            (viewType === "grid" ? "files" : "files-row") +
-            " scrollable dark-bg"
-          }
+          className="files scrollable dark-bg"
           onClick={(e) => {
             e.stopPropagation();
             setSelectedFile(null);

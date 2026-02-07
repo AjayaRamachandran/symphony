@@ -12,9 +12,9 @@ import {
 } from "lucide-react";
 import path from "path-browserify";
 
-import Field from "@/components/content-components/right-panel-components/Field";
-import Dropdown from "@/components/Dropdown";
-import Tooltip from "@/components/Tooltip";
+import Field from "@/ui/Field";
+import Dropdown from "@/ui/Dropdown";
+import Tooltip from "@/ui/Tooltip";
 import { useDirectory } from "@/contexts/DirectoryContext";
 import InitExportFolder from "@/modals/InitExportFolder";
 
@@ -25,8 +25,8 @@ const formats = [
 
 function ConvertModal({ onClose, onComplete }) {
   const [projectName, setProjectName] = useState(" ");
-  const [destination, setDestination] = useState("");
-  const [format, setFormat] = useState("MIDI");
+  const [destination, setDestination] = useState(null);
+  const [format, setFormat] = useState(null);
   const [folders, setFolders] = useState([]);
   const [showInitExportFolder, setShowInitExportFolder] = useState(false);
 
@@ -63,10 +63,11 @@ function ConvertModal({ onClose, onComplete }) {
   const finish = async (pathToFile) => {
     document.body.style.cursor = "wait";
     try {
+      // console.log(selectedFolder)
       await window.electronAPI.doProcessCommand(
         path.join(globalDirectory, selectedFile),
         "convert",
-        { destination: pathToFile, fileType: format.toLowerCase() }
+        { dest_folder_path: selectedFolder.value, file_type: format.toLowerCase() },
       );
     } finally {
       document.body.style.cursor = "default";
@@ -91,10 +92,10 @@ function ConvertModal({ onClose, onComplete }) {
             text-style="display"
             style={{ marginBottom: "25px" }}
           >
-            Export to...
+            Convert to...
           </div>
           <div className="modal-body">Symphony Name</div>
-          <div className="tooltip">
+          <div>
             <div
               className="modal-file-explorer-button"
               style={{ cursor: "not-allowed" }}
@@ -140,11 +141,11 @@ function ConvertModal({ onClose, onComplete }) {
               format === "" || destination === "" || projectName === ""
                 ? null
                 : async () => {
-                  await finish(selectedFolder.value);
-                  setGlobalDirectory(selectedFolder.value);
-                  setSelectedFile(null);
-                  onClose();
-                }
+                    await finish(selectedFolder.value);
+                    setGlobalDirectory(selectedFolder.value);
+                    setSelectedFile(null);
+                    onClose();
+                  }
             }
           >
             Export

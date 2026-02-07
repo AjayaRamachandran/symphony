@@ -6,11 +6,11 @@ import {
   FolderClosed,
   X,
   KeyboardMusic,
+  Star,
 } from "lucide-react";
 
-
-import Field from "../right-panel-components/Field";
-import Tooltip from "@/components/Tooltip";
+import Field from "../../../ui/Field";
+import Tooltip from "@/ui/Tooltip";
 import "./search-results.css";
 
 import FileNotExist from "@/modals/FileNotExist";
@@ -60,7 +60,7 @@ function SearchResults({
         const result = await window.electronAPI.doProcessCommand(
           path.join(filePath.slice(0, -9)),
           "open",
-          {}
+          {},
         );
         console.log("Python script succeeded:", result.output);
       } catch (err) {
@@ -93,107 +93,103 @@ function SearchResults({
 
   return (
     <>
-      {getFocused() && (
-        <div className="search-box">
-          <div className="starred-label">
-            STARRED
-            <button onClick={onClose}>
-              <X size={15} />
-            </button>
-          </div>
-          <div className="stars scrollable">
-            {stars.length > 0 ? (
-              stars.map((filePath, index) => {
-                const normalizedPath = filePath.replace(/\\/g, "/");
-                const basename = path.basename(normalizedPath);
-                return (
+      <div className={"search-box" + (getFocused() ? " focused" : "")}>
+        <div className="starred-label">
+          STARRED
+          {/* <button onClick={onClose} style={{ display: "flex" }}>
+            <X size={15} />
+          </button> */}
+        </div>
+        <div className="stars scrollable">
+          {stars.length > 0 ? (
+            stars.map((filePath, index) => {
+              const normalizedPath = filePath.replace(/\\/g, "/");
+              const basename = path.basename(normalizedPath);
+              return (
+                <Tooltip key={index} text={"..." + filePath.slice(-50)}>
                   <button
-                    key={index}
-                    className="chip tooltip"
+                    className="chip"
                     onClick={() => handleClick(normalizedPath)}
                     onDoubleClick={() => handleDoubleClick(normalizedPath)}
                   >
-                    <Tooltip text={"..." + filePath.slice(-50)} />
-                    <i
-                      className="bi bi-star-fill"
-                      style={{
-                        marginRight: "4px",
-                        alignItems: "center",
-                        fontSize: "10px",
-                        marginBottom: "1px",
-                        marginTop: "1px",
-                      }}
-                    ></i>
+                    <Star size={12} fill="var(--foreground)" />
                     <span className="chip-name">{basename}</span>
                   </button>
-                );
-              })
-            ) : (
-              <div style={{marginBottom: '3px'}}>No Starred Files</div>
-            )}
-          </div>
-          {getSearchTerm() !== "" && (
-            <>
-              <div className="results-label">
-                Results for '{getSearchTerm()}'
-              </div>
-            </>
+                </Tooltip>
+              );
+            })
+          ) : (
+            <div
+              style={{ marginBottom: "3px", color: "var(--muted-foreground)" }}
+            >
+              No Starred Files
+            </div>
           )}
-          {getSearchResults().length > 0 && (
-            <>
-              <div className="results">
-                {getSearchResults().length > 0 ? (
-                  Object.entries(getSearchResults()).map((data, index) => {
-                    const filePath = data[1].fullPath;
-                    const normalizedPath = filePath.replace(/\\/g, "/");
-                    const dirname = path.dirname(normalizedPath);
-                    const ext = path.extname(normalizedPath).slice(1);
-                    const fileTypes = {
-                      symphony: ChartNoAxesGantt,
-                      mp3: Music,
-                      wav: Music,
-                      mid: KeyboardMusic,
-                      "": FolderClosed,
-                    };
-                    const Icon = fileTypes[ext];
-                    return (
-                      <button
-                        key={index}
-                        className="search-result tooltip"
-                        onClick={() => handleClick(normalizedPath)}
-                        onDoubleClick={() => handleDoubleClick(normalizedPath)}
-                      >
-                        <Icon
-                          size={14}
-                          style={{ color : `var(--${
+        </div>
+        {getSearchTerm() !== "" && (
+          <>
+            <div className="results-label">Results for '{getSearchTerm()}'</div>
+          </>
+        )}
+        {getSearchResults().length > 0 && (
+          <>
+            <div className="results">
+              {getSearchResults().length > 0 ? (
+                Object.entries(getSearchResults()).map((data, index) => {
+                  const filePath = data[1].fullPath;
+                  const normalizedPath = filePath.replace(/\\/g, "/");
+                  const dirname = path.dirname(normalizedPath);
+                  const ext = path.extname(normalizedPath).slice(1);
+                  const fileTypes = {
+                    symphony: ChartNoAxesGantt,
+                    mp3: Music,
+                    wav: Music,
+                    mid: KeyboardMusic,
+                    "": FolderClosed,
+                  };
+                  const Icon = fileTypes[ext];
+                  return (
+                    <button
+                      key={index}
+                      className="search-result"
+                      onClick={() => handleClick(normalizedPath)}
+                      onDoubleClick={() => handleDoubleClick(normalizedPath)}
+                    >
+                      <Icon
+                        size={14}
+                        style={{
+                          color: `var(--${
                             ext === ""
                               ? null
                               : ext === "symphony"
                                 ? "primary"
                                 : ext === "wav" || ext === "mp3"
                                   ? "secondary"
-                                  : "gray-50"})`
+                                  : "gray-50"
+                          })`,
+                        }}
+                      />
+                      <span className="chip-name">
+                        <span
+                          style={{
+                            fontWeight: "400",
+                            color: "var(--muted-foreground)",
                           }}
-                        />
-                        <span className="chip-name">
-                          <span style={{ fontWeight: "400", color: "var(--muted-foreground)" }}>
-                            {"..." + dirname.slice(-30) + "/"}
-                          </span>
-                          <span style={{ fontWeight: "700" }}>
-                            {data[1].el}
-                          </span>
+                        >
+                          {"..." + dirname.slice(-30) + "/"}
                         </span>
-                      </button>
-                    );
-                  })
-                ) : (
-                  <>No Starred Files.</>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-      )}
+                        <span style={{ fontWeight: "700" }}>{data[1].el}</span>
+                      </span>
+                    </button>
+                  );
+                })
+              ) : (
+                <>No Starred Files.</>
+              )}
+            </div>
+          </>
+        )}
+      </div>
       <GenericModal
         isOpen={showFileNotExist}
         onClose={() => {

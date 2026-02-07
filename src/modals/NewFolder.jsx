@@ -2,10 +2,9 @@ import React, { useState, useEffect } from "react";
 import { FolderOpen, ChartNoAxesGantt, Music, Save } from "lucide-react";
 import path from "path-browserify";
 
-
-import Field from "@/components/content-components/right-panel-components/Field";
-import Dropdown from "@/components/Dropdown";
-import Tooltip from "@/components/Tooltip";
+import Field from "@/ui/Field";
+import Dropdown from "@/ui/Dropdown";
+import Tooltip from "@/ui/Tooltip";
 import { useDirectory } from "@/contexts/DirectoryContext";
 
 const options = [
@@ -55,7 +54,7 @@ function NewFolder({ defaultDestProp = "", onClose, onConflict }) {
 
     if (result.success) {
       console.log(
-        `Directory added: ${[projectName, destination, sourceLocation]}`
+        `Directory added: ${[projectName, destination, sourceLocation]}`,
       );
       setGlobalDirectory(sourceLocation);
       onClose();
@@ -79,7 +78,31 @@ function NewFolder({ defaultDestProp = "", onClose, onConflict }) {
         Add New Folder
       </div>
       <div className="modal-body">System File Location</div>
-      <div className="tooltip">
+      {sourceLocation != "" ? (
+        <Tooltip text={`${sourceLocation}  ⦁  Click to Change`}>
+          <button
+            className="modal-file-explorer-button"
+            onClick={openFolderDialog}
+          >
+            <FolderOpen
+              size={16}
+              style={{ marginRight: "8px", flexShrink: 0 }}
+            />
+            <span
+              style={{
+                overflow: "hidden",
+                whiteSpace: "nowrap",
+                textOverflow: "ellipsis",
+                display: "inline-block",
+                flexGrow: 1,
+                minWidth: 0,
+              }}
+            >
+              {sourceLocation == "" ? "Open File Explorer..." : sourceLocation}
+            </span>
+          </button>
+        </Tooltip>
+      ) : (
         <button
           className="modal-file-explorer-button"
           onClick={openFolderDialog}
@@ -95,17 +118,10 @@ function NewFolder({ defaultDestProp = "", onClose, onConflict }) {
               minWidth: 0,
             }}
           >
-            {sourceLocation == "" ? "Open File Explorer..." : sourceLocation}
+            Open File Explorer...
           </span>
         </button>
-        {sourceLocation != "" ? (
-          <div style={{ transform: "translateY(-40px)" }}>
-            <Tooltip text={`${sourceLocation}  ⦁  Click to Change`} />
-          </div>
-        ) : (
-          ""
-        )}
-      </div>
+      )}
       <div className="modal-body" style={{ marginTop: "2em" }}>
         Folder Alias
       </div>

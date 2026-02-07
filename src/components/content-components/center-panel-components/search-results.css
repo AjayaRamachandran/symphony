@@ -1,32 +1,41 @@
 .search-box {
   display: flex;
   flex-direction: column;
-  position: absolute;
-  top: 70px;
-  width: calc(min(100%, 100vw - 606px));
+  /* visibility: hidden; */
+  pointer-events: none;
   box-sizing: border-box;
 
   font: inherit;
   font-size: 12px;
   font-weight: 400;
   font-style: italic;
-  border-radius: 8px;
-  border: 1px #4f4f4f solid;
+  border-radius: 15px 15px 15px 15px;
+  border: 1px solid var(--tinted-background);
   color: var(--gray-50);
-  background-color: var(--alternate-background);
-  padding: 7px 9px 5px 9px;
-  box-shadow: 0px 5px 14px #00000066;
+  background-color: var(--alternate-background-transparent);
+  backdrop-filter: blur(40px);
+  padding: 9px 10px 6px 10px;
+  box-shadow: 0px 5px 18px #00000046;
 
   resize: none;
   outline: none;
   text-overflow: ellipsis;
 
   white-space: nowrap;
+  opacity: 0;
+  translate: 0 -3px;
+  scale: 98%;
 
-  transition:
-    border-color 0.4s,
-    box-shadow 0.4s;
+
+  transition: opacity 150ms ease, translate 150ms ease, scale 150ms ease;
   z-index: 300;
+}
+.search-box.focused {
+  visibility: visible;
+  pointer-events: all;
+  opacity: 1;
+  translate: 0 0;
+  scale: 100%;
 }
 
 .stars {
@@ -38,7 +47,8 @@
 
 .chip {
   display: inline-flex;
-  align-items: flex-start;
+  align-items: center;
+  gap: 6px;
   text-align: left;
   background-color: #434343;
   border: 1px solid #535353;
@@ -96,7 +106,7 @@
 
 .starred-label {
   display: flex;
-  margin: 0px 0px 5px 0px;
+  margin: 0px 0px 8px 0px;
   font-size: 0.9em;
   letter-spacing: 1px;
   font-weight: 700;

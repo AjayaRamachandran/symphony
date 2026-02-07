@@ -229,25 +229,25 @@ TempoControls = frame.Panel((0, 0, width, height), gui.EMPTY_COLOR,
                             [TempoDownButton, TempoTextBox, TempoUpButton],
                             name="TempoControls")
 
-BeatLengthDownButton = gui.Button(pos=(width - 516, 26), width=20, height=28, states=[downChevronImage])
-BeatLengthTextBox = gui.TextBox(pos=(width - 491, 26), width=30, height=28, text='4')
-BeatLengthUpButton = gui.Button(pos=(width - 456, 26), width=20, height=28, states=[upChevronImage])
+BeatLengthDownButton = gui.Button(pos=(359, 26), width=20, height=28, states=[downChevronImage])
+BeatLengthTextBox = gui.TextBox(pos=(384, 26), width=30, height=28, text='4')
+BeatLengthUpButton = gui.Button(pos=(419, 26), width=20, height=28, states=[upChevronImage])
 BeatLengthControls = frame.Panel((0, 0, width, height), gui.EMPTY_COLOR,
                                     [BeatLengthDownButton, BeatLengthTextBox, BeatLengthUpButton],
                                     name="BeatLengthControls")
 
-BeatsPerMeasureDownButton = gui.Button(pos=(width - 412, 26), width=20, height=28, states=[downChevronImage])
-BeatsPerMeasureTextBox = gui.TextBox(pos=(width - 387, 26), width=30, height=28, text='4')
-BeatsPerMeasureUpButton = gui.Button(pos=(width - 352, 26), width=20, height=28, states=[upChevronImage])
+BeatsPerMeasureDownButton = gui.Button(pos=(width - 472, 26), width=20, height=28, states=[downChevronImage])
+BeatsPerMeasureTextBox = gui.TextBox(pos=(width - 447, 26), width=30, height=28, text='4')
+BeatsPerMeasureUpButton = gui.Button(pos=(width - 412, 26), width=20, height=28, states=[upChevronImage])
 BeatsPerMeasureControls = frame.Panel((0, 0, width, height), gui.EMPTY_COLOR,
                                     [BeatsPerMeasureDownButton, BeatsPerMeasureTextBox, BeatsPerMeasureUpButton],
                                     name="BeatsPerMeasureControls")
 
 colorStates = custom.getColorStates(28, 28, source_path)
-ColorButton = gui.Button(pos=(width - 308, 26), width=28, height=28, states=colorStates)
-WaveButton = gui.Button(pos=(width - 275, 26), width=28, height=28, states=[squareWaveImage, triangleWaveImage, sawtoothWaveImage])
-KeyDropdown = gui.Dropdown(pos=(width - 223, 26), width=40, height=28, states=NOTES_FLAT, image=upDownChevronImage)
-ModeDropdown = gui.Dropdown(pos=(width - 178, 26), width=100, height=28, states=modes, image=upDownChevronImage)
+ColorButton = gui.Button(pos=(width - 368, 26), width=28, height=28, states=colorStates)
+WaveButton = gui.Button(pos=(width - 335, 26), width=28, height=28, states=[squareWaveImage, triangleWaveImage, sawtoothWaveImage])
+KeyDropdown = gui.Dropdown(pos=(width - 283, 26), width=60, height=28, states=NOTES_FLAT, image=upDownChevronImage)
+ModeDropdown = gui.Dropdown(pos=(width - 218, 26), width=140, height=28, states=modes, image=upDownChevronImage)
 QuestionButton = gui.Button(pos=(width - 54, 26), width=28, height=28, states=[questionImage])
 RightToolbar = frame.Panel((0, 0, width, height), gui.EMPTY_COLOR,
                            [KeyDropdown, ModeDropdown, WaveButton, ColorButton, QuestionButton],
@@ -911,18 +911,18 @@ while run:
                     screen = pygame.display.set_mode((max(event.w, minWidth), max(event.h, minHeight)), pygame.RESIZABLE | pygame.SHOWN)
                     width, height = (max(event.w, minWidth), max(event.h, minHeight))
 
-                    BeatLengthDownButton.setPosition((width - 516, 26))
-                    BeatLengthTextBox.setPosition((width - 491, 26))
-                    BeatLengthUpButton.setPosition((width - 456, 26))
+                    BeatLengthDownButton.setPosition((359, 26))
+                    BeatLengthTextBox.setPosition((384, 26))
+                    BeatLengthUpButton.setPosition((419, 26))
 
-                    BeatsPerMeasureDownButton.setPosition((width - 412, 26))
-                    BeatsPerMeasureTextBox.setPosition((width - 387, 26))
-                    BeatsPerMeasureUpButton.setPosition((width - 352, 26))
+                    BeatsPerMeasureDownButton.setPosition((width - 472, 26))
+                    BeatsPerMeasureTextBox.setPosition((width - 447, 26))
+                    BeatsPerMeasureUpButton.setPosition((width - 402, 26))
 
-                    ColorButton.setPosition((width - 308, 26))
-                    WaveButton.setPosition((width - 275, 26))
-                    KeyDropdown.setPosition((width - 223, 26))
-                    ModeDropdown.setPosition((width - 178, 26))
+                    ColorButton.setPosition((width - 368, 26))
+                    WaveButton.setPosition((width - 335, 26))
+                    KeyDropdown.setPosition((width - 283, 26))
+                    ModeDropdown.setPosition((width - 218, 26))
                     QuestionButton.setPosition((width - 54, 26))
 
                     BeatsPerMeasureControls.setRect((0, 0, width, height))
@@ -945,20 +945,22 @@ while run:
                     MasterPanel.render(screen)
                 elif event.type == pygame.KEYDOWN:
                     if event.key in [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7]:
-                        numKeyPressed = [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7].index(event.key)
-                        draggingNotes = []
-                        # Only move notes when dragging to channels 1-6 (indices 0-5), not to universal view (channel 7, index 6)
-                        if numKeyPressed < 6 and NoteGrid.mouseInside and pygame.mouse.get_pressed()[0]:
-                            draggingNotes = [note for note in noteMap[justColorNames[ColorButton.currentStateIdx]] if note.selected]
-                            noteMap[justColorNames[ColorButton.currentStateIdx]] = [note for note in noteMap[justColorNames[ColorButton.currentStateIdx]] if not note.selected]
-                        ColorButton.setCurrentState(numKeyPressed)
-                        if numKeyPressed < 6 and NoteGrid.mouseInside and pygame.mouse.get_pressed()[0]:
-                            try:
-                                noteMap[justColorNames[ColorButton.currentStateIdx]].append(*draggingNotes)
-                            except Exception as e:
-                                console.warn("Color channel to paste into was empty. Setting instead of appending...")
-                                noteMap[justColorNames[ColorButton.currentStateIdx]] = draggingNotes
-                        colorSync()
+                        # Skip color channel switching if a text box is selected
+                        if not (TempoTextBox.selected or BeatLengthTextBox.selected or BeatsPerMeasureTextBox.selected):
+                            numKeyPressed = [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7].index(event.key)
+                            draggingNotes = []
+                            # Only move notes when dragging to channels 1-6 (indices 0-5), not to universal view (channel 7, index 6)
+                            if numKeyPressed < 6 and NoteGrid.mouseInside and pygame.mouse.get_pressed()[0]:
+                                draggingNotes = [note for note in noteMap[justColorNames[ColorButton.currentStateIdx]] if note.selected]
+                                noteMap[justColorNames[ColorButton.currentStateIdx]] = [note for note in noteMap[justColorNames[ColorButton.currentStateIdx]] if not note.selected]
+                            ColorButton.setCurrentState(numKeyPressed)
+                            if numKeyPressed < 6 and NoteGrid.mouseInside and pygame.mouse.get_pressed()[0]:
+                                try:
+                                    noteMap[justColorNames[ColorButton.currentStateIdx]].append(*draggingNotes)
+                                except Exception as e:
+                                    console.warn("Color channel to paste into was empty. Setting instead of appending...")
+                                    noteMap[justColorNames[ColorButton.currentStateIdx]] = draggingNotes
+                            colorSync()
                     if event.key in [pygame.K_MINUS, pygame.K_EQUALS]: # zoom out horizontally
                         if pygame.key.get_pressed()[CMD_KEY]:
                             zoomIndex = zoomDimensions.index((custom.tileWidth, custom.tileHeight))

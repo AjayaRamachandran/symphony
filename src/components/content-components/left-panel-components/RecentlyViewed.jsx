@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import path from "path-browserify";
 
-import Tooltip from "@/components/Tooltip";
+import Tooltip from "@/ui/Tooltip";
 import "./recently-viewed.css";
 import { useDirectory } from "@/contexts/DirectoryContext";
 import FileNotExist from "@/modals/FileNotExist";
@@ -75,7 +75,7 @@ function RecentlyViewed() {
       try {
         setGlobalUpdateTimestamp(Date.now());
         const response = await window.electronAPI.openNativeApp(
-          path.join(item.fileLocation, item.name)
+          path.join(item.fileLocation, item.name),
         );
         if (!response.success) {
           //console.error(response.error);
@@ -104,32 +104,42 @@ function RecentlyViewed() {
             if (recentIndex < 12) {
               const Icon = fileTypes[item.type];
               return (
-                <button
-                  className="recently-viewed-medium tooltip"
+                <Tooltip
                   key={recentIndex}
-                  onClick={() => handleClick(item)}
-                  onDoubleClick={async () => {
-                    await handleDoubleClick(item);
-                  }}
+                  text={item.name}
+                  className="tooltip-block"
                 >
-                  {Icon && (
-                    <Icon
-                      size={16}
-                      strokeWidth={1.5}
-                      style={{ flexShrink: 0, color : `var(--${
+                  <button
+                    className="recently-viewed-medium"
+                    onClick={() => handleClick(item)}
+                    onDoubleClick={async () => {
+                      await handleDoubleClick(item);
+                    }}
+                  >
+                    {Icon && (
+                      <Icon
+                        size={16}
+                        strokeWidth={1.5}
+                        style={{
+                          flexShrink: 0,
+                          color: `var(--${
                             item.type === "symphony"
-                                ? "primary"
-                                : item.type === "wav" || item.type === "mp3"
-                                  ? "secondary"
-                                  : "gray-50"})`
-                          }}
-                    />
-                  )}
-                  <div className="truncated-text" style={{ marginLeft: "6px" }}>
-                    {item.name}
-                  </div>
-                  <Tooltip text={item.name} />
-                </button>
+                              ? "primary"
+                              : item.type === "wav" || item.type === "mp3"
+                                ? "secondary"
+                                : "gray-50"
+                          })`,
+                        }}
+                      />
+                    )}
+                    <div
+                      className="truncated-text"
+                      style={{ marginLeft: "6px" }}
+                    >
+                      {item.name}
+                    </div>
+                  </button>
+                </Tooltip>
               );
             }
           })}

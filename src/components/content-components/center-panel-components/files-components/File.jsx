@@ -9,7 +9,7 @@ import midiIcon from "@/assets/midi-icon.svg";
 
 import { useDirectory } from "@/contexts/DirectoryContext";
 
-import "./file.css";
+import Tooltip from "@/ui/Tooltip";
 
 const fileTypeMap = {
   ".symphony": {
@@ -54,7 +54,7 @@ function File({ name }) {
     const result = await window.electronAPI.doProcessCommand(
       path.join(globalDirectory, `${title}`),
       "open",
-      {}
+      {},
     );
     console.log(result);
   };
@@ -76,13 +76,13 @@ function File({ name }) {
         selectedFile.endsWith(".symphony") &&
         tempFileName
         ? tempFileName + ".symphony"
-        : fileName
+        : fileName,
     );
   }, [name, tempFileName, fileName, selectedFile]);
 
-  // 🔍 Find the file type dynamically
+  // Find the file type dynamically
   const fileType = Object.entries(fileTypeMap).find(([ext]) =>
-    displayName.toLowerCase().endsWith(ext)
+    displayName.toLowerCase().endsWith(ext),
   )?.[1] || {
     icon: fileIcon,
     label: "Unknown File Type",
@@ -90,104 +90,108 @@ function File({ name }) {
 
   return (
     <>
-      <button
-        className={
-          "file-select-box" +
-          (viewType === "grid"
-            ? ""
-            : viewType === "content"
-              ? "-content"
-              : "-list") +
-          (selectedFile === fileName ? " highlighted" : "")
-        }
-        style={{
-          opacity:
-            clipboardFile &&
+      <Tooltip text="Double-click to open">
+        <button
+          className={
+            "file-select-box" +
+            (viewType === "grid"
+              ? ""
+              : viewType === "content"
+                ? "-content"
+                : "-list") +
+            (selectedFile === fileName ? " highlighted" : "")
+          }
+          style={{
+            opacity:
+              clipboardFile &&
               path.basename(clipboardFile) === fileName &&
               clipboardCut
-              ? 0.6
-              : 1,
-        }}
-        draggable
-        onDragStart={(e) => {
-          e.preventDefault();
-          const filePath = path
-            .join(globalDirectory, displayName)
-            .replace(/\\/g, "/");
-          console.log("Dragging file:", filePath);
-          window.electronAPI.startFileDrag(filePath);
-        }}
-        onClick={(e) => {
-          e.stopPropagation();
-          setSelectedFile(fileName);
-          console.log(fileName);
-        }}
-        onDoubleClick={async () => {
-          if (displayName.endsWith(".symphony")) {
-            runProcessCommand(selectedFile);
-          } else {
-            await window.electronAPI.openNativeApp(
-              path.join(globalDirectory, displayName)
-            );
-            setGlobalUpdateTimestamp(Date.now());
-          }
-        }}
-      >
-        <img
-          src={fileType.icon}
-          alt="File icon"
-          color="var(--muted-foreground)"
-          height={viewType === "grid" ? 78 : viewType === "content" ? 55 : 21}
-          style={{ marginTop: viewType === "list" ? "3px" : "0" }}
-        />
-        <div
-          style={{
-            display: "flex",
-            flexDirection: viewType === "content" ? "column" : "row",
+                ? 0.6
+                : 1,
+          }}
+          draggable
+          onDragStart={(e) => {
+            e.preventDefault();
+            const filePath = path
+              .join(globalDirectory, displayName)
+              .replace(/\\/g, "/");
+            console.log("Dragging file:", filePath);
+            window.electronAPI.startFileDrag(filePath);
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedFile(fileName);
+            console.log(fileName);
+          }}
+          onDoubleClick={async () => {
+            if (displayName.endsWith(".symphony")) {
+              runProcessCommand(selectedFile);
+            } else {
+              await window.electronAPI.openNativeApp(
+                path.join(globalDirectory, displayName),
+              );
+              setGlobalUpdateTimestamp(Date.now());
+            }
           }}
         >
-          <span
+          <img
+            src={fileType.icon}
+            alt="File icon"
+            color="var(--muted-foreground)"
+            height={viewType === "grid" ? 78 : viewType === "content" ? 55 : 21}
+            style={{ marginTop: viewType === "list" ? "3px" : "0" }}
+          />
+          <div
             style={{
-              display: "block",
-              width: "100%",
-              textAlign: viewType === "grid" ? "center" : "left",
-              fontSize: "1em",
-              marginTop: viewType === "grid" ? "1px" : "2px",
-              wordBreak: "break-word",
-              overflowWrap: "break-word",
-              whiteSpace: "normal",
+              display: "flex",
+              flexDirection: viewType === "content" ? "column" : "row",
             }}
           >
-            {displayName}
-            {isStarred && (
-              <i
-                className="bi bi-star-fill"
-                style={{
-                  margin: "0px 4px",
-                  fontSize: "10px",
-                  color: "#b8a463",
-                }}
-              ></i>
-            )}
-          </span>
-          {viewType === "grid" ? null : viewType === "content" ? (
-            <span style={{ opacity: 0.5, fontSize: "0.8em", marginTop: "7px" }}>
-              {fileType.label}
-            </span>
-          ) : (
             <span
               style={{
-                opacity: 0.5,
-                fontSize: "1em",
-                marginTop: "3px",
+                display: "block",
                 width: "100%",
+                textAlign: viewType === "grid" ? "center" : "left",
+                fontSize: "1em",
+                marginTop: viewType === "grid" ? "1px" : "2px",
+                wordBreak: "break-word",
+                overflowWrap: "break-word",
+                whiteSpace: "normal",
               }}
             >
-              {fileType.label}
+              {displayName}
+              {isStarred && (
+                <i
+                  className="bi bi-star-fill"
+                  style={{
+                    margin: "0px 4px",
+                    fontSize: "10px",
+                    color: "#b8a463",
+                  }}
+                ></i>
+              )}
             </span>
-          )}
-        </div>
-      </button>
+            {viewType === "grid" ? null : viewType === "content" ? (
+              <span
+                style={{ opacity: 0.5, fontSize: "0.8em", marginTop: "7px" }}
+              >
+                {fileType.label}
+              </span>
+            ) : (
+              <span
+                style={{
+                  opacity: 0.5,
+                  fontSize: "1em",
+                  marginTop: "3px",
+                  width: "100%",
+                }}
+              >
+                {fileType.label}
+              </span>
+            )}
+          </div>
+        </button>
+      </Tooltip>
     </>
   );
 }

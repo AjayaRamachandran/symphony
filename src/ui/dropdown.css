@@ -19,6 +19,7 @@
 
 .dropdown-menu {
   position: absolute;
+  pointer-events: none;
   top: 100%;
   left: 0;
   background: #2c2c2c;
@@ -30,6 +31,17 @@
   width: calc(100% - 2px);
   box-shadow: 0 5px 14px #00000077;
   z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.1s ease, translate 0.1s ease, scale 0.1s ease;
+  translate: 0 -7px;
+  scale: 98%;
+}
+.dropdown-menu.open {
+  visibility: visible;
+  pointer-events: all;
+  opacity: 1;
+  translate: 0 0;
+  scale: 100%;
 }
 
 .dropdown-item {
@@ -41,6 +53,7 @@
   gap: 8px;
   background-color: inherit;
   cursor: pointer;
+  transition: filter 150ms ease;
 }
 
 .dropdown-item:hover {
@@ -50,4 +63,10 @@
 .icon {
   display: flex;
   align-items: center;
+}
+
+.chevron-arrow {
+  display: flex;
+  align-items: center;
+  transition: rotate 140ms ease;
 }

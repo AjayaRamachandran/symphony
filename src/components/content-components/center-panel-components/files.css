@@ -1,9 +1,9 @@
 .files {
   display: grid;
-  grid-template-columns: repeat(auto-fit, 120px);
-  gap: 15px 25px;
-  padding: 30px 50px 30px 0px;
-  margin: 5px 0px 0px 0px;
+  grid-template-columns: repeat(auto-fit, 140px);
+  gap: 15px 5px;
+  padding: 27px 0px 20px 0px;
+  margin: 5px 0px 3px 10px;
   border-radius: 5px;
   overflow-y: auto;
   height: 100%;
@@ -69,23 +69,6 @@
   color: var(--gray-50);
 }
 
-.files-row {
-  display: flex;
-  flex-direction: column;
-  /* border: 1px solid white; */
-  padding: 5px 7px 30px 1px;
-  margin-top: 5px;
-  gap: 10px;
-  overflow-y: auto;
-  height: 100%;
-  min-height: 0;
-  min-width: 200px;
-  overflow-x: hidden;
-  flex: 1 1 0;
-  box-sizing: border-box;
-  background-color: var(--background);
-}
-
 .file-select-box {
   margin: 0px 0px;
   padding: 15px;
@@ -102,48 +85,11 @@
   font-weight: 500;
   gap: 10px;
 }
-.file-select-box-content {
-  padding: 15px;
-  display: flex;
-  background-color: var(--background);
-  flex-direction: row;
-  width: 100%;
-  border-radius: 7px;
-  min-height: fit-content;
-  height: 60px;
-  font-size: 1.5em;
-  font-weight: 400;
-  letter-spacing: -0.2px;
-  text-align: left;
-  align-items: left;
-  gap: 15px;
-  justify-content: left;
-}
-.file-select-box-list {
-  margin-top: 5px;
-  padding: 5px 5px 7px 5px;
-  display: grid;
-  grid-template-columns: 1fr 15fr 1fr;
-  background-color: var(--background);
-  width: 100%;
-  border-radius: 5px;
-  min-height: fit-content;
-  font-size: 1.1em;
-  font-weight: 400;
-  letter-spacing: -0.2px;
-  text-align: left;
-  align-items: center;
-  gap: 8px;
-  justify-content: center;
-}
-.file-select-box.new,
-.file-select-box-content.new,
-.file-select-box-list.new {
+
+.file-select-box.new {
   color: var(--gray-50);
 }
-.file-select-box.highlighted,
-.file-select-box-content.highlighted,
-.file-select-box-list.highlighted {
+.file-select-box.highlighted {
   filter: brightness(1.2);
   outline-offset: -1px;
   outline: 1px solid #2d699b;
@@ -159,33 +105,4 @@
   align-items: center;
   margin-bottom: 8px;
   margin-top: 2px;
-}
-.rounded-rect-icon.content {
-  border: 2px solid var(--gray-50);
-  border-radius: 8px;
-  width: 70px;
-  max-width: 70px;
-  height: 47px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 2px;
-  margin-top: 2px;
-  margin-left: 5px;
-  margin-right: 5px;
-}
-
-.rounded-rect-icon.list {
-  border: 2px solid var(--gray-50);
-  border-radius: 3px;
-  width: 14px;
-  max-width: 14px;
-  height: 14px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 2px;
-  margin-top: 2px;
-  margin-left: 1px;
-  margin-right: 5px;
 }

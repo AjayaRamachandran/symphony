@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { FolderOpen } from "lucide-react";
 
-
-import Tooltip from "@/components/Tooltip";
+import Tooltip from "@/ui/Tooltip";
 
 function AddAutoSave({ onClose }) {
   const [sourceLocation, setSourceLocation] = useState("");
@@ -26,7 +25,7 @@ function AddAutoSave({ onClose }) {
     });
     if (result.success) {
       console.log(
-        `Directory added: ${[projectName, destination, sourceLocation]}`
+        `Directory added: ${[projectName, destination, sourceLocation]}`,
       );
       // Optionally reset fields or close modal
     } else {
@@ -44,7 +43,31 @@ function AddAutoSave({ onClose }) {
         Let's choose a destination for your Auto-Save files so you can easily
         recover your work if needed.
       </div>
-      <div className="tooltip">
+      {sourceLocation != "" ? (
+        <Tooltip text={`${sourceLocation}  ⦁  Click to Change`}>
+          <button
+            className="modal-file-explorer-button"
+            onClick={openFolderDialog}
+          >
+            <FolderOpen
+              size={16}
+              style={{ marginRight: "8px", flexShrink: 0 }}
+            />
+            <span
+              style={{
+                overflow: "hidden",
+                whiteSpace: "nowrap",
+                textOverflow: "ellipsis",
+                display: "inline-block",
+                flexGrow: 1,
+                minWidth: 0,
+              }}
+            >
+              {sourceLocation == "" ? "Open File Explorer..." : sourceLocation}
+            </span>
+          </button>
+        </Tooltip>
+      ) : (
         <button
           className="modal-file-explorer-button"
           onClick={openFolderDialog}
@@ -60,17 +83,10 @@ function AddAutoSave({ onClose }) {
               minWidth: 0,
             }}
           >
-            {sourceLocation == "" ? "Open File Explorer..." : sourceLocation}
+            Open File Explorer...
           </span>
         </button>
-        {sourceLocation != "" ? (
-          <div style={{ transform: "translateY(-40px)" }}>
-            <Tooltip text={`${sourceLocation}  ⦁  Click to Change`} />
-          </div>
-        ) : (
-          ""
-        )}
-      </div>
+      )}
       <div style={{ display: "flex", justifyContent: "space-between" }}>
         <div className="modal-whisper">You can change this at any time.</div>
         <button

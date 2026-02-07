@@ -8,10 +8,9 @@ import {
   Check,
 } from "lucide-react";
 
-
-import Field from "@/components/content-components/right-panel-components/Field";
-import Dropdown from "@/components/Dropdown";
-import Tooltip from "@/components/Tooltip";
+import Field from "@/ui/Field";
+import Dropdown from "@/ui/Dropdown";
+import Tooltip from "@/ui/Tooltip";
 import { useDirectory } from "@/contexts/DirectoryContext";
 
 const options = [
@@ -108,7 +107,7 @@ function EditModal({
     if (result.success) {
       console.log(`Directory added: ${JSON.stringify(sendRequest)}`);
       setGlobalDirectory(
-        exists ? params.dest : sourceLocation.replace(/\\/g, "/")
+        exists ? params.dest : sourceLocation.replace(/\\/g, "/"),
       );
 
       if (!exists) {
@@ -138,7 +137,31 @@ function EditModal({
         Edit Folder
       </div>
       <div className="modal-body">System File Location</div>
-      <div className="tooltip">
+      {sourceLocation != "" ? (
+        <Tooltip text={`${sourceLocation}  ⦁  Click to Change`}>
+          <button
+            className="modal-file-explorer-button"
+            onClick={openFolderDialog}
+          >
+            <FolderOpen
+              size={16}
+              style={{ marginRight: "8px", flexShrink: 0 }}
+            />
+            <span
+              style={{
+                overflow: "hidden",
+                whiteSpace: "nowrap",
+                textOverflow: "ellipsis",
+                display: "inline-block",
+                flexGrow: 1,
+                minWidth: 0,
+              }}
+            >
+              {sourceLocation == "" ? "Open File Explorer..." : sourceLocation}
+            </span>
+          </button>
+        </Tooltip>
+      ) : (
         <button
           className="modal-file-explorer-button"
           onClick={openFolderDialog}
@@ -154,17 +177,10 @@ function EditModal({
               minWidth: 0,
             }}
           >
-            {sourceLocation == "" ? "Open File Explorer..." : sourceLocation}
+            Open File Explorer...
           </span>
         </button>
-        {sourceLocation != "" ? (
-          <div style={{ transform: "translateY(-40px)" }}>
-            <Tooltip text={`${sourceLocation}  ⦁  Click to Change`} />
-          </div>
-        ) : (
-          ""
-        )}
-      </div>
+      )}
       <div className="modal-body" style={{ marginTop: "2em" }}>
         Folder Alias
       </div>
@@ -204,8 +220,8 @@ function EditModal({
           className={
             "call-to-action-2 green" +
             (params.dir !== sourceLocation ||
-              params.dest !== destination ||
-              params.name !== projectName
+            params.dest !== destination ||
+            params.name !== projectName
               ? ""
               : " locked")
           }
@@ -213,12 +229,12 @@ function EditModal({
           text-style="display"
           onClick={
             params.dir !== sourceLocation ||
-              params.dest !== destination ||
-              params.name !== projectName
+            params.dest !== destination ||
+            params.name !== projectName
               ? async () => {
-                onRemove();
-                await changeFields();
-              }
+                  onRemove();
+                  await changeFields();
+                }
               : undefined
           }
         >

@@ -46,11 +46,10 @@ const Dropdown = ({
           {selected ? selected.label : placeholder}
         </span>
         <span className="chevron">
-          {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          <ChevronUp size={16} className="chevron-arrow" style={!open ? { rotate: "-180deg" } : {}} />
         </span>
       </button>
-      {open && (
-        <ul className="dropdown-menu">
+      <ul className={`dropdown-menu ${open ? "open" : ""}`}>
           {options.map((opt, i) => (
             <li
               key={i}
@@ -64,7 +63,6 @@ const Dropdown = ({
             </li>
           ))}
         </ul>
-      )}
     </div>
   );
 };

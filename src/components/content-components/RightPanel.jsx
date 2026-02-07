@@ -3,8 +3,8 @@ import React, { useState, useEffect } from "react";
 import { PencilRuler } from "lucide-react";
 import path from "path-browserify";
 
-import Field from "./right-panel-components/Field";
-import Tooltip from "@/components/Tooltip";
+import Field from "../../ui/Field";
+import Tooltip from "@/ui/Tooltip";
 
 import "./right-panel.css";
 import { useDirectory } from "@/contexts/DirectoryContext";
@@ -49,7 +49,7 @@ function RightPanel() {
     const result = await window.electronAPI.doProcessCommand(
       path.join(globalDirectory, `${title}`),
       "open",
-      {}
+      {},
     );
     console.log(result);
   };
@@ -81,7 +81,7 @@ function RightPanel() {
     setMetadata(newMeta);
     window.electronAPI.setMetadata(
       path.join(globalDirectory, selectedFile),
-      newMeta
+      newMeta,
     );
   };
 
@@ -96,7 +96,7 @@ function RightPanel() {
   };
 
   return (
-    <div className="content-panel-container">
+    <div className="content-panel-container right">
       <>
         <div>
           <div className="med-title" text-style="display">
@@ -145,25 +145,27 @@ function RightPanel() {
               />
 
               <div className="field-label">File Location</div>
-              <div
-                className="field scrollable dark-bg"
-                style={{
-                  whiteSpace: "nowrap",
-                  textOverflow: "unset",
-                  overflowX: "scroll",
-                  padding: "7px 7px 2px 7px",
-                  fontSize: "13px",
-                  cursor: "pointer",
-                  fontStyle: "italic",
-                }}
+              <Tooltip
+                text={
+                  globalDirectory && path.join(globalDirectory, selectedFile)
+                }
+                align="left"
+                className="tooltip-block"
               >
-                <Tooltip
-                  text={
-                    globalDirectory && path.join(globalDirectory, selectedFile)
-                  }
-                />
-                {path.join(globalDirectory, selectedFile)}
-              </div>
+                <div
+                  className="field scrollable dark-bg"
+                  style={{
+                    whiteSpace: "nowrap",
+                    textOverflow: "ellipsis",
+                    padding: "7px 7px 7px 7px",
+                    fontSize: "13px",
+                    cursor: "pointer",
+                    fontStyle: "italic",
+                  }}
+                >
+                  {path.join(globalDirectory, selectedFile)}
+                </div>
+              </Tooltip>
             </>
           ) : (
             <>
@@ -174,33 +176,35 @@ function RightPanel() {
           )}
         </div>
 
-        <button
-          className={
-            "call-to-action tooltip" +
-            (selectedFile && selectedFile.slice(-9) === ".symphony"
-              ? ""
-              : " inactive")
-          }
-          text-style="display"
-          style={{ transition: "filter 0.2s, border 0.4s, background 0.4s" }}
-          onMouseEnter={() => setHovered(true)}
-          onMouseLeave={() => setHovered(false)}
-          onClick={
+        {/* <Tooltip
+          text={
             selectedFile && selectedFile.slice(-9) === ".symphony"
-              ? () => runProcessCommand(selectedFile)
-              : undefined
+              ? "Click to open in editor, or double click file."
+              : "Select a Symphony to open it in the editor."
           }
+          className="tooltip-block"
         >
-          <Tooltip
-            text={
-              selectedFile && selectedFile.slice(-9) === ".symphony"
-                ? "Click to open in editor, or double click file."
-                : "Select a Symphony to open it in the editor."
+          <button
+            className={
+              "call-to-action" +
+              (selectedFile && selectedFile.slice(-9) === ".symphony"
+                ? ""
+                : " inactive")
             }
-          />
-          <div>Open in Editor</div>
-          <PencilRuler size={16} strokeWidth={2.5} />
-        </button>
+            text-style="display"
+            style={{ transition: "filter 0.2s, border 0.4s, background 0.4s" }}
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
+            onClick={
+              selectedFile && selectedFile.slice(-9) === ".symphony"
+                ? () => runProcessCommand(selectedFile)
+                : undefined
+            }
+          >
+            <div>Open in Editor</div>
+            <PencilRuler size={16} strokeWidth={2.5} />
+          </button>
+        </Tooltip> */}
       </>
     </div>
   );

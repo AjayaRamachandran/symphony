@@ -83,7 +83,7 @@ const Field = ({
           onFocus={() => {
             onFocus();
             setIsFieldSelected(true);
-            console.log("focused");
+            //console.log("focused");
           }}
           className={className + "-span scrollable dark-bg"}
           style={{
@@ -113,7 +113,7 @@ const Field = ({
           onFocus={() => {
             onFocus();
             setIsFieldSelected(true);
-            console.log("focused");
+            //console.log("focused");
           }}
           className={className + "-span scrollable dark-bg"}
           style={{
@@ -150,7 +150,7 @@ const Field = ({
       onFocus={() => {
         onFocus();
         setIsFieldSelected(true);
-        console.log("focused");
+        //console.log("focused");
       }}
       tabIndex={0}
     >
@@ -172,7 +172,7 @@ const Field = ({
         onFocus={() => {
           onFocus();
           setIsFieldSelected(true);
-          console.log("focused");
+          //console.log("focused");
         }}
       >
         {searchField ? value || defaultText : value || defaultText}

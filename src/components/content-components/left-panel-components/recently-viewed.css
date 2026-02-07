@@ -19,7 +19,7 @@
 
 .recently-viewed-medium {
   flex: 1;
-  padding: 6px 2px 6px 2px;
+  padding: 6px 2px 6px 8px;
   color: var(--foreground);
   background-color: var(--background);
   border-radius: 4px;

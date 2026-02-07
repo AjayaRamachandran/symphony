@@ -2,8 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { FolderClosed, Plus, Pencil, X } from "lucide-react";
 import path from "path-browserify";
 
-
-import Tooltip from "@/components/Tooltip";
+import Tooltip from "@/ui/Tooltip";
 import GenericModal from "@/modals/GenericModal";
 import NewFolder from "@/modals/NewFolder";
 import EditModal from "@/modals/EditModal";
@@ -155,16 +154,14 @@ function Directory() {
             {section}
             {section !== "Symphony Auto-Save" && (
               <>
-                <button
-                  className="plus-button tooltip"
-                  onClick={() => setOpenSection(section)}
-                >
-                  <Tooltip
-                    text="New Folder"
-                    positionOverride={["-100px", "25px"]}
-                  />
-                  <Plus size={16} strokeWidth={1.5} />
-                </button>
+                <Tooltip text="New Folder" align="left">
+                  <button
+                    className="plus-button"
+                    onClick={() => setOpenSection(section)}
+                  >
+                    <Plus size={16} strokeWidth={1.5} />
+                  </button>
+                </Tooltip>
                 <GenericModal
                   isOpen={openSection === section}
                   onClose={() => setOpenSection(null)}
@@ -211,7 +208,7 @@ function Directory() {
                 onDragOver={onDragOver}
                 onDragLeave={(e) => onDragLeave(e, elementPair[1])}
                 onDrop={(e) => onDrop(e, elementPair[1])}
-              // onMouseEnter={() => {setHoverDir(elementPair[1].replace(/\\/g, '/')); console.log(elementPair[1].replace(/\\/g, '/'))}}
+                // onMouseEnter={() => {setHoverDir(elementPair[1].replace(/\\/g, '/')); console.log(elementPair[1].replace(/\\/g, '/'))}}
               >
                 <FolderClosed
                   style={{ flexShrink: 0 }}
@@ -234,38 +231,32 @@ function Directory() {
                   >
                     {elementPair[0]}
                   </span>
-                  <span
-                    className="tooltip"
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      marginRight: "3px",
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setPendingDelete([section, elementPair[0]]);
-                      section === "Symphony Auto-Save"
-                        ? setShowDeleteConfirm(true)
-                        : setShowEdit(true);
-                    }}
+                  <Tooltip
+                    text={section === "Symphony Auto-Save" ? "Remove" : "Edit"}
+                    align="left"
                   >
-                    <Tooltip
-                      text={
-                        section === "Symphony Auto-Save" ? "Remove" : "Edit"
-                      }
-                      positionOverride={
+                    <span
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        marginRight: "3px",
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPendingDelete([section, elementPair[0]]);
                         section === "Symphony Auto-Save"
-                          ? ["55px", "0px"]
-                          : ["70px", "0px"]
-                      }
-                    />
-                    {section === "Symphony Auto-Save" ? (
-                      <X className="del-dir-button" size={14} />
-                    ) : (
-                      <Pencil className="del-dir-button" size={14} />
-                    )}
-                  </span>
+                          ? setShowDeleteConfirm(true)
+                          : setShowEdit(true);
+                      }}
+                    >
+                      {section === "Symphony Auto-Save" ? (
+                        <X className="del-dir-button" size={14} />
+                      ) : (
+                        <Pencil className="del-dir-button" size={14} />
+                      )}
+                    </span>
+                  </Tooltip>
                 </div>
               </button>
             );

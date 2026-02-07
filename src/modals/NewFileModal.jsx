@@ -3,9 +3,9 @@ import React, { useState, useEffect } from "react";
 
 import { Plus } from "lucide-react";
 
-import Field from "@/components/content-components/right-panel-components/Field";
-import Dropdown from "@/components/Dropdown";
-import Tooltip from "@/components/Tooltip";
+import Field from "@/ui/Field";
+import Dropdown from "@/ui/Dropdown";
+import Tooltip from "@/ui/Tooltip";
 
 const phrases = [
   "Ex: My Amazing Masterpiece",

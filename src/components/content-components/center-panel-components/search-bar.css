@@ -1,14 +1,15 @@
 .search-field {
   display: flex;
-  width: calc(min(100%, 100vw - 590px));
+  width: 100%;
   box-sizing: border-box;
 
   font: inherit;
   border-radius: 999px;
-  border: 1px #767676 solid;
+  border: 1px var(--gray-50) solid;
   color: var(--foreground);
   background-color: var(--tinted-background);
   padding: 7px 9px 7px 9px;
+  margin: 0px 6px;
 
   overflow: hidden;
   resize: none;
@@ -26,15 +27,16 @@
 
 .search-field-span {
   display: flex;
-  width: calc(min(100%, 100vw - 590px));
+  width: 100%;
   box-sizing: border-box;
 
   font: inherit;
   border-radius: 999px;
-  border: 1px #767676 solid;
+  border: 1px var(--gray-50) solid;
   color: var(--foreground);
   background-color: var(--tinted-background);
   padding: 7px 9px 7px 9px;
+  margin: 0px 6px;
 
   overflow: hidden;
   resize: none;
@@ -52,5 +54,22 @@
 
 .search-field-span:focus {
   border-color: var(--secondary);
-  box-shadow: 0px 0px 50px var(--secondary) 22;
+  box-shadow: 0px 0px 50px var(--muted-secondary);
+}
+
+.search-results-container {
+  display: flex;
+  flex-direction: column;
+  position: absolute;
+  top: 64px;
+  height: 0;
+  translate: 6px 0px;
+  min-height: 0;
+  width: calc(min(100%, 100vw - 600px));
+  z-index: 100;
+  background-color: transparent;
+  /* border: 1px solid red; */
+}
+.search-results-container.focused {
+  height: fit-content
 }

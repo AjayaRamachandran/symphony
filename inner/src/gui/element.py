@@ -679,10 +679,14 @@ class Dropdown(Interactive):
     def render(self, screen: pygame.Surface):
         if not self.expanded:
             pygame.draw.rect(screen, ALT_BG_COLOR_1 if self.mouseInside else ALT_BG_COLOR_4, (self.x, self.y, self.width, self.height), border_radius=3)
-            stamp(screen, self.currentState, self.font, self.x + self.width/2, self.y + self.height/2, ALT_TEXT_COLOR, justification="center")
+            stamp(screen, self.currentState, self.font, self.x + self.width/2 - 4, self.y + self.height/2, ALT_TEXT_COLOR, justification="center")
+
+            screen.blit(self.image, (self.x + self.width - self.image.get_width() - 4, self.y + (self.height / 2) - (self.image.get_height() / 2)))
         if self.expanded:
             pygame.draw.rect(screen, ALT_BG_COLOR_4, (self.x, self.y, self.width, self.height), border_radius=3)
-            stamp(screen, self.currentState, self.font, self.x + self.width/2, self.y + self.initHeight/2, ALT_TEXT_COLOR, justification="center")
+            stamp(screen, self.currentState, self.font, self.x + self.width/2 - 4, self.y + self.initHeight/2, ALT_TEXT_COLOR, justification="center")
+
+            screen.blit(self.image, (self.x + self.width - self.image.get_width() - 4, self.y + (self.initHeight / 2) - (self.image.get_height() / 2)))
         
             # dropdown bg
             pygame.draw.rect(screen, ALT_BG_COLOR_4, (self.x, self.y + self.initHeight, self.width, self.height - self.initHeight), border_radius=3)

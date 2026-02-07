@@ -3,12 +3,11 @@ import { Settings } from "lucide-react";
 import Directory from "./left-panel-components/Directory";
 import RecentlyViewed from "./left-panel-components/RecentlyViewed";
 
-
 import GenericModal from "@/modals/GenericModal";
 import UserSettings from "@/modals/UserSettings";
 
 import "./left-panel.css";
-import Tooltip from "@/components/Tooltip";
+import Tooltip from "@/ui/Tooltip";
 import { useDirectory } from "@/contexts/DirectoryContext";
 
 function LeftPanel() {
@@ -24,7 +23,7 @@ function LeftPanel() {
 
   return (
     <>
-      <div className="content-panel-container" style={{ paddingTop: "15px" }}>
+      <div className="content-panel-container left" style={{ paddingTop: "15px" }}>
         <div
           className="section-title"
           style={{
@@ -40,16 +39,17 @@ function LeftPanel() {
           <div className={"big-title"} text-style="display">
             Home
           </div>
-          <button
-            className="settings-button tooltip rotate"
-            onClick={() => {
-              setShowUserSettings(true);
-              setSelectedFile(null);
-            }}
-          >
-            <Tooltip text="User Settings" />
-            <Settings className="rotated" />
-          </button>
+          <Tooltip text="User Settings">
+            <button
+              className="settings-button rotate"
+              onClick={() => {
+                setShowUserSettings(true);
+                setSelectedFile(null);
+              }}
+            >
+              <Settings className="rotated" />
+            </button>
+          </Tooltip>
         </div>
         <div className="section-title">DIRECTORY</div>
         <Directory />

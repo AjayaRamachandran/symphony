@@ -1,6 +1,6 @@
 .toolbar-container {
-  width: calc(min(100%, 100vw - 590px));
-  margin-top: 13px;
+  width: calc(100% - 12px);
+  margin: 10px 6px 0px 6px;
   box-sizing: border-box;
   border-radius: 7px;
   border: 1px var(--tinted-background) solid;

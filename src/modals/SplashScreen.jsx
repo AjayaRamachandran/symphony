@@ -10,8 +10,7 @@ import {
 } from "lucide-react";
 import path from "path-browserify";
 
-
-import Tooltip from "@/components/Tooltip";
+import Tooltip from "@/ui/Tooltip";
 import "@/components/content-components/left-panel-components/recently-viewed.css";
 import GenericModal from "@/modals/GenericModal";
 import FileNotExist from "@/modals/FileNotExist";
@@ -60,7 +59,7 @@ function SplashScreen({ onComplete }) {
         const result = await window.electronAPI.doProcessCommand(
           path.join(item.fileLocation, item.name),
           "open",
-          {}
+          {},
         );
         console.log("Python script succeeded:", result.output);
       } catch (err) {
@@ -72,7 +71,7 @@ function SplashScreen({ onComplete }) {
       try {
         setGlobalUpdateTimestamp(Date.now());
         const response = await window.electronAPI.openNativeApp(
-          path.join(item.fileLocation, item.name)
+          path.join(item.fileLocation, item.name),
         );
         if (!response.success) {
           setShowFileNotExist(true);
@@ -102,7 +101,12 @@ function SplashScreen({ onComplete }) {
       <div className="banner">
         <img src={banner} style={{ width: "500px", display: "block" }}></img>
       </div>
-      <div style={{ padding: "30px", borderTop: "1px solid var(--tinted-background)" }}>
+      <div
+        style={{
+          padding: "30px",
+          borderTop: "1px solid var(--tinted-background)",
+        }}
+      >
         <div
           className="modal-big-title"
           text-style="display"
@@ -136,7 +140,7 @@ function SplashScreen({ onComplete }) {
                   const Icon = fileTypes[item.type];
                   return (
                     <button
-                      className="quick-launch-medium tooltip"
+                      className="quick-launch-medium"
                       key={recentIndex}
                       onClick={() => handleClick(item)}
                     >
@@ -176,7 +180,7 @@ function SplashScreen({ onComplete }) {
         </div>
         <div className="quick-launch scrollable med-bg">
           <button
-            className="quick-launch-medium tooltip"
+            className="quick-launch-medium"
             onClick={() => openExternal("https://symphony.nimbial.com/docs")}
           >
             <BookMarked style={{ flexShrink: 0 }} size={16} strokeWidth={1.5} />
@@ -188,7 +192,7 @@ function SplashScreen({ onComplete }) {
             </div>
           </button>
           <button
-            className="quick-launch-medium tooltip"
+            className="quick-launch-medium"
             onClick={() =>
               openExternal("https://symphony.nimbial.com/download")
             }
@@ -199,7 +203,7 @@ function SplashScreen({ onComplete }) {
             </div>
           </button>
           <button
-            className="quick-launch-medium tooltip"
+            className="quick-launch-medium"
             onClick={() => openExternal("https://symphony.nimbial.com")}
           >
             <Play style={{ flexShrink: 0 }} size={16} strokeWidth={1.5} />
@@ -221,7 +225,7 @@ function SplashScreen({ onComplete }) {
             onClick={async () => {
               await window.electronAPI.updateUserSettings(
                 "show_splash_screen",
-                false
+                false,
               );
               onComplete();
             }}
