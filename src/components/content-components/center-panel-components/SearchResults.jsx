@@ -15,6 +15,7 @@ import "./search-results.css";
 
 import FileNotExist from "@/modals/FileNotExist";
 import GenericModal from "@/modals/GenericModal";
+import symphonyFileTypeIcon from "@/assets/symphony-file-type-icon.svg";
 
 import { useDirectory } from "@/contexts/DirectoryContext";
 
@@ -141,7 +142,6 @@ function SearchResults({
                   const dirname = path.dirname(normalizedPath);
                   const ext = path.extname(normalizedPath).slice(1);
                   const fileTypes = {
-                    symphony: ChartNoAxesGantt,
                     mp3: Music,
                     wav: Music,
                     mid: KeyboardMusic,
@@ -155,20 +155,31 @@ function SearchResults({
                       onClick={() => handleClick(normalizedPath)}
                       onDoubleClick={() => handleDoubleClick(normalizedPath)}
                     >
-                      <Icon
-                        size={14}
-                        style={{
-                          color: `var(--${
-                            ext === ""
-                              ? null
-                              : ext === "symphony"
-                                ? "primary"
-                                : ext === "wav" || ext === "mp3"
-                                  ? "secondary"
-                                  : "gray-50"
-                          })`,
-                        }}
-                      />
+                      {ext === "symphony" ? (
+                        <img
+                          src={symphonyFileTypeIcon}
+                          style={{
+                            width: "14px",
+                            height: "14px",
+                            flexShrink: 0,
+                          }}
+                        />
+                      ) : (
+                        Icon && (
+                          <Icon
+                            size={14}
+                            style={{
+                              color: `var(--${
+                                ext === ""
+                                  ? null
+                                  : ext === "wav" || ext === "mp3"
+                                    ? "secondary"
+                                    : "gray-50"
+                              })`,
+                            }}
+                          />
+                        )
+                      )}
                       <span className="chip-name">
                         <span
                           style={{

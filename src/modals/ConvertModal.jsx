@@ -63,9 +63,8 @@ function ConvertModal({ onClose, onComplete }) {
   const finish = async (pathToFile) => {
     document.body.style.cursor = "wait";
     try {
-      // console.log(selectedFolder)
       await window.electronAPI.doProcessCommand(
-        path.join(globalDirectory, selectedFile),
+        path.join(globalDirectory, path.basename(selectedFile)),
         "convert",
         { dest_folder_path: selectedFolder.value, file_type: format.toLowerCase() },
       );

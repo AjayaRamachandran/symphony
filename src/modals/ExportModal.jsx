@@ -63,9 +63,9 @@ function ExportModal({ onClose, onComplete }) {
     document.body.style.cursor = "wait";
     try {
       await window.electronAPI.doProcessCommand(
-        path.join(globalDirectory, selectedFile),
+        path.join(globalDirectory, path.basename(selectedFile)),
         "export",
-        { dest_file_path: selectedFolder.value, file_path: format.toLowerCase() },
+        { dest_folder_path: selectedFolder.value, file_type: format.toLowerCase() },
       );
     } finally {
       document.body.style.cursor = "default";

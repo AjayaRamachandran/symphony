@@ -1,11 +1,6 @@
 import React, { useState, useEffect } from "react";
 
-import {
-  Music,
-  ChartNoAxesGantt,
-  FolderClosed,
-  KeyboardMusic,
-} from "lucide-react";
+import { Music, FolderClosed, KeyboardMusic } from "lucide-react";
 import path from "path-browserify";
 
 import Tooltip from "@/ui/Tooltip";
@@ -13,6 +8,7 @@ import "./recently-viewed.css";
 import { useDirectory } from "@/contexts/DirectoryContext";
 import FileNotExist from "@/modals/FileNotExist";
 import GenericModal from "@/modals/GenericModal";
+import symphonyFileTypeIcon from "@/assets/symphony-file-type-icon.svg";
 
 function RecentlyViewed() {
   const [recentlyViewed, setRecentlyViewed] = useState([]);
@@ -25,7 +21,6 @@ function RecentlyViewed() {
     setGlobalUpdateTimestamp,
   } = useDirectory();
   const fileTypes = {
-    symphony: ChartNoAxesGantt,
     mp3: Music,
     wav: Music,
     mid: KeyboardMusic,
@@ -116,21 +111,26 @@ function RecentlyViewed() {
                       await handleDoubleClick(item);
                     }}
                   >
-                    {Icon && (
-                      <Icon
-                        size={16}
-                        strokeWidth={1.5}
-                        style={{
-                          flexShrink: 0,
-                          color: `var(--${
-                            item.type === "symphony"
-                              ? "primary"
-                              : item.type === "wav" || item.type === "mp3"
+                    {item.type === "symphony" ? (
+                      <img
+                        src={symphonyFileTypeIcon}
+                        style={{ width: "16px", height: "16px", flexShrink: 0 }}
+                      />
+                    ) : (
+                      Icon && (
+                        <Icon
+                          size={16}
+                          strokeWidth={1.5}
+                          style={{
+                            flexShrink: 0,
+                            color: `var(--${
+                              ["wav", "flac", "mp3", "mid", "musicxml"].includes(item.type)
                                 ? "secondary"
                                 : "gray-50"
-                          })`,
-                        }}
-                      />
+                            })`,
+                          }}
+                        />
+                      )
                     )}
                     <div
                       className="truncated-text"

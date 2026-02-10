@@ -16,6 +16,7 @@ import GenericModal from "@/modals/GenericModal";
 import FileNotExist from "@/modals/FileNotExist";
 
 import banner from "@/assets/banner.svg";
+import symphonyFileTypeIcon from "@/assets/symphony-file-type-icon.svg";
 import { useDirectory } from "@/contexts/DirectoryContext";
 
 function SplashScreen({ onComplete }) {
@@ -29,7 +30,7 @@ function SplashScreen({ onComplete }) {
     useDirectory();
 
   const fileTypes = {
-    symphony: ChartNoAxesGantt,
+    symphony: symphonyFileTypeIcon,
     mp3: Music,
     wav: Music,
     mid: KeyboardMusic,
@@ -144,18 +145,21 @@ function SplashScreen({ onComplete }) {
                       key={recentIndex}
                       onClick={() => handleClick(item)}
                     >
-                      {Icon && (
+                      {item.type === "symphony" ? (
+                        <img
+                          src={symphonyFileTypeIcon}
+                          style={{ width: "16px", height: "16px", flexShrink: 0 }}
+                        />
+                      ) :
+                      Icon && (
                         <Icon
-                          style={{ flexShrink: 0 }}
+                          style={{ flexShrink: 0,
+                              color: item.type === "symphony" ? "var(--primary)" :
+                              ["mp3", "wav", "flac", "mid", "musicxml"].includes(item.type) ? "var(--secondary)" :
+                              "var(--muted-foreground)"
+                           }}
                           size={16}
                           strokeWidth={1.5}
-                          color-type={
-                            item.type === "mp3" || item.type === "wav"
-                              ? "accent-color"
-                              : item.type === "symphony"
-                                ? "accent-color-2"
-                                : "icon-color"
-                          }
                         />
                       )}
                       <div

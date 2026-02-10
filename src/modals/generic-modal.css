@@ -113,7 +113,7 @@
 
 .modal-paragraph {
   font-size: 13px;
-  font-weight: 300;
+  font-weight: 400;
   overflow-wrap: normal;
   display: flex;
   flex-direction: column;
@@ -122,7 +122,7 @@
   flex: 1;
   margin-bottom: 20px;
   width: 320px;
-  letter-spacing: 0.2px;
+  letter-spacing: 0.05px;
 }
 
 .modal-subtext {

@@ -14,7 +14,7 @@
   color: var(--gray-50);
   background-color: var(--alternate-background-transparent);
   backdrop-filter: blur(40px);
-  padding: 9px 10px 6px 10px;
+  padding: 9px 10px 7px 10px;
   box-shadow: 0px 5px 18px #00000046;
 
   resize: none;
@@ -55,8 +55,8 @@
   color: var(--foreground);
   border-radius: 12px;
   padding: 4px 8px;
-  margin-right: 8px;
-  margin-bottom: 6px;
+  margin-right: 7px;
+  margin-bottom: 7px;
   cursor: pointer;
 
   max-width: 100%;
@@ -69,10 +69,10 @@
   align-items: center;
   text-align: left;
   /* background-color: var(--tinted-background); */
-  border-top: 1px solid var(--tinted-background);
+  border-top: 1px solid #fff1;
   color: var(--foreground);
   border-radius: 0px;
-  padding: 10px 6px 10px 6px;
+  padding: 10px 12px 10px 12px;
   cursor: pointer;
   font-style: italic;
   gap: 8px;
@@ -91,7 +91,7 @@
 }
 .results {
   margin: 2px 0px 3px 0px;
-  border-radius: 0 0 4px 4px;
+  border-radius: 0 0 8px 8px;
   overflow: hidden;
   display: flex;
   flex-direction: column;

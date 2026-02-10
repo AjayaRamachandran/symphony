@@ -49,7 +49,7 @@ function OnboardingModal({ onComplete }) {
         text-style="display"
         style={{ margin: "15px 0px", width: "500px" }}
       >
-        Welcome to Symphony v1.0
+        Welcome to Symphony v1.1
       </div>
       {page === 0 ? (
         <>

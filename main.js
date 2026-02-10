@@ -174,6 +174,8 @@ app.whenReady().then(() => {
       },
     };
 
+    console.log(processCommand);
+
     fs.writeFileSync(
       PROCESS_COMMAND_PATH,
       JSON.stringify(processCommand, null, 2),
@@ -218,14 +220,19 @@ app.whenReady().then(() => {
   }
 
   // function to spawn the editor program
-  function runEditorProgram() {
+  async function runEditorProgram() {
     try {
-      // Ensure the process command file exists
-      if (!fs.existsSync(PROCESS_COMMAND_PATH)) {
-        fs.writeFileSync(PROCESS_COMMAND_PATH, JSON.stringify({}, null, 2));
-      }
+      // On fresh launch, request any previous editor process to terminate
+      fs.writeFileSync(
+        PROCESS_COMMAND_PATH,
+        JSON.stringify({ command: "kill" }, null, 2),
+        "utf-8",
+      );
 
-      // Clear the JSON process command file before spawning a new editor process
+      // Wait 0.5 seconds to allow prior process to handle kill
+      await new Promise((res) => setTimeout(res, 500));
+
+      // Clear the process command file before spawning a new editor process
       fs.writeFileSync(
         PROCESS_COMMAND_PATH,
         JSON.stringify({}, null, 2),
@@ -291,7 +298,7 @@ app.whenReady().then(() => {
       return { success: false, error: err.message };
     }
   }
-  console.log(runEditorProgram());
+  runEditorProgram().then((result) => console.log(result));
 
   // File Operations
   ipcMain.on("start-drag", (event, filePath) => {
@@ -674,7 +681,7 @@ app.whenReady().then(() => {
 
   // Editor Program
   ipcMain.handle("run-editor-program", async () => {
-    runEditorProgram();
+    return runEditorProgram();
   });
   ipcMain.handle(
     "do-process-command",

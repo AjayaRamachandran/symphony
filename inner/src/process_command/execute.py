@@ -151,7 +151,7 @@ def convert(pc_file: dict):
     with open(project_file_path, "rb") as pf:
         ps = sl.toProgramState(pkl.load(pf))
 
-    if output_file_type == 'mid':
+    if output_file_type == 'midi':
         sp.createMidiFromNotes(ps['noteMap'],
                                path.join(dest_folder_path, project_file_name) + '.mid')
     if output_file_type == 'musicxml':
