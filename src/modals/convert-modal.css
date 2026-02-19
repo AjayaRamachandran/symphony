@@ -1,0 +1,64 @@
+.musicxml-config-panel {
+  position: relative;
+  margin-top: 18px;
+}
+
+.musicxml-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.musicxml-custom-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 0px;
+  background: var(--alternate-background-transparent);
+}
+
+.musicxml-timesig-row {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.musicxml-timesig-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.musicxml-time-sig-field,
+.musicxml-time-sig-field-span {
+  font-family: Fraunces, serif !important;
+  font-weight: 700 !important;
+  text-align: center;
+  justify-content: center;
+  align-items: center;
+}
+
+.musicxml-time-sig-field span {
+  width: 100%;
+  text-align: center;
+  padding: 0 !important;
+}
+
+.musicxml-staff-lines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+
+.musicxml-staff-lines div {
+  height: 1px;
+  width: 100%;
+  background: #d9d9d9;
+  opacity: 0.9;
+}
+
+.musicxml-preset-scroll {
+  margin-top: 16px;
+  padding-right: 4px;
+}

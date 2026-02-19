@@ -46,14 +46,14 @@ function OnboardingModal({ onComplete }) {
       ></img>
       <div
         className="modal-big-title"
-        text-style="display"
+
         style={{ margin: "15px 0px", width: "500px" }}
       >
         Welcome to Symphony v1.1
       </div>
       {page === 0 ? (
         <>
-          <div className="modal-big-body" text-style="display">
+          <div className="modal-big-body" >
             What's your name?
           </div>
           <div style={{ display: "flex", flexDirection: "row", gap: "10px" }}>
@@ -72,7 +72,7 @@ function OnboardingModal({ onComplete }) {
             <Tooltip text={userName ? "Continue" : "Skip"}>
               <button
                 className={"onboarding-button"}
-                text-style="display"
+
                 onClick={() => setPage(1)}
               >
                 <ArrowRight />
@@ -83,7 +83,7 @@ function OnboardingModal({ onComplete }) {
       ) : (
         <>
           <div
-            text-style="display"
+
             style={{
               height: "120px",
               fontSize: "20px",

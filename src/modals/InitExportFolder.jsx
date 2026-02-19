@@ -5,7 +5,7 @@ function InitExportFolder({ onComplete }) {
     <>
       <div
         className="modal-title"
-        text-style="display"
+
         style={{ marginBottom: "15px" }}
       >
         Missing Export Folder

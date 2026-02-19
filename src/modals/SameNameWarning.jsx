@@ -6,7 +6,7 @@ function SameNameWarning({ onComplete }) {
     <>
       <div
         className="modal-title"
-        text-style="display"
+
         style={{ marginBottom: "15px" }}
       >
         Conflict
@@ -17,7 +17,7 @@ function SameNameWarning({ onComplete }) {
       </div>
       <button
         className={"call-to-action-2"}
-        text-style="display"
+
         onClick={() => onComplete()}
       >
         Okay

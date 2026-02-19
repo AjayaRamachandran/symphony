@@ -34,6 +34,7 @@ function SplashScreen({ onComplete }) {
     mp3: Music,
     wav: Music,
     mid: KeyboardMusic,
+    musicxml: Music,
     "": FolderClosed,
   };
 
@@ -110,14 +111,14 @@ function SplashScreen({ onComplete }) {
       >
         <div
           className="modal-big-title"
-          text-style="display"
+
           style={{ margin: "0px 0px", fontSize: "28px" }}
         >
           {userFirstName ? "Hi " + userFirstName.split(" ")[0] : "Welcome"}!
         </div>
         <div
           className="modal-paragraph"
-          text-style="display"
+
           style={{ fontSize: "14px", marginBottom: "28px", marginTop: "8px" }}
         >
           Let's create something amazing.
@@ -125,13 +126,11 @@ function SplashScreen({ onComplete }) {
         {recentlyViewed.length > 0 && (
           <>
             <div
-              className="modal-body"
-              text-style="display"
+              className="modal-title"
               style={{
-                fontSize: "18px",
-                marginBottom: "8px",
-                marginTop: "15px",
-              }}
+                marginBottom: "5px",
+                fontWeight: "700",
+               }}
             >
               Jump Back In
             </div>
@@ -151,17 +150,18 @@ function SplashScreen({ onComplete }) {
                           style={{ width: "16px", height: "16px", flexShrink: 0 }}
                         />
                       ) :
-                      Icon && (
-                        <Icon
-                          style={{ flexShrink: 0,
+                        Icon && (
+                          <Icon
+                            style={{
+                              flexShrink: 0,
                               color: item.type === "symphony" ? "var(--primary)" :
-                              ["mp3", "wav", "flac", "mid", "musicxml"].includes(item.type) ? "var(--secondary)" :
-                              "var(--muted-foreground)"
-                           }}
-                          size={16}
-                          strokeWidth={1.5}
-                        />
-                      )}
+                                ["mp3", "wav", "flac", "mid", "musicxml"].includes(item.type) ? "var(--secondary)" :
+                                  "var(--muted-foreground)"
+                            }}
+                            size={16}
+                            strokeWidth={1.5}
+                          />
+                        )}
                       <div
                         className="truncated-text"
                         style={{ marginLeft: "6px" }}
@@ -176,9 +176,12 @@ function SplashScreen({ onComplete }) {
           </>
         )}
         <div
-          className="modal-body"
-          text-style="display"
-          style={{ fontSize: "18px", marginBottom: "8px", marginTop: "15px" }}
+          className="modal-title"
+          style={{
+            marginBottom: "5px",
+            marginTop: "15px",
+            fontWeight: "700",
+          }}
         >
           Resources
         </div>
@@ -238,7 +241,7 @@ function SplashScreen({ onComplete }) {
           </button>
           <button
             className="call-to-action-2"
-            text-style="display"
+
             onClick={() => onComplete()}
           >
             Close

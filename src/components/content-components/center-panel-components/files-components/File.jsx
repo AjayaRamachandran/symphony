@@ -5,6 +5,9 @@ import path from "path-browserify";
 import fileIcon from "@/assets/file-icon.svg";
 import wavIcon from "@/assets/wav-icon.svg";
 import mp3Icon from "@/assets/mp3-icon.svg";
+import flacIcon from "@/assets/flac-icon.svg";
+
+import musicXMLIcon from "@/assets/musicxml-icon.svg";
 import midiIcon from "@/assets/midi-icon.svg";
 
 import { useDirectory } from "@/contexts/DirectoryContext";
@@ -14,7 +17,7 @@ import Tooltip from "@/ui/Tooltip";
 const fileTypeMap = {
   ".symphony": {
     icon: fileIcon,
-    label: "SYMPHONY File",
+    label: "Symphony File",
   },
   ".wav": {
     icon: wavIcon,
@@ -23,6 +26,14 @@ const fileTypeMap = {
   ".mp3": {
     icon: mp3Icon,
     label: "MP3 Compressed Audio File",
+  },
+  ".flac": {
+    icon: flacIcon,
+    label: "Free Lossless Audio Codec (FLAC) File",
+  },
+  ".musicxml": {
+    icon: musicXMLIcon,
+    label: "MusicXML File",
   },
   ".mid": {
     icon: midiIcon,
@@ -42,6 +53,8 @@ function File({ name }) {
     viewType,
     tempFileName,
     globalStars,
+    draggingFilePath,
+    setDraggingFilePath
   } = useDirectory();
 
   const [fileName, setFileName] = useState(name);
@@ -116,6 +129,7 @@ function File({ name }) {
               .join(globalDirectory, displayName)
               .replace(/\\/g, "/");
             console.log("Dragging file:", filePath);
+            setDraggingFilePath(filePath);
             window.electronAPI.startFileDrag(filePath);
           }}
           onClick={(e) => {

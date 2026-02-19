@@ -15,6 +15,7 @@ export function DirectoryProvider({ children }) {
   const [tempFileName, setTempFileName] = useState(""); // Add temp file name for editing
   const [globalStars, setGlobalStars] = useState([]);
   const [showSplashScreen, setShowSplashScreen] = useState(false);
+  const [draggingFilePath, setDraggingFilePath] = useState(null); // Track the file being dragged
 
   return (
     <DirectoryContext.Provider
@@ -39,6 +40,8 @@ export function DirectoryProvider({ children }) {
         setGlobalStars,
         showSplashScreen,
         setShowSplashScreen,
+        draggingFilePath,
+        setDraggingFilePath,
       }}
     >
       {children}

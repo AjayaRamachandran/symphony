@@ -25,6 +25,8 @@ function Directory() {
     setGlobalUpdateTimestamp,
     showSplashScreen,
     setShowSplashScreen,
+    draggingFilePath,
+    setDraggingFilePath
   } = useDirectory();
   const [openSection, setOpenSection] = useState(null);
   const [directory, setDirectory] = useState({});
@@ -136,7 +138,12 @@ function Directory() {
       try {
         const arrayBuffer = await file.arrayBuffer();
         console.log(arrayBuffer, file.name, hoverDir);
-        await window.electronAPI.moveFileRaw(arrayBuffer, file.name, hoverDir);
+        await window.electronAPI.moveFileRaw(
+          arrayBuffer,
+          file.name,
+          hoverDir,
+          draggingFilePath || file.path
+        );
         setGlobalUpdateTimestamp(Date.now());
       } catch (err) {
         console.error("Error processing dropped file:", err);

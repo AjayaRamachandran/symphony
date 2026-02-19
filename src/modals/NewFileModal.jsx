@@ -31,7 +31,7 @@ function NewFileModal({ onClose }) {
     <>
       <div
         className="modal-title"
-        text-style="display"
+
         style={{ marginBottom: "25px" }}
       >
         Create New Symphony
@@ -49,7 +49,7 @@ function NewFileModal({ onClose }) {
         className={
           projectName == "" ? "call-to-action-2 locked" : "call-to-action-2"
         }
-        text-style="display"
+
         onClick={() => onClose(projectName)}
       >
         Create

@@ -43,7 +43,7 @@ function UserSettings({ onComplete }) {
     <>
       <div
         className="modal-title"
-        text-style="display"
+
         style={{ marginBottom: "15px" }}
       >
         <Settings size={20} />
@@ -70,7 +70,7 @@ function UserSettings({ onComplete }) {
         }}
       >
         <div className="setting-row">
-          <div text-style="display" className="modal-body2">
+          <div className="modal-body2">
             Change My Name
           </div>
         </div>
@@ -91,7 +91,7 @@ function UserSettings({ onComplete }) {
         />
 
         <div className="setting-row" style={{ marginTop: "30px" }}>
-          <div text-style="display" className="modal-body2">
+          <div className="modal-body2">
             Automatically Search for Updates and Notify Me
           </div>
           <label className="switch">
@@ -109,7 +109,7 @@ function UserSettings({ onComplete }) {
         </div>
 
         <div className="setting-row">
-          <div text-style="display" className="modal-body2">
+          <div className="modal-body2">
             Close Project Manager when in Editor
           </div>
           <label className="switch">
@@ -129,7 +129,7 @@ function UserSettings({ onComplete }) {
         </div>
 
         <div className="setting-row">
-          <div text-style="display" className="modal-body2">
+          <div className="modal-body2">
             Show Splash Screen on Startup
           </div>
           <label className="switch">
@@ -147,7 +147,7 @@ function UserSettings({ onComplete }) {
         </div>
 
         <div className="setting-row" style={{ marginTop: "30px" }}>
-          <div text-style="display" className="modal-body2">
+          <div className="modal-body2">
             Use Fancy Graphics
           </div>
           <label className="switch">
@@ -180,7 +180,7 @@ function UserSettings({ onComplete }) {
         </div>
 
         <div className="setting-row">
-          <div text-style="display" className="modal-body2">
+          <div className="modal-body2">
             <TriangleAlert size={14} style={{ marginRight: "5px" }} />
             Disable Auto-Save Backup
           </div>
@@ -200,7 +200,7 @@ function UserSettings({ onComplete }) {
         </div>
 
         <div className="setting-row">
-          <div text-style="display" className="modal-body2">
+          <div className="modal-body2">
             <TriangleAlert size={14} style={{ marginRight: "5px" }} /> Disable
             Delete Confirmation
           </div>
@@ -220,7 +220,7 @@ function UserSettings({ onComplete }) {
         {window.electronAPI.platform.startsWith("win") && 1 === 2 && (
           <>
             <div className="setting-row">
-              <div text-style="display" className="modal-body2">
+              <div className="modal-body2">
                 <TriangleAlert size={14} style={{ marginRight: "5px" }} />
                 Show Console
               </div>
@@ -244,7 +244,7 @@ function UserSettings({ onComplete }) {
 
       <button
         className="call-to-action-2"
-        text-style="display"
+
         onClick={() => onComplete()}
       >
         Save & Exit

@@ -87,7 +87,7 @@ function ExportModal({ onClose, onComplete }) {
         <>
           <div
             className="modal-title"
-            text-style="display"
+
             style={{ marginBottom: "25px" }}
           >
             Export to...
@@ -134,16 +134,16 @@ function ExportModal({ onClose, onComplete }) {
                 ? "call-to-action-2 locked"
                 : "call-to-action-2"
             }
-            text-style="display"
+
             onClick={
               format === "" || destination === "" || projectName === ""
                 ? null
                 : async () => {
-                    await finish(selectedFolder.value);
-                    setGlobalDirectory(selectedFolder.value);
-                    setSelectedFile(null);
-                    onClose();
-                  }
+                  await finish(selectedFolder.value);
+                  setGlobalDirectory(selectedFolder.value);
+                  setSelectedFile(null);
+                  onClose();
+                }
             }
           >
             Export

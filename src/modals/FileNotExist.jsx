@@ -6,7 +6,7 @@ function FileNotExist({ onComplete, fileName = () => "" }) {
     <>
       <div
         className="modal-title"
-        text-style="display"
+
         style={{ marginBottom: "15px" }}
       >
         File Does Not Exist
@@ -17,7 +17,7 @@ function FileNotExist({ onComplete, fileName = () => "" }) {
       </div>
       <button
         className={"call-to-action-2"}
-        text-style="display"
+
         onClick={() => onComplete()}
       >
         Okay

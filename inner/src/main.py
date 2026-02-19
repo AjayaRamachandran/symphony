@@ -179,7 +179,7 @@ colorsInd = {
     "pink" : 5,
     "all" : 6
 }
-colorsList = list(colors.items())
+colorsList = list[tuple[str, tuple[int, int, int]]](colors.items())
 justColors = [n[1] for n in colorsList]
 justColorNames = [n[0] for n in colorsList]
 

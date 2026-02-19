@@ -31,12 +31,13 @@ function LeftPanel() {
             margin: "3px 3px 3px 5px",
             height: "15px",
             letterSpacing: "0.5px",
+            fontFamily: "Instrument Sans, sans-serif",
           }}
         >
           {userFirstName ? userFirstName.split(" ")[0].slice(0, 15) + "'s" : ""}
         </div>
         <div className="title-row">
-          <div className={"big-title"} text-style="display">
+          <div className={"big-title"} >
             Home
           </div>
           <Tooltip text="User Settings">

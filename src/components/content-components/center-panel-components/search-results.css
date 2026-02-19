@@ -9,7 +9,7 @@
   font-size: 12px;
   font-weight: 400;
   font-style: italic;
-  border-radius: 15px 15px 15px 15px;
+  border-radius: 12px;
   border: 1px solid var(--tinted-background);
   color: var(--gray-50);
   background-color: var(--alternate-background-transparent);

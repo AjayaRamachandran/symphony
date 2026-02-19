@@ -66,7 +66,7 @@ convert_command = {
     }
 }
 
-file_dump(convert_command)
+# file_dump(convert_command)
 
 time.sleep(2)
 
@@ -82,7 +82,7 @@ convert_command = {
         "dest_folder_path": dest_folder,
         "file_type": "musicxml",
         "time_sig_numerator" : "auto",
-        "time_sig_denominator" : 8,
+        "time_sig_denominator" : 4,
         "tempo_bpm" : "auto",
         "color_clef_map" : {
             "orange" : "Bass",

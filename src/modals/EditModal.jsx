@@ -131,7 +131,7 @@ function EditModal({
     <>
       <div
         className="modal-title"
-        text-style="display"
+
         style={{ marginBottom: "25px" }}
       >
         Edit Folder
@@ -210,7 +210,7 @@ function EditModal({
         <button
           className={"call-to-action-2 red"}
           style={{ marginLeft: 0 }}
-          text-style="display"
+
           onClick={settingsShowDelete ? onConfirm : onComplete}
         >
           <Trash2 size={16} />
@@ -220,21 +220,21 @@ function EditModal({
           className={
             "call-to-action-2 green" +
             (params.dir !== sourceLocation ||
-            params.dest !== destination ||
-            params.name !== projectName
+              params.dest !== destination ||
+              params.name !== projectName
               ? ""
               : " locked")
           }
           style={{ marginLeft: 0 }}
-          text-style="display"
+
           onClick={
             params.dir !== sourceLocation ||
-            params.dest !== destination ||
-            params.name !== projectName
+              params.dest !== destination ||
+              params.name !== projectName
               ? async () => {
-                  onRemove();
-                  await changeFields();
-                }
+                onRemove();
+                await changeFields();
+              }
               : undefined
           }
         >

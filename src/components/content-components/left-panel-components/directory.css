@@ -13,6 +13,7 @@
   padding: 10px 10px 10px 15px;
   overflow-y: auto;
   overflow-x: hidden;
+  min-height: 25%;
 }
 
 .directory-large {

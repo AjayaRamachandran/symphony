@@ -55,6 +55,7 @@ const DEFAULT_SETTINGS = {
   show_console: false,
   disable_auto_save: false,
   disable_delete_confirm: false,
+  clef_presets: {},
 };
 
 let mainWindow;
@@ -301,11 +302,38 @@ app.whenReady().then(() => {
   runEditorProgram().then((result) => console.log(result));
 
   // File Operations
+  // Helper: compare sizes of two files
+  async function filesAreSameSize(filePath1, filePath2) {
+    try {
+      const [a, b] = await Promise.all([
+        fs.promises.stat(filePath1),
+        fs.promises.stat(filePath2),
+      ]);
+      return a.size === b.size;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Helper: delete a file and its associated metadata (for .symphony)
+  async function deleteFileHelper(filePath) {
+    try {
+      await fs.promises.unlink(filePath);
+      const metadataPath = filePath.replace(/\.symphony$/, ".json");
+      if (metadataPath !== filePath && fs.existsSync(metadataPath)) {
+        await fs.promises.unlink(metadataPath);
+      }
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  }
+
   ipcMain.on("start-drag", (event, filePath) => {
     mainWindow.webContents.startDrag({
       file: filePath,
       icon: nativeImage.createFromPath(
-        path.join(__dirname, "src", "assets", "icon-dark32x32.png"),
+        path.join(__dirname, "src", "assets", "icon-dark-32.png"),
       ),
     });
   });
@@ -316,16 +344,7 @@ app.whenReady().then(() => {
     fs.existsSync(filePath),
   );
   ipcMain.handle("delete-file", async (event, filePath) => {
-    try {
-      fs.unlinkSync(filePath);
-      const metadataPath = filePath.replace(/\.symphony$/, ".json");
-      if (fs.existsSync(metadataPath)) {
-        fs.unlinkSync(metadataPath);
-      }
-      return { success: true };
-    } catch (err) {
-      return { success: false, error: err.message };
-    }
+    return deleteFileHelper(filePath);
   });
   ipcMain.handle("rename-file", async (event, { filePath, newName }) => {
     const dir = path.dirname(filePath);
@@ -362,12 +381,36 @@ app.whenReady().then(() => {
   });
   ipcMain.handle(
     "move-file-raw",
-    async (event, arrayBuffer, fileName, destinationDir) => {
+    async (event, arrayBuffer, fileName, destinationDir, originalFilePath) => {
       const destPath = path.join(destinationDir, fileName);
       try {
         const buffer = Buffer.from(arrayBuffer);
+        console.log(`[move-file-raw] source buffer bytes=${buffer.length}`);
         await fs.promises.writeFile(destPath, buffer);
-        return { success: true };
+        const destStat = await fs.promises.stat(destPath);
+        console.log(`[move-file-raw] dest file bytes=${destStat.size}`);
+        console.log(
+          `[move-file-raw] originalFilePath=${originalFilePath || "N/A"}`,
+        );
+        let deletedOriginal = false;
+        if (originalFilePath) {
+          if (path.resolve(originalFilePath) === path.resolve(destPath)) {
+            console.log(
+              "[move-file-raw] Source and destination are the same path; skipping delete.",
+            );
+            return { success: true, deletedOriginal: false };
+          }
+          const sameSize = await filesAreSameSize(originalFilePath, destPath);
+          console.log(`[move-file-raw] sizeEqual=${sameSize}`);
+          if (sameSize) {
+            const delResult = await deleteFileHelper(originalFilePath);
+            if (!delResult?.success) {
+              console.log(`[move-file-raw] delete failed: ${delResult?.error}`);
+            }
+            deletedOriginal = !!delResult?.success;
+          }
+        }
+        return { success: true, deletedOriginal };
       } catch (error) {
         return { success: false, error: error.message };
       }
@@ -660,7 +703,14 @@ app.whenReady().then(() => {
   ipcMain.handle("get-symphony-files", async (event, directoryPath) => {
     try {
       const files = fs.readdirSync(directoryPath);
-      const validFileExts = [".symphony", ".wav", ".mid", ".mp3"];
+      const validFileExts = [
+        ".symphony",
+        ".wav",
+        ".mid",
+        ".mp3",
+        ".flac",
+        ".musicxml",
+      ];
       return files.filter((file) => validFileExts.includes(path.extname(file)));
     } catch (error) {
       return "not a valid dir";

@@ -72,7 +72,7 @@ function NewFolder({ defaultDestProp = "", onClose, onConflict }) {
     <>
       <div
         className="modal-title"
-        text-style="display"
+
         style={{ marginBottom: "25px" }}
       >
         Add New Folder
@@ -144,7 +144,7 @@ function NewFolder({ defaultDestProp = "", onClose, onConflict }) {
             ? "call-to-action-2 locked"
             : "call-to-action-2"
         }
-        text-style="display"
+
         onClick={
           sourceLocation == "" || destination == "" || projectName == ""
             ? null

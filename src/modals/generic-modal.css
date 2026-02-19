@@ -16,7 +16,7 @@
   background-color: var(--alternate-background);
   border: 1px solid var(--tinted-background);
   color: var(--foreground);
-  box-shadow: 0 15px 50px #111111f4;
+  box-shadow: 0 18px 25px #111111f4;
   padding: 25px 25px;
   border-radius: 8px;
   position: relative;
@@ -59,6 +59,7 @@
   align-items: center;
   line-height: 44px;
   gap: 5px;
+  font-family: Instrument Sans, sans-serif;
 }
 
 .modal-title {
@@ -70,6 +71,7 @@
   display: flex;
   align-items: center;
   gap: 5px;
+  font-family: Instrument Sans, sans-serif;
 }
 
 .modal-big-subtitle {
@@ -91,6 +93,7 @@
   margin-top: 50px;
   margin-left: 2px;
   letter-spacing: 0.2px;
+  font-family: Instrument Sans, sans-serif;
 }
 
 .modal-body {
@@ -109,6 +112,7 @@
   letter-spacing: 0.2px;
   display: flex;
   align-items: center;
+  font-family: Instrument Sans, sans-serif;
 }
 
 .modal-paragraph {

@@ -36,7 +36,7 @@ function AddAutoSave({ onClose }) {
 
   return (
     <>
-      <div className="modal-title" text-style="display">
+      <div className="modal-title" >
         Set Up Auto-Save
       </div>
       <div className="modal-paragraph">
@@ -95,7 +95,7 @@ function AddAutoSave({ onClose }) {
               ? "call-to-action-2 locked"
               : "call-to-action-2"
           }
-          text-style="display"
+
           onClick={
             sourceLocation == "" || destination == "" || projectName == ""
               ? null

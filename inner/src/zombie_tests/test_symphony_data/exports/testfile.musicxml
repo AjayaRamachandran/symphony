@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE score-partwise  PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
+<score-partwise version="4.0">
+  <work>
+    <work-title>testfile</work-title>
+  </work>
+  <movement-title>testfile</movement-title>
+  <identification>
+    <creator type="composer">Created with Symphony</creator>
+    <encoding>
+      <encoding-date>2026-02-10</encoding-date>
+      <software>music21 v.9.9.1</software>
+    </encoding>
+    <miscellaneous>
+      <miscellaneous-field name="dcterms:alternative">in Eb Lydian</miscellaneous-field>
+    </miscellaneous>
+  </identification>
+  <defaults>
+    <scaling>
+      <millimeters>7</millimeters>
+      <tenths>40</tenths>
+    </scaling>
+  </defaults>
+  <part-list>
+    <score-part id="Pe6867def959ab9f9628321b4f796990b">
+      <part-name />
+    </score-part>
+    <score-part id="Pc1d8bebacb0081c3540b2fdb3b6ebbed">
+      <part-name />
+    </score-part>
+    <score-part id="Pac46b15e293a6a212028f9bf8aa0d39e">
+      <part-name />
+    </score-part>
+    <score-part id="Pedf54d26547fe7dac3ddd3967c07653f">
+      <part-name />
+    </score-part>
+    <score-part id="P7f0523d45f66aec4982c3745e7fa472d">
+      <part-name />
+    </score-part>
+    <score-part id="P3476af6c8f38aee06867361aae4c37a9">
+      <part-name />
+    </score-part>
+  </part-list>
+  <!--=========================== Part 1 ===========================-->
+  <part id="Pe6867def959ab9f9628321b4f796990b">
+    <!--========================= Measure 1 ==========================-->
+    <measure implicit="no" number="1">
+      <attributes>
+        <divisions>10080</divisions>
+        <key>
+          <fifths>-2</fifths>
+          <mode>lydian</mode>
+        </key>
+        <time>
+          <beats>4</beats>
+          <beat-type>4</beat-type>
+        </time>
+        <clef>
+          <sign>F</sign>
+          <line>4</line>
+        </clef>
+      </attributes>
+      <direction>
+        <direction-type>
+          <metronome parentheses="no">
+            <beat-unit>quarter</beat-unit>
+            <per-minute>90</per-minute>
+          </metronome>
+        </direction-type>
+        <sound tempo="90" />
+      </direction>
+      <note>
+        <rest measure="yes" />
+        <duration>40320</duration>
+      </note>
+    </measure>
+  </part>
+  <!--=========================== Part 2 ===========================-->
+  <part id="Pc1d8bebacb0081c3540b2fdb3b6ebbed">
+    <!--========================= Measure 1 ==========================-->
+    <measure implicit="no" number="1">
+      <attributes>
+        <divisions>10080</divisions>
+        <key>
+          <fifths>-2</fifths>
+          <mode>lydian</mode>
+        </key>
+        <time>
+          <beats>4</beats>
+          <beat-type>4</beat-type>
+        </time>
+        <clef>
+          <sign>G</sign>
+          <line>2</line>
+        </clef>
+      </attributes>
+      <direction>
+        <direction-type>
+          <metronome parentheses="no">
+            <beat-unit>quarter</beat-unit>
+            <per-minute>90</per-minute>
+          </metronome>
+        </direction-type>
+        <sound tempo="90" />
+      </direction>
+      <note>
+        <rest measure="yes" />
+        <duration>40320</duration>
+      </note>
+    </measure>
+  </part>
+  <!--=========================== Part 3 ===========================-->
+  <part id="Pac46b15e293a6a212028f9bf8aa0d39e">
+    <!--========================= Measure 1 ==========================-->
+    <measure implicit="no" number="1">
+      <attributes>
+        <divisions>10080</divisions>
+        <key>
+          <fifths>-2</fifths>
+          <mode>lydian</mode>
+        </key>
+        <time>
+          <beats>4</beats>
+          <beat-type>4</beat-type>
+        </time>
+        <clef>
+          <sign>G</sign>
+          <line>2</line>
+        </clef>
+      </attributes>
+      <direction>
+        <direction-type>
+          <metronome parentheses="no">
+            <beat-unit>quarter</beat-unit>
+            <per-minute>90</per-minute>
+          </metronome>
+        </direction-type>
+        <sound tempo="90" />
+      </direction>
+      <note>
+        <rest measure="yes" />
+        <duration>40320</duration>
+      </note>
+    </measure>
+  </part>
+  <!--=========================== Part 4 ===========================-->
+  <part id="Pedf54d26547fe7dac3ddd3967c07653f">
+    <!--========================= Measure 1 ==========================-->
+    <measure implicit="no" number="1">
+      <attributes>
+        <divisions>10080</divisions>
+        <key>
+          <fifths>-2</fifths>
+          <mode>lydian</mode>
+        </key>
+        <time>
+          <beats>4</beats>
+          <beat-type>4</beat-type>
+        </time>
+        <clef>
+          <sign>G</sign>
+          <line>2</line>
+          <clef-octave-change>-1</clef-octave-change>
+        </clef>
+      </attributes>
+      <direction>
+        <direction-type>
+          <metronome parentheses="no">
+            <beat-unit>quarter</beat-unit>
+            <per-minute>90</per-minute>
+          </metronome>
+        </direction-type>
+        <sound tempo="90" />
+      </direction>
+      <note>
+        <rest measure="yes" />
+        <duration>40320</duration>
+      </note>
+    </measure>
+  </part>
+  <!--=========================== Part 5 ===========================-->
+  <part id="P7f0523d45f66aec4982c3745e7fa472d">
+    <!--========================= Measure 1 ==========================-->
+    <measure implicit="no" number="1">
+      <attributes>
+        <divisions>10080</divisions>
+        <key>
+          <fifths>-2</fifths>
+          <mode>lydian</mode>
+        </key>
+        <time>
+          <beats>4</beats>
+          <beat-type>4</beat-type>
+        </time>
+        <clef>
+          <sign>G</sign>
+          <line>2</line>
+        </clef>
+      </attributes>
+      <direction>
+        <direction-type>
+          <metronome parentheses="no">
+            <beat-unit>quarter</beat-unit>
+            <per-minute>90</per-minute>
+          </metronome>
+        </direction-type>
+        <sound tempo="90" />
+      </direction>
+      <note>
+        <rest measure="yes" />
+        <duration>40320</duration>
+      </note>
+    </measure>
+  </part>
+  <!--=========================== Part 6 ===========================-->
+  <part id="P3476af6c8f38aee06867361aae4c37a9">
+    <!--========================= Measure 1 ==========================-->
+    <measure implicit="no" number="1">
+      <attributes>
+        <divisions>10080</divisions>
+        <key>
+          <fifths>-2</fifths>
+          <mode>lydian</mode>
+        </key>
+        <time>
+          <beats>4</beats>
+          <beat-type>4</beat-type>
+        </time>
+        <clef>
+          <sign>G</sign>
+          <line>2</line>
+        </clef>
+      </attributes>
+      <direction>
+        <direction-type>
+          <metronome parentheses="no">
+            <beat-unit>quarter</beat-unit>
+            <per-minute>90</per-minute>
+          </metronome>
+        </direction-type>
+        <sound tempo="90" />
+      </direction>
+      <note>
+        <rest measure="yes" />
+        <duration>40320</duration>
+      </note>
+    </measure>
+  </part>
+</score-partwise>

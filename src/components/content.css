@@ -31,6 +31,7 @@
   cursor: pointer;
   color: white;
   font-size: 1.1em;
+  border-radius: 0;
 }
 
 .x-button:hover {
@@ -212,6 +213,7 @@
     var(--alternate-background) 50%,
     #74482c 100%
   );
+  font-family: Instrument Sans, sans-serif;
 }
 .call-to-action.inactive {
   border: 2px solid hsl(23, 0%, 56%);
@@ -241,6 +243,8 @@
     filter 0.25s,
     background-color 0.25s;
   gap: 7px;
+  font-family: Instrument Sans, sans-serif;
+  color: var(--foreground);
 }
 .call-to-action-2.locked {
   background: var(--gray-50);
@@ -261,7 +265,6 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  max-width: 280px;
 }
 
 @keyframes spin {

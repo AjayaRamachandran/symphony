@@ -20,6 +20,8 @@ function Files() {
     viewType,
     setGlobalStars,
     globalStars,
+    draggingFilePath,
+    setDraggingFilePath
   } = useDirectory();
 
   const [symphonyFiles, setSymphonyFiles] = useState([]);
@@ -63,7 +65,7 @@ function Files() {
 
       const files = Array.from(e.dataTransfer.files);
       const droppedFiles = files.filter(
-        (file) => file.name.endsWith(".symphony") || file.name.endsWith(".wav")
+        (file) => file.name.endsWith(".symphony") || file.name.endsWith(".wav"),
       );
 
       if (droppedFiles.length === 0) {
@@ -76,7 +78,8 @@ function Files() {
           await window.electronAPI.moveFileRaw(
             arrayBuffer,
             file.name,
-            globalDirectory
+            globalDirectory,
+            draggingFilePath || file.path
           );
           setGlobalUpdateTimestamp(Date.now());
         } catch (err) {
@@ -84,7 +87,7 @@ function Files() {
         }
       });
     },
-    [globalDirectory, setGlobalUpdateTimestamp]
+    [globalDirectory, setGlobalUpdateTimestamp],
   );
 
   const handleDragOver = (e) => {

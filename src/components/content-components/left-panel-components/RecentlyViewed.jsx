@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 
-import { Music, FolderClosed, KeyboardMusic } from "lucide-react";
+import { Music, FolderClosed, KeyboardMusic, Music4 } from "lucide-react";
 import path from "path-browserify";
 
 import Tooltip from "@/ui/Tooltip";
@@ -24,6 +24,7 @@ function RecentlyViewed() {
     mp3: Music,
     wav: Music,
     mid: KeyboardMusic,
+    musicxml: Music4,
     "": FolderClosed,
   };
 

@@ -10,7 +10,7 @@
   border: 1px solid var(--tinted-background);
   border-radius: 7px;
   cursor: pointer;
-  min-width: 160px;
+  min-width: 30px;
   width: 100%;
   display: flex;
   justify-content: space-between;
@@ -27,7 +27,7 @@
   margin-top: 4px;
   border-radius: 7px;
   padding-left: 0;
-  min-width: 160px;
+  min-width: 30px;
   width: calc(100% - 2px);
   box-shadow: 0 5px 14px #00000077;
   z-index: 1000;

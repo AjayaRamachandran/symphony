@@ -35,7 +35,7 @@ function ShowInfoModal({ filePath }) {
     <>
       <div
         className="modal-title"
-        text-style="display"
+
         style={{ display: "flex", marginBottom: "15px", alignItems: "center" }}
       >
         File Properties

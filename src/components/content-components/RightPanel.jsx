@@ -99,7 +99,7 @@ function RightPanel() {
     <div className="content-panel-container right">
       <>
         <div>
-          <div className="med-title" text-style="display">
+          <div className="med-title" >
             Details
           </div>
           {selectedFile && selectedFile.slice(-9) === ".symphony" ? (
@@ -191,7 +191,7 @@ function RightPanel() {
                 ? ""
                 : " inactive")
             }
-            text-style="display"
+            
             style={{ transition: "filter 0.2s, border 0.4s, background 0.4s" }}
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}

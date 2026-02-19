@@ -44,6 +44,7 @@ def retrieve(pc_file: dict):
                 'Key' : ps["key"],
                 'Mode' : ps["mode"],
                 'Tempo (tpm)' : ps["tpm"],
+                'Beats Per Measure' : ps["beatsPerMeasure"],
                 # 'Empty?' : (ps["noteMap"] == {}),
                 'Length (tiles)' : tiles,
                 'Duration' : ("0" if len(str(floor(tiles / tpm))) == 1 else '') + str(floor(tiles / tpm)) + ':' + ("0" if len(str(round(((tiles / tpm) % 1) * 60))) == 1 else '') + str(round(((tiles / tpm) % 1) * 60))
