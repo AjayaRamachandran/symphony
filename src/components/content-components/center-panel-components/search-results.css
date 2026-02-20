@@ -28,7 +28,7 @@
 
 
   transition: opacity 150ms ease, translate 150ms ease, scale 150ms ease;
-  z-index: 300;
+  z-index: 21;
 }
 .search-box.focused {
   visibility: visible;

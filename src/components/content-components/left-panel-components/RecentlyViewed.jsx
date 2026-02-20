@@ -106,7 +106,7 @@ function RecentlyViewed() {
                   className="tooltip-block"
                 >
                   <button
-                    className="recently-viewed-medium"
+                    className="recently-viewed-item"
                     onClick={() => handleClick(item)}
                     onDoubleClick={async () => {
                       await handleDoubleClick(item);

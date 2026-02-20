@@ -94,6 +94,14 @@ function App() {
       if (isAccelKey && e.key.toLowerCase() === "x") handleCut();
       if (isAccelKey && e.key.toLowerCase() === "v") await handlePaste();
       if (isAccelKey && e.key.toLowerCase() === "d") await handleDuplicate();
+      if (isAccelKey && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        window.dispatchEvent(new CustomEvent("symphony:focus-search"));
+      }
+      if (isAccelKey && e.key.toLowerCase() === "n") {
+        e.preventDefault();
+        window.dispatchEvent(new CustomEvent("symphony:new-file"));
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);

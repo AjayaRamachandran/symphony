@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { FolderOpen } from "lucide-react";
-
-import Tooltip from "@/ui/Tooltip";
+import SelectFile from "@/ui/SelectFile";
 
 function AddAutoSave({ onClose }) {
   const [sourceLocation, setSourceLocation] = useState("");
@@ -43,50 +41,7 @@ function AddAutoSave({ onClose }) {
         Let's choose a destination for your Auto-Save files so you can easily
         recover your work if needed.
       </div>
-      {sourceLocation != "" ? (
-        <Tooltip text={`${sourceLocation}  ⦁  Click to Change`}>
-          <button
-            className="modal-file-explorer-button"
-            onClick={openFolderDialog}
-          >
-            <FolderOpen
-              size={16}
-              style={{ marginRight: "8px", flexShrink: 0 }}
-            />
-            <span
-              style={{
-                overflow: "hidden",
-                whiteSpace: "nowrap",
-                textOverflow: "ellipsis",
-                display: "inline-block",
-                flexGrow: 1,
-                minWidth: 0,
-              }}
-            >
-              {sourceLocation == "" ? "Open File Explorer..." : sourceLocation}
-            </span>
-          </button>
-        </Tooltip>
-      ) : (
-        <button
-          className="modal-file-explorer-button"
-          onClick={openFolderDialog}
-        >
-          <FolderOpen size={16} style={{ marginRight: "8px", flexShrink: 0 }} />
-          <span
-            style={{
-              overflow: "hidden",
-              whiteSpace: "nowrap",
-              textOverflow: "ellipsis",
-              display: "inline-block",
-              flexGrow: 1,
-              minWidth: 0,
-            }}
-          >
-            Open File Explorer...
-          </span>
-        </button>
-      )}
+      <SelectFile selectedPath={sourceLocation} onClick={openFolderDialog} />
       <div style={{ display: "flex", justifyContent: "space-between" }}>
         <div className="modal-whisper">You can change this at any time.</div>
         <button

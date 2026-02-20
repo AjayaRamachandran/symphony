@@ -58,16 +58,12 @@ function OnboardingModal({ onComplete }) {
           </div>
           <div style={{ display: "flex", flexDirection: "row", gap: "10px" }}>
             <Field
-              defaultText={"Enter Name Here"}
+              placeholder={<span style={{ color: "#d9d9d977" }}>Enter Name Here</span>}
               value={userName}
               className="field onboarding-field"
-              lightDark={["#d9d9d977", "#d9d9d9"]}
-              height="38px"
-              fontSize="16px"
+              style={{ height: "38px", fontSize: "16px", width: "300px" }}
               onChange={(e) => handleUserNameChange(e.target.value || "")}
               singleLine={true}
-              isControlled={true}
-              width={"300px"}
             />
             <Tooltip text={userName ? "Continue" : "Skip"}>
               <button
@@ -83,13 +79,13 @@ function OnboardingModal({ onComplete }) {
       ) : (
         <>
           <div
-
             style={{
               height: "120px",
               fontSize: "20px",
               display: "flex",
               alignItems: "center",
               gap: "10px",
+              fontFamily: "Instrument Sans, sans-serif",
             }}
           >
             <LoaderCircle className="spin" />

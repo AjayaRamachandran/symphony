@@ -133,10 +133,8 @@
   flex: 1 1 0;
   min-height: 0;
   box-sizing: border-box;
-  overflow: hidden;
   width: 100%;
   min-width: 0;
-  overflow-x: hidden;
 }
 
 .content {
@@ -148,10 +146,8 @@
   flex: 1 1 0;
   min-height: 0;
   box-sizing: border-box;
-  overflow: hidden;
   width: 100%;
   min-width: 0;
-  overflow-x: hidden;
 }
 
 .content-panel-container {
@@ -191,7 +187,6 @@
   min-width: 0;
   min-height: 0;
   box-sizing: border-box;
-  overflow: hidden;
 }
 
 .call-to-action {

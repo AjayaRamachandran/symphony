@@ -4,22 +4,12 @@
   border: 1px var(--tinted-background) solid;
   color: var(--tinted-foreground);
   background-color: var(--background);
-  padding: 15px;
+  padding: 13px 10px;
 }
 
-.recently-viewed-large {
-  color: var(--muted-foreground);
-  font-size: 1.35em;
-  font-weight: 300;
-  margin: 9px 3px 5px 3px;
-
-  justify-content: space-between;
-  display: flex;
-}
-
-.recently-viewed-medium {
+.recently-viewed-item {
   flex: 1;
-  padding: 6px 2px 6px 2px;
+  padding: 6px 6px 6px 6px;
   color: var(--foreground);
   background-color: var(--background);
   border-radius: 4px;
@@ -29,7 +19,7 @@
   flex-direction: row;
   width: 100%;
 }
-.recently-viewed-medium:hover {
+.recently-viewed-item:hover {
   cursor: pointer;
 }
 

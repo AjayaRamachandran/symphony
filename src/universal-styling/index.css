@@ -13,8 +13,6 @@ body,
   margin: 0;
   box-sizing: border-box;
   padding: 0;
-  overflow: hidden;
-  overflow-x: hidden;
 }
 
 #root {
@@ -24,8 +22,6 @@ body,
   min-height: 0;
   width: 100%;
   min-width: 0;
-  box-sizing: border-box;
-  overflow: hidden;
 }
 
 :root {

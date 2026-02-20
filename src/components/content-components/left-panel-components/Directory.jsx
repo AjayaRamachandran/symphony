@@ -157,7 +157,7 @@ function Directory() {
     <div className="directory scrollable med-bg">
       {sections.map((section, sectionIndex) => (
         <React.Fragment key={sectionIndex}>
-          <div className="directory-large">
+          <div className="directory-section">
             {section}
             {section !== "Symphony Auto-Save" && (
               <>
@@ -196,7 +196,7 @@ function Directory() {
             return (
               <button
                 key={elementPairIndex}
-                className="directory-medium"
+                className="directory-folder"
                 style={{
                   filter: isSelected ? "brightness(1.2)" : "",
                   outline: isDragOver ? "1px dashed #4A90E2" : "none",
@@ -215,7 +215,7 @@ function Directory() {
                 onDragOver={onDragOver}
                 onDragLeave={(e) => onDragLeave(e, elementPair[1])}
                 onDrop={(e) => onDrop(e, elementPair[1])}
-                // onMouseEnter={() => {setHoverDir(elementPair[1].replace(/\\/g, '/')); console.log(elementPair[1].replace(/\\/g, '/'))}}
+              // onMouseEnter={() => {setHoverDir(elementPair[1].replace(/\\/g, '/')); console.log(elementPair[1].replace(/\\/g, '/'))}}
               >
                 <FolderClosed
                   style={{ flexShrink: 0 }}

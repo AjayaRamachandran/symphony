@@ -1,24 +1,40 @@
+/* Tooltip Base Styles */
 .tooltip-text {
-  overflow: hidden;
-  pointer-events: none;
-  font-family: "Inter", sans-serif;
-  background-color: #333;
-  border: 1px solid #444;
-  color: #fff;
-  font-size: 12px;
-  padding: 4px 8px;
-  border-radius: 4px;
   white-space: nowrap;
-  opacity: 0 !important;
-  transition: opacity 0.1s ease-out, scale 0.2s ease-out, translate 0.2s ease-out, filter 0.2s ease-out;
-  translate: 0 3px !important;
-  scale: 96% !important;
-  z-index: 1;
-  font-weight: 300;
-  box-shadow: 0 3px 11px #00000036;
-  letter-spacing: 0.3px;
   flex-direction: row;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+
+  font-family: "Inter", sans-serif;
+  font-size: 12px;
+  font-weight: 300;
+  letter-spacing: 0.3px;
+  color: #fff;
+
+  background-color: #3337;
+  backdrop-filter: blur(30px);
+  border: 1px solid #444;
+  border-radius: 4px;
+  box-shadow: 0 3px 11px #00000036;
+
+  padding: 4px 8px;
+
+  opacity: 0 !important;
   filter: blur(2px);
+  pointer-events: none;
+  z-index: 2147483647;
+
+  transition:
+    opacity 0.1s ease-out,
+    scale 0.2s ease-out,
+    translate 0.2s ease-out,
+    filter 0.2s ease-out;
+  scale: 96% !important;
+  translate: 0 3px !important;
 }
 
 .tooltip-wrapper {
@@ -35,28 +51,23 @@
 }
 .tooltip-inner-alt {
   color: var(--muted-foreground);
-  padding-left: 2px;
+  padding: 2px 4px;
+  margin-left: 7px;
+  margin-right: 0px;
+  background-color: #fff1;
+  border-radius: 4px;
+  font-size: 10px;
 }
-.tooltip-text.tooltip-top {
-  position: absolute;
-  bottom: 100%;
-  transform: translate(0px, -1px);
-}
-.tooltip-text.tooltip-left {
-  position: absolute;
-  right: 100%;
-  transform: translate(-5px, -1px);
-}
-
-.tooltip-wrapper:hover .tooltip-text {
-  visibility: visible;
+.tooltip-text.is-visible {
   opacity: 1 !important;
-  z-index: auto !important;
   translate: 0 0px !important;
   scale: 100% !important;
   filter: blur(0);
   pointer-events: all;
 
-  transition: opacity 1s cubic-bezier(1,-1.47,.55,1), scale 1000ms cubic-bezier(1,-1.47,.55,1), translate 1000ms cubic-bezier(1,-1.47,.55,1), filter 1000ms cubic-bezier(1,-1.47,.55,1);
-  
+  transition:
+    opacity 1s cubic-bezier(1, -1.47, 0.55, 1),
+    scale 1000ms cubic-bezier(1, -1.47, 0.55, 1),
+    translate 1000ms cubic-bezier(1, -1.47, 0.55, 1),
+    filter 1000ms cubic-bezier(1, -1.47, 0.55, 1);
 }

@@ -107,18 +107,16 @@ function RightPanel() {
               <div className="field-label">Title</div>
               <Field
                 value={tempFileName}
-                height="33px"
+                style={{ height: "33px" }}
                 onChange={handleTitleChange}
                 onBlur={handleTitleBlur}
                 singleLine={true}
-                controlledValue={true}
               />
 
               <div className="field-label">Description</div>
               <Field
                 value={metadata.Description || ""}
-                height="120px"
-                fontSize="1.2em"
+                style={{ height: "120px", fontSize: "1.2em" }}
                 onChange={(e) =>
                   updateMetadataField("Description", e.target.value)
                 }
@@ -126,9 +124,9 @@ function RightPanel() {
 
               <div className="field-label">Composer / Arr.</div>
               <Field
-                value={metadata.Composer || userFirstName}
-                height="70px"
-                fontSize="1.2em"
+                placeholder={userFirstName}
+                value={metadata.Composer}
+                style={{ height: "70px", fontSize: "1.2em" }}
                 onChange={(e) =>
                   updateMetadataField("Composer", e.target.value)
                 }
@@ -137,8 +135,7 @@ function RightPanel() {
               <div className="field-label">Collaborators</div>
               <Field
                 value={metadata.Collaborators || ""}
-                height="70px"
-                fontSize="1.2em"
+                style={{ height: "70px", fontSize: "1.2em" }}
                 onChange={(e) =>
                   updateMetadataField("Collaborators", e.target.value)
                 }

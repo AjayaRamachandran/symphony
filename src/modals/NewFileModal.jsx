@@ -1,11 +1,6 @@
-// NewFolder.js
 import React, { useState, useEffect } from "react";
 
-import { Plus } from "lucide-react";
-
 import Field from "@/ui/Field";
-import Dropdown from "@/ui/Dropdown";
-import Tooltip from "@/ui/Tooltip";
 
 const phrases = [
   "Ex: My Amazing Masterpiece",
@@ -31,8 +26,6 @@ function NewFileModal({ onClose }) {
     <>
       <div
         className="modal-title"
-
-        style={{ marginBottom: "25px" }}
       >
         Create New Symphony
       </div>
@@ -40,9 +33,9 @@ function NewFileModal({ onClose }) {
         Give your symphony a name. You can always change this later.
       </div>
       <Field
-        fontSize={"13px"}
+        style={{ fontSize: "13px" }}
         value={projectName}
-        defaultText={defaultText}
+        placeholder={defaultText}
         onChange={(e) => setProjectName(e.target.value)}
       />
       <button

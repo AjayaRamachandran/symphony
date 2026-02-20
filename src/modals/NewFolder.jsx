@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { FolderOpen, ChartNoAxesGantt, Music, Save } from "lucide-react";
+import { ChartNoAxesGantt, Music, Save } from "lucide-react";
 import path from "path-browserify";
 
 import Field from "@/ui/Field";
 import Dropdown from "@/ui/Dropdown";
-import Tooltip from "@/ui/Tooltip";
+import SelectFile from "@/ui/SelectFile";
 import { useDirectory } from "@/contexts/DirectoryContext";
 
 const options = [
@@ -78,55 +78,12 @@ function NewFolder({ defaultDestProp = "", onClose, onConflict }) {
         Add New Folder
       </div>
       <div className="modal-body">System File Location</div>
-      {sourceLocation != "" ? (
-        <Tooltip text={`${sourceLocation}  ⦁  Click to Change`}>
-          <button
-            className="modal-file-explorer-button"
-            onClick={openFolderDialog}
-          >
-            <FolderOpen
-              size={16}
-              style={{ marginRight: "8px", flexShrink: 0 }}
-            />
-            <span
-              style={{
-                overflow: "hidden",
-                whiteSpace: "nowrap",
-                textOverflow: "ellipsis",
-                display: "inline-block",
-                flexGrow: 1,
-                minWidth: 0,
-              }}
-            >
-              {sourceLocation == "" ? "Open File Explorer..." : sourceLocation}
-            </span>
-          </button>
-        </Tooltip>
-      ) : (
-        <button
-          className="modal-file-explorer-button"
-          onClick={openFolderDialog}
-        >
-          <FolderOpen size={16} style={{ marginRight: "8px", flexShrink: 0 }} />
-          <span
-            style={{
-              overflow: "hidden",
-              whiteSpace: "nowrap",
-              textOverflow: "ellipsis",
-              display: "inline-block",
-              flexGrow: 1,
-              minWidth: 0,
-            }}
-          >
-            Open File Explorer...
-          </span>
-        </button>
-      )}
+      <SelectFile selectedPath={sourceLocation} onClick={openFolderDialog} />
       <div className="modal-body" style={{ marginTop: "2em" }}>
         Folder Alias
       </div>
       <Field
-        fontSize={"13px"}
+        style={{ fontSize: "13px" }}
         value={projectName}
         onChange={(e) => setProjectName(e.target.value)}
       />

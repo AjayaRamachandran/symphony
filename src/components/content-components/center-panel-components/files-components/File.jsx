@@ -13,6 +13,8 @@ import midiIcon from "@/assets/midi-icon.svg";
 import { useDirectory } from "@/contexts/DirectoryContext";
 
 import Tooltip from "@/ui/Tooltip";
+import GenericModal from "@/modals/GenericModal";
+import GUIAlreadyRunning from "@/modals/GUIAlreadyRunning";
 
 const fileTypeMap = {
   ".symphony": {
@@ -60,6 +62,7 @@ function File({ name }) {
   const [fileName, setFileName] = useState(name);
   const [displayName, setDisplayName] = useState(fileName);
   const [isStarred, setIsStarred] = useState(false);
+  const [showGUIAlreadyRunning, setShowGUIAlreadyRunning] = useState(false);
 
   const runProcessCommand = async (title) => {
     console.log(title);
@@ -70,6 +73,7 @@ function File({ name }) {
       {},
     );
     console.log(result);
+    return result;
   };
 
   useEffect(() => {
@@ -139,7 +143,10 @@ function File({ name }) {
           }}
           onDoubleClick={async () => {
             if (displayName.endsWith(".symphony")) {
-              runProcessCommand(selectedFile);
+              const result = await runProcessCommand(selectedFile);
+              if (result.status === "error" && result.message === "GuiAlreadyRunningError") {
+                setShowGUIAlreadyRunning(true);
+              }
             } else {
               await window.electronAPI.openNativeApp(
                 path.join(globalDirectory, displayName),
@@ -206,6 +213,14 @@ function File({ name }) {
           </div>
         </button>
       </Tooltip>
+      <GenericModal
+        isOpen={showGUIAlreadyRunning}
+        onClose={() => {
+          setShowGUIAlreadyRunning(false);
+        }}
+      >
+        <GUIAlreadyRunning onComplete={() => setShowGUIAlreadyRunning(false)} />
+      </GenericModal>
     </>
   );
 }

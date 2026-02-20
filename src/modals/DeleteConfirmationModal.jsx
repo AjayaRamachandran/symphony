@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 
-
 function DeleteConfirmationModal({
   onComplete,
   action = "Delete",

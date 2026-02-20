@@ -162,7 +162,7 @@ function Toolbar() {
         <div className="toolbar-section">
           EDIT
           <div className="toolbar-subsection">
-            <Tooltip text="Copy" altText={`(${actionKey}+C)`}>
+            <Tooltip text="Copy" altText={`${actionKey} + C`}>
               <button
                 className={"icon-button" + (!selectedFile ? " grayed" : "")}
                 onClick={() => {
@@ -172,7 +172,7 @@ function Toolbar() {
                 <Copy size={iconSize} />
               </button>
             </Tooltip>
-            <Tooltip text="Cut" altText={`(${actionKey}+X)`}>
+            <Tooltip text="Cut" altText={`${actionKey} + X`}>
               <button
                 className={"icon-button" + (!selectedFile ? " grayed" : "")}
                 onClick={() => {
@@ -182,7 +182,7 @@ function Toolbar() {
                 <Scissors size={iconSize} />
               </button>
             </Tooltip>
-            <Tooltip text="Paste" altText={`(${actionKey}+V)`}>
+            <Tooltip text="Paste" altText={`${actionKey} + V`}>
               <button
                 className={"icon-button" + (!clipboardFile ? " grayed" : "")}
                 onClick={() => {
@@ -192,7 +192,7 @@ function Toolbar() {
                 <Clipboard size={iconSize} />
               </button>
             </Tooltip>
-            <Tooltip text="Duplicate" altText={`(${actionKey}+D)`}>
+            <Tooltip text="Duplicate" altText={`${actionKey} + D`}>
               <button
                 className={"icon-button" + (!selectedFile ? " grayed" : "")}
                 onClick={() => {
@@ -296,7 +296,7 @@ function Toolbar() {
                 <FolderOpen size={iconSize} />
               </button>
             </Tooltip>
-            <Tooltip text="Delete" altText={`(Del/Bkspc)`}>
+            <Tooltip text="Delete" altText={window.navigator.platform.includes("Mac") ? "Delete" : "Del/Bkspc"}>
               <button
                 className={"icon-button" + (!selectedFile ? " grayed" : "")}
                 onClick={() => {

@@ -6,10 +6,11 @@
   margin: 5px 0px 3px 10px;
   border-radius: 5px;
   overflow-y: auto;
+  overflow-x: hidden;
   height: 100%;
   min-height: 0;
   min-width: 200px;
-  overflow-x: hidden;
+  /* border: 1px solid white; */
   flex: 1 1 0;
   box-sizing: border-box;
   grid-auto-rows: min-content;

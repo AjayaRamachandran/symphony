@@ -30,7 +30,7 @@
   min-width: 30px;
   width: calc(100% - 2px);
   box-shadow: 0 5px 14px #00000077;
-  z-index: 1000;
+  z-index: 20;
   opacity: 0;
   transition: opacity 0.1s ease, translate 0.1s ease, scale 0.1s ease;
   translate: 0 -7px;

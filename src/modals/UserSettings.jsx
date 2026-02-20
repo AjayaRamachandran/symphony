@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 
-import { TriangleAlert, Users, Settings } from "lucide-react";
+import { TriangleAlert, Settings } from "lucide-react";
 
 import Field from "@/ui/Field";
+import Switch from "@/ui/Switch";
 
 function UserSettings({ onComplete }) {
   const [focused, setFocused] = useState(false);
@@ -82,26 +83,19 @@ function UserSettings({ onComplete }) {
         </div>
         <Field
           value={userName}
-          height="33px"
-          fontSize="14px"
+          style={{ height: "33px", fontSize: "14px", width: "300px" }}
           onChange={(e) => handleUserNameChange(e.target.value || "")}
           singleLine={true}
-          isControlled={true}
-          width={"300px"}
         />
 
         <div className="setting-row" style={{ marginTop: "30px" }}>
           <div className="modal-body2">
             Automatically Search for Updates and Notify Me
           </div>
-          <label className="switch">
-            <input
-              type="checkbox"
-              checked={settings.search_for_updates}
-              onChange={() => handleToggle("search_for_updates")}
-            />
-            <span className="slider"></span>
-          </label>
+          <Switch
+            checked={settings.search_for_updates}
+            onChange={() => handleToggle("search_for_updates")}
+          />
         </div>
         <div className="modal-subtext wide">
           On launch, get the latest Symphony version and prompt an update if I'm
@@ -112,16 +106,10 @@ function UserSettings({ onComplete }) {
           <div className="modal-body2">
             Close Project Manager when in Editor
           </div>
-          <label className="switch">
-            <input
-              type="checkbox"
-              checked={settings.close_project_manager_when_editing}
-              onChange={() =>
-                handleToggle("close_project_manager_when_editing")
-              }
-            />
-            <span className="slider"></span>
-          </label>
+          <Switch
+            checked={settings.close_project_manager_when_editing}
+            onChange={() => handleToggle("close_project_manager_when_editing")}
+          />
         </div>
         <div className="modal-subtext wide">
           Closes the Project Manager when you decide to open a Symphony in the
@@ -132,14 +120,10 @@ function UserSettings({ onComplete }) {
           <div className="modal-body2">
             Show Splash Screen on Startup
           </div>
-          <label className="switch">
-            <input
-              type="checkbox"
-              checked={settings.show_splash_screen}
-              onChange={() => handleToggle("show_splash_screen")}
-            />
-            <span className="slider"></span>
-          </label>
+          <Switch
+            checked={settings.show_splash_screen}
+            onChange={() => handleToggle("show_splash_screen")}
+          />
         </div>
         <div className="modal-subtext wide">
           Shows the splash screen, with quick launch and resources, upon
@@ -150,14 +134,10 @@ function UserSettings({ onComplete }) {
           <div className="modal-body2">
             Use Fancy Graphics
           </div>
-          <label className="switch">
-            <input
-              type="checkbox"
-              checked={settings.fancy_graphics}
-              onChange={() => handleToggle("fancy_graphics")}
-            />
-            <span className="slider"></span>
-          </label>
+          <Switch
+            checked={settings.fancy_graphics}
+            onChange={() => handleToggle("fancy_graphics")}
+          />
         </div>
         <div className="modal-subtext wide">
           Enables some modern graphic effects within the UI. Only disable if you
@@ -184,14 +164,11 @@ function UserSettings({ onComplete }) {
             <TriangleAlert size={14} style={{ marginRight: "5px" }} />
             Disable Auto-Save Backup
           </div>
-          <label className="switch">
-            <input
-              type="checkbox"
-              checked={settings.disable_auto_save}
-              onChange={() => handleToggle("disable_auto_save")}
-            />
-            <span className="slider red"></span>
-          </label>
+          <Switch
+            checked={settings.disable_auto_save}
+            onChange={() => handleToggle("disable_auto_save")}
+            dangerous
+          />
         </div>
         <div className="modal-subtext wide">
           Disables saving backup copies of every session in the dedicated
@@ -204,14 +181,11 @@ function UserSettings({ onComplete }) {
             <TriangleAlert size={14} style={{ marginRight: "5px" }} /> Disable
             Delete Confirmation
           </div>
-          <label className="switch">
-            <input
-              type="checkbox"
-              checked={settings.disable_delete_confirm}
-              onChange={() => handleToggle("disable_delete_confirm")}
-            />
-            <span className="slider red"></span>
-          </label>
+          <Switch
+            checked={settings.disable_delete_confirm}
+            onChange={() => handleToggle("disable_delete_confirm")}
+            dangerous
+          />
         </div>
         <div className="modal-subtext wide">
           Disables the confirmation upon deleting files, and removing folders.
@@ -224,14 +198,11 @@ function UserSettings({ onComplete }) {
                 <TriangleAlert size={14} style={{ marginRight: "5px" }} />
                 Show Console
               </div>
-              <label className="switch">
-                <input
-                  type="checkbox"
-                  checked={settings.show_console}
-                  onChange={() => handleToggle("show_console")}
-                />
-                <span className="slider red"></span>
-              </label>
+              <Switch
+                checked={settings.show_console}
+                onChange={() => handleToggle("show_console")}
+                dangerous
+              />
             </div>
             <div className="modal-subtext wide">
               Shows the console output of the Editor in a separate window. May

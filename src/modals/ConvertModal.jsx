@@ -445,7 +445,7 @@ function ConvertModal({ onClose, onComplete }) {
                       value={tempoBpm}
                       onChange={(e) => setTempoBpm(e.target.value || "")}
                       singleLine={true}
-                      width="100%"
+                      style={{ width: "100%" }}
                     />
                   </div>
                   <div>
@@ -481,18 +481,14 @@ function ConvertModal({ onClose, onComplete }) {
                           value={timeSigNumerator}
                           onChange={(e) => setTimeSigNumerator(e.target.value || "")}
                           singleLine={true}
-                          width="72px"
-                          height="40px"
-                          fontSize="28px"
+                          style={{ width: "72px", height: "40px", fontSize: "28px" }}
                           className="musicxml-time-sig-field field"
                         />
                         <Field
                           value={timeSigDenominator}
                           onChange={(e) => setTimeSigDenominator(e.target.value || "")}
                           singleLine={true}
-                          width="72px"
-                          height="40px"
-                          fontSize="28px"
+                          style={{ width: "72px", height: "40px", fontSize: "28px" }}
                           className="musicxml-time-sig-field field"
                         />
                       </div>
@@ -598,9 +594,7 @@ function ConvertModal({ onClose, onComplete }) {
                   if (presetError) setPresetError("");
                 }}
                 singleLine={true}
-                width="100%"
-                fontSize="13px"
-                height="34px"
+                style={{ width: "100%", fontSize: "13px", height: "34px" }}
               />
               {presetError ? (
                 <div

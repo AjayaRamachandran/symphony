@@ -5,30 +5,33 @@
 }
 
 .directory {
-  flex: 1;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
   border-radius: 7px;
   border: 1px var(--tinted-background) solid;
   color: var(--tinted-foreground);
   background-color: var(--background);
-  padding: 10px 10px 10px 15px;
-  overflow-y: auto;
-  overflow-x: hidden;
+  padding: 7px 12px 15px 12px;
   min-height: 25%;
+  overflow-y: auto;
 }
 
-.directory-large {
+.directory-section {
   color: var(--muted-foreground);
-  font-size: 1.35em;
+  font-size: 1.2em;
   font-weight: 300;
-  margin: 11px 3px 5px 3px;
+  margin: 10px 5px 4px 5px;
+  font-style: italic;
 
   justify-content: space-between;
   display: flex;
 }
 
-.directory-medium {
-  flex: 1;
-  padding: 4px 3px 4px 12px;
+.directory-folder {
+  display: flex;
+  width: 100%;
+  padding: 4px 6px 4px 12px;
   color: var(--foreground);
   background-color: var(--background);
   border-radius: 4px;
@@ -38,14 +41,13 @@
   justify-content: left;
   align-items: start;
   text-align: left;
-  width: 98%;
 
   box-sizing: border-box;
   flex-direction: row;
   z-index: 10;
   margin-top: 1px;
 }
-.directory-medium:hover {
+.directory-folder:hover {
   cursor: pointer;
 }
 
@@ -54,18 +56,17 @@
   white-space: nowrap;
   text-overflow: ellipsis;
   max-width: 200px;
-  flex: 1;
 }
-.directory-medium:hover .directory-text {
+.directory-folder:hover .directory-text {
   max-width: 150px;
 }
 
-.directory-medium .del-dir-button {
+.directory-folder .del-dir-button {
   opacity: 0;
   pointer-events: none;
 }
 
-.directory-medium:hover .del-dir-button {
+.directory-folder:hover .del-dir-button {
   opacity: 1;
   pointer-events: auto;
 }

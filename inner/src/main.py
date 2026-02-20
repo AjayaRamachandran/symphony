@@ -1,7 +1,13 @@
 # main.py
 # entry point for the program. contains the mainloop.
+###### CONSOLE ######
+
+#import console_controls.console_window as cw
+from console_controls.console import *
+
 ###### IMPORT ######
-print('Welcome to Symphony v1.1.')
+
+console.message('Welcome to Symphony v1.1.')
 
 import time
 lastTime = time.time()
@@ -17,13 +23,10 @@ import sys
 import traceback
 import webbrowser
 
-###### INTERNAL MODULES ######
-
-#import console_controls.console_window as cw
-from console_controls.console import *
-
-console.log("Imported Libraries "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
+console.log("Imported External Libraries "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
 lastTime = time.time()
+
+###### INTERNAL MODULES ######
 
 import events
 import gui.element as gui
@@ -34,21 +37,21 @@ import utils.state_loading as sl
 import utils.file_io as fio
 import utils.sound_processing as sp
 
-console.log("Imported Modules & Libraries "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
+console.log("Imported Internal Modules & Connected External Libraries "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
 lastTime = time.time()
 
 ###### PLATFORM DETECTION ######
 
 if sys.platform.startswith("win"):
-    console.log("Running on Windows")
+    console.message("Running on Windows")
     platform = 'windows'
     CMD_KEY = pygame.K_LCTRL
 elif sys.platform == "darwin":
-    console.log("Running on macOS")
+    console.message("Running on macOS")
     platform = 'mac'
     CMD_KEY = pygame.K_LMETA
 elif sys.platform.startswith("linux"):
-    console.log("Running on Linux")
+    console.message("Running on Linux")
     platform = 'linux'
     CMD_KEY = pygame.K_LCTRL
 else:
@@ -68,7 +71,7 @@ except ImportError:
 
 SAMPLE_RATE = 44100
 
-console.log(sys.argv)
+console.log(f"sysargs: {sys.argv}")
 source_path = sys.argv[1]
 process_command_file = sys.argv[2]
 
@@ -773,7 +776,7 @@ NoteGrid.onMouseUnClick(handleUnClick)
 
 console.log("Initialized NoteGrid Functionality "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
 lastTime = time.time()
-console.log("Startup complete in " + str(round(time.time() - START_TIME, 5)) + ' seconds.')
+console.message("Startup complete in " + str(round(time.time() - START_TIME, 5)) + ' seconds.')
 
 ###### MAINLOOP ######
 
@@ -877,7 +880,7 @@ while run:
             events.pump()
 
             saveFrame += 60 * (1 / fps)
-            if round(saveFrame) == 20:
+            if round(saveFrame % 20) == 19:
                 pc_data = pcrw.operateProcessCommand(process_command_file)
             if saveFrame > 1200: # Saves every 20 seconds
                 saveFrame = 0
@@ -898,7 +901,7 @@ while run:
                         gui_running = False
             except pygame.error as e:
                 traceback.print_exc()
-                console.log('Pygame display was likely quit outside of the main module. Handling and closing properly...\nIf this was unexpected, investigate.')
+                console.warn('Pygame display was likely quit outside of the main module. Handling and closing properly...\nIf this was unexpected, investigate.')
                 gui_running = False
                 break
 
@@ -1056,4 +1059,4 @@ try:
 except:
     pass
 
-console.log("Daemon was quit.")
+console.warn("Daemon was quit.")
