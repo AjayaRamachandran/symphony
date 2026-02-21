@@ -14,6 +14,7 @@ import Tooltip from "@/ui/Tooltip";
 import "@/components/content-components/left-panel-components/recently-viewed.css";
 import GenericModal from "@/modals/GenericModal";
 import FileNotExist from "@/modals/FileNotExist";
+import "./modals-styling/splash-screen.css";
 
 import banner from "@/assets/banner.svg";
 import symphonyFileTypeIcon from "@/assets/symphony-file-type-icon.svg";

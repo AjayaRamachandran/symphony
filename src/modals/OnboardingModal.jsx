@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { ArrowRight, LoaderCircle } from "lucide-react";
 import Field from "@/ui/Field";
 import Tooltip from "@/ui/Tooltip";
+import "./modals-styling/onboarding-modal.css";
 
 import note from "@/assets/note-element.svg";
 

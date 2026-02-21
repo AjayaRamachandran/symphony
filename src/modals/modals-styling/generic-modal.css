@@ -24,45 +24,12 @@
   min-width: 300px;
   max-width: 90%;
 }
-.modal-container.onboarding {
-  background: linear-gradient(110deg, var(--dark-primary), #da0f90);
-  border-radius: 12px;
-  width: 650px;
-  height: 350px;
-  border: none;
-  outline-offset: -1px;
-  outline: 1px solid #ffffff22;
-  overflow: hidden;
-}
-
-.modal-container.splash {
-  border-radius: 12px;
-  border: none;
-  outline-offset: -1px;
-  outline: 1px solid #ffffff22;
-  overflow: hidden;
-  padding: 0;
-}
 
 .modal-content {
   margin-top: 0rem;
 }
 
-/*  SPECIFIC STYLING  */
-
-.modal-big-title {
-  font-size: 45px;
-  font-weight: 600;
-  margin-bottom: 15px;
-  margin-left: 2px;
-  margin-top: 3px;
-  display: flex;
-  align-items: center;
-  line-height: 44px;
-  gap: 5px;
-  font-family: Instrument Sans, sans-serif;
-}
-
+/* Generic modal styling */
 .modal-title {
   font-size: 20px;
   font-weight: 600;
@@ -85,16 +52,6 @@
   align-items: center;
   opacity: 0.6;
   gap: 5px;
-}
-
-.modal-big-body {
-  font-size: 22px;
-  font-weight: 400;
-  margin-bottom: 20px;
-  margin-top: 50px;
-  margin-left: 2px;
-  letter-spacing: 0.2px;
-  font-family: Instrument Sans, sans-serif;
 }
 
 .modal-body {
@@ -143,6 +100,7 @@
   letter-spacing: 0.2px;
   line-height: 18px;
 }
+
 .wide {
   width: 400px;
 }
@@ -222,54 +180,7 @@
   font-weight: 500;
   white-space: nowrap;
 }
+
 .red {
   color: var(--muted-inactive-bad);
-}
-
-.onboarding-field {
-  background-color: transparent !important;
-  border-width: 2px !important;
-}
-.onboarding-field-span {
-  background-color: transparent !important;
-}
-.onboarding-button {
-  background-color: #2c2c2c;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  border-radius: 7px;
-  height: 38px;
-  width: 38px;
-}
-
-.banner {
-  background: linear-gradient(110deg, var(--dark-primary), #da0f90);
-  display: block;
-}
-
-.quick-launch {
-  flex: 1;
-  border-radius: 7px;
-  border: 1px var(--tinted-background) solid;
-  color: var(--tinted-foreground);
-  background-color: var(--background);
-  padding: 10px;
-}
-
-.quick-launch-medium {
-  flex: 1;
-  padding: 6px 6px 6px 6px;
-  color: var(--foreground);
-  background-color: var(--background);
-  border-radius: 4px;
-  font-size: 1.2em;
-
-  display: flex;
-  flex-direction: row;
-  width: 100%;
-}
-.quick-launch-medium:hover {
-  filter: brightness(1.2);
-  cursor: pointer;
 }

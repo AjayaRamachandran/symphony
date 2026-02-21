@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 
-import { FolderClosed, KeyboardMusic, FileMusic } from "lucide-react";
+import { FolderClosed, KeyboardMusic, FileMusic, X } from "lucide-react";
 import path from "path-browserify";
 
 import Dropdown from "@/ui/Dropdown";
@@ -8,7 +8,7 @@ import Field from "@/ui/Field";
 import { useDirectory } from "@/contexts/DirectoryContext";
 import InitExportFolder from "@/modals/InitExportFolder";
 import GenericModal from "@/modals/GenericModal";
-import "./convert-modal.css";
+import "./modals-styling/convert-modal.css";
 
 const formats = [
   { label: "MIDI", icon: KeyboardMusic },
@@ -164,10 +164,60 @@ function ConvertModal({ onClose, onComplete }) {
     });
   }, []);
 
+  const deleteCustomPreset = async (presetId) => {
+    if (!presetId || !userClefPresets[presetId]) return;
+    const updatedPresets = { ...userClefPresets };
+    delete updatedPresets[presetId];
+    setUserClefPresets(updatedPresets);
+    await window.electronAPI.updateUserSettings("clef_presets", updatedPresets);
+    if (instrumentPreset === `custom:${presetId}`) {
+      setInstrumentPreset("builtin:vocals-6");
+    }
+  };
+
   const customPresetOptions = Object.entries(userClefPresets).map(
     ([presetId, preset]) => ({
       label: preset?.name || "Unnamed preset",
+      selectedLabel: preset?.name || "Unnamed preset",
       value: `custom:${presetId}`,
+      node: (
+        <div
+          style={{
+            display: "flex",
+            width: "100%",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "10px",
+          }}
+        >
+          <span className="truncate">{preset?.name || "Unnamed preset"}</span>
+          <button
+            type="button"
+            aria-label={`Delete ${preset?.name || "preset"}`}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              void deleteCustomPreset(presetId);
+            }}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+              border: "none",
+              background: "transparent",
+              color: "var(--red)",
+              opacity: 0.85,
+              cursor: "pointer",
+              width: "18px",
+              height: "18px",
+              borderRadius: "4px",
+            }}
+          >
+            <X size={14} />
+          </button>
+        </div>
+      ),
     }),
   );
   const presetOptions = [

@@ -8,7 +8,7 @@ import soundfile as sf
 import pretty_midi
 from os import path
 from math import exp
-from music21 import stream, note, tempo, meter, instrument, clef, key as keys, tie, metadata, duration as m21duration
+from music21 import stream, note, tempo, meter, instrument, clef, key as keys, tie, metadata, duration as m21duration, chord
 from fractions import Fraction
 
 ###### INTERNAL MODULES ######
@@ -538,10 +538,52 @@ def createMusicXMLFromNotes(
                 r.duration = m21duration.Duration(quarterLength=float(measureQL))
                 m.append(r)
             else:
-                # Fill measure with notes and rests
+                # Group simultaneous notes into chords when they share
+                # offset, duration, and tie type.
+                groupedByTiming = {}
+                for event in timeline:
+                    groupKey = (event['offset'], event['duration'], event['tie'])
+                    if groupKey not in groupedByTiming:
+                        groupedByTiming[groupKey] = []
+                    groupedByTiming[groupKey].append(event['pitch'])
+
+                groupedEvents = sorted(
+                    (
+                        {
+                            'offset': groupKey[0],
+                            'duration': groupKey[1],
+                            'tie': groupKey[2],
+                            'pitches': pitches
+                        }
+                        for groupKey, pitches in groupedByTiming.items()
+                    ),
+                    key=lambda x: x['offset']
+                )
+
+                # Enforce single-voice timing per staff/measure:
+                # if an event overlaps the next event onset, truncate it.
+                normalizedEvents = []
+                for idx, event in enumerate(groupedEvents):
+                    eventOffset = event['offset']
+                    eventDuration = event['duration']
+
+                    if idx < len(groupedEvents) - 1:
+                        nextOffset = groupedEvents[idx + 1]['offset']
+                        if nextOffset > eventOffset and eventOffset + eventDuration > nextOffset:
+                            eventDuration = nextOffset - eventOffset
+
+                    if eventDuration > 0:
+                        normalizedEvents.append({
+                            'offset': eventOffset,
+                            'duration': eventDuration,
+                            'tie': event['tie'],
+                            'pitches': event['pitches']
+                        })
+
+                # Fill measure with notes/chords and rests
                 currentOffset = Fraction(0)
 
-                for event in timeline:
+                for event in normalizedEvents:
                     eventOffset = event['offset']
                     eventDuration = event['duration']
 
@@ -552,14 +594,20 @@ def createMusicXMLFromNotes(
                         r.duration = m21duration.Duration(quarterLength=float(gapDur))
                         m.insert(float(currentOffset), r)
 
-                    # Add the note
-                    n = note.Note(event['pitch'])
-                    n.duration = m21duration.Duration(quarterLength=float(eventDuration))
-                    if event['tie']:
-                        n.tie = tie.Tie(event['tie'])
-                    m.insert(float(eventOffset), n)
+                    # Add note or chord
+                    if len(event['pitches']) == 1:
+                        musicalEvent = note.Note(event['pitches'][0])
+                        if event['tie']:
+                            musicalEvent.tie = tie.Tie(event['tie'])
+                    else:
+                        musicalEvent = chord.Chord(event['pitches'])
+                        if event['tie']:
+                            for chordNote in musicalEvent.notes:
+                                chordNote.tie = tie.Tie(event['tie'])
+                    musicalEvent.duration = m21duration.Duration(quarterLength=float(eventDuration))
+                    m.insert(float(eventOffset), musicalEvent)
 
-                    currentOffset = eventOffset + eventDuration
+                    currentOffset = max(currentOffset, eventOffset + eventDuration)
 
                 # Fill remaining space at end of measure with rest
                 if currentOffset < measureQL:

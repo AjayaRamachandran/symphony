@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from "react";
 
 import { X } from "lucide-react";
 
-import "./generic-modal.css";
+import "./modals-styling/generic-modal.css";
 
 let blurOverlay = true;
 window.electronAPI.getUserSettings().then((data) => {

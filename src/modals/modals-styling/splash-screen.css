@@ -1,0 +1,47 @@
+.modal-container.splash {
+  border-radius: 12px;
+  border: none;
+  outline-offset: -1px;
+  outline: 1px solid #ffffff22;
+  overflow: hidden;
+  padding: 0;
+}
+
+.modal-big-title {
+  font-size: 45px;
+  font-weight: 600;
+  margin-bottom: 15px;
+  margin-left: 2px;
+  margin-top: 3px;
+  display: flex;
+  align-items: center;
+  line-height: 44px;
+  gap: 5px;
+  font-family: Instrument Sans, sans-serif;
+}
+
+.banner {
+  background: linear-gradient(110deg, var(--dark-primary), #da0f90);
+  display: block;
+}
+
+.quick-launch {
+  flex: 1;
+  border-radius: 7px;
+  border: 1px var(--tinted-background) solid;
+  color: var(--tinted-foreground);
+  background-color: var(--background);
+  padding: 10px;
+}
+
+.quick-launch-medium {
+  flex: 1;
+  padding: 6px 6px 6px 6px;
+  color: var(--foreground);
+  background-color: var(--background);
+  border-radius: 4px;
+  font-size: 1.2em;
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+}

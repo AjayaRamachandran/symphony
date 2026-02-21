@@ -28,6 +28,17 @@ const Dropdown = ({
     onSelect && onSelect(option);
   };
 
+  const isPlainOptionObject = (option) =>
+    option && typeof option === "object" && !React.isValidElement(option);
+  const getMenuOptionContent = (option) => {
+    if (isPlainOptionObject(option)) return option?.node ?? option?.label;
+    return option;
+  };
+  const getSelectedContent = (option) =>
+    isPlainOptionObject(option)
+      ? option?.selectedNode ?? option?.selectedLabel ?? option?.label
+      : option;
+
   // Close on outside click
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -42,9 +53,13 @@ const Dropdown = ({
   return (
     <div className="dropdown" ref={dropdownRef}>
       <button className="dropdown-toggle" onClick={() => setOpen(!open)}>
-        <span className="truncate">
-          {selected ? selected.label : placeholder}
-        </span>
+        {typeof (selected ? getSelectedContent(selected) : placeholder) === "string" ? (
+          <span className="truncate">
+            {selected ? getSelectedContent(selected) : placeholder}
+          </span>
+        ) : (
+          selected ? getSelectedContent(selected) : placeholder
+        )}
         <span className="chevron">
           <ChevronUp size={16} className="chevron-arrow" style={!open ? { rotate: "-180deg" } : {}} />
         </span>
@@ -59,7 +74,11 @@ const Dropdown = ({
               {opt.icon && (
                 <span className="icon">{<opt.icon size={16} />}</span>
               )}
-              <span className="truncate">{opt.label}</span>
+              {typeof getMenuOptionContent(opt) === "string" ? (
+                <span className="truncate">{getMenuOptionContent(opt)}</span>
+              ) : (
+                getMenuOptionContent(opt)
+              )}
             </li>
           ))}
         </ul>

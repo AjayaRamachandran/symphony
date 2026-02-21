@@ -8,6 +8,7 @@ import copy
 
 from console_controls.console import *
 from gui.custom import Note
+from utils.transactions import Transaction
 
 ###### INITIALIZE ######
 
@@ -185,3 +186,17 @@ def fromSavable(noteMap: dict):
                 raise ValueError('invalid note type')
         output[color] = channel
     return copy.deepcopy(output)
+
+def flattenTransactionsOntoState(state: dict, transactions: list[Transaction]):
+    '''
+    fields:
+        state (dict) - the state to flatten transactions onto
+        transactions (list) - the transactions to flatten onto the state
+    outputs: dict
+
+    Flattens a list of transactions onto a state.
+    '''
+    newState = copy.deepcopy(state)
+    for transaction in transactions:
+        transaction.execute(newState.get("noteMap", DEFAULT_NOTE_MAP))
+    return newState
