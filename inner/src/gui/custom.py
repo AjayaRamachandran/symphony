@@ -12,7 +12,7 @@ from math import *
 from console_controls.console import *
 import gui.element as gui
 import gui.frame as frame
-import utils.sound_processing as sp
+import sound.sound_processing as sp
 import events
 
 ###### INITIALIZE ######
@@ -148,7 +148,7 @@ class PitchList(gui.Interactive):
             gui.stamp(screen, f"{noteToWrite} {octaveToWrite}", gui.SUBHEADING1, 5, offsetY + 5, gui.ALT_TEXT_COLOR)
 
             if pygame.mouse.get_pressed()[0] and gui.mouseBounds((1, offsetY + 1, 78, tileHeight - 2)):
-                sp.playNotes(notes=[(-1 - (rowIndex % 12)) + 12 * (7 - rowIndex // 12) + 1], waves=self.wave, duration=0.2, volume=0.12)
+                sp.playNote(note=(-1 - (rowIndex % 12)) + 12 * (7 - rowIndex // 12) + 1, waves=self.wave, duration=0.2, volume=0.12)
 
             offsetY += tileHeight
             y += 1

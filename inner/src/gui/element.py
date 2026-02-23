@@ -11,7 +11,7 @@ from io import BytesIO
 ###### INTERNAL MODULES ######
 
 from console_controls.console import *
-import utils.sound_processing as sp
+import sound.sound_processing as sp
 import events
 
 ###### INITIALIZE ######

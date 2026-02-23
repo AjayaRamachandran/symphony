@@ -1,6 +1,5 @@
 # utils/stack.py
 # module for handling stack data structures.
-
 ###### IMPORT ######
 
 import events

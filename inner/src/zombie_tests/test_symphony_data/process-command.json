@@ -1,1 +1,1 @@
-{"status": "success", "id": "c73b85d0-f675-45cf-be89-bf69da5c9e68", "message": "", "payload": {}}
+{"command": "kill", "id": "af9aed37-3e73-493a-8ddb-e05eb2c732f7", "pc_file_path": "c:\\Code\\React Projects\\Editor NEW\\inner\\src\\zombie_tests\\test_symphony_data\\process-command.json", "args": {"project_file_name": "testfile", "project_folder_path": "c:\\Code\\React Projects\\Editor NEW\\inner\\src\\zombie_tests\\test_projects", "symphony_data_path": "c:\\Code\\React Projects\\Editor NEW\\inner\\src\\zombie_tests\\test_symphony_data"}}

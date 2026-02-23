@@ -35,7 +35,7 @@ import gui.custom as custom
 import process_command.read_write as pcrw
 import utils.state_loading as sl
 import utils.file_io as fio
-import utils.sound_processing as sp
+import sound.sound_processing as sp
 
 console.log("Imported Internal Modules & Connected External Libraries "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
 lastTime = time.time()
@@ -611,7 +611,7 @@ def handleClick():
                 "duration" : 1,
                 "data_fields" : {}
                 }))
-            sp.playNotes(notes=[mousePitch], waves=waveMap[justColorNames[ColorButton.currentStateIdx]], duration=0.2, volume=0.12)
+            sp.playNote(note=mousePitch, waves=waveMap[justColorNames[ColorButton.currentStateIdx]], duration=0.2, volume=0.12)
     elif brushType == "eraser":
         notes: list[custom.Note] = noteMap[currColorName]
         for note in notes:
@@ -642,7 +642,7 @@ def handleClick():
         else:
             clickedNote.select()
             if not extendingNote:
-                sp.playNotes(notes=[clickedNote.pitch], waves=waveMap[justColorNames[ColorButton.currentStateIdx]], duration=0.2, volume=0.12)
+                sp.playNote(note=clickedNote.pitch, waves=waveMap[justColorNames[ColorButton.currentStateIdx]], duration=0.2, volume=0.12)
 
         if extendingNote:
             for note in notes:
