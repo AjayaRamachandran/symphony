@@ -315,6 +315,9 @@ class NoteGrid(gui.Interactive):
                 if isinstance(note, Note):
                     note.render(screen, colors[colorIdx] if colorIdx < len(colors) else colors[0], self.color != 6 and self.color != colorIdx, [0,0])
                 else:
+                    if isinstance(note, dict):
+                        note.render(screen, colors[colorIdx] if colorIdx < len(colors) else colors[0], self.color != 6 and self.color != colorIdx, [0,0])
+
                     raise ValueError(f'Invalid data type for note: {note.__class__()}')
         
         # Render the selected color channel (if not "all" and it exists)

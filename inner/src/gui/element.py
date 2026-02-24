@@ -624,6 +624,8 @@ class Dropdown(Interactive):
         self.font = font if (font != None) else SUBHEADING1
         self.image = image if (image != None) else pygame.Surface((16, 16), pygame.SRCALPHA)
         self.expanded = False
+        self.onSelectCallback = None
+        self.onCloseCallback = None
 
         self.onMouseEnter(lambda: (setattr(self, "redraw", True), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
         self.onMouseLeave(lambda: (setattr(self, "redraw", True), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
@@ -676,15 +678,24 @@ class Dropdown(Interactive):
         if self.redraw:
             self.render(screen)
 
+    def renderState(self, screen: pygame.Surface, state, yCenter):
+        stateCenterX = self.x + self.width/2 - 4
+        if isinstance(state, pygame.Surface): # if it's an image (icon)
+            loc = (stateCenterX - state.get_width() / 2,
+                   yCenter - state.get_height() / 2)
+            screen.blit(state, loc)
+        else:
+            stamp(screen, state, self.font, stateCenterX, yCenter, ALT_TEXT_COLOR, justification="center")
+
     def render(self, screen: pygame.Surface):
         if not self.expanded:
             pygame.draw.rect(screen, ALT_BG_COLOR_1 if self.mouseInside else ALT_BG_COLOR_4, (self.x, self.y, self.width, self.height), border_radius=3)
-            stamp(screen, self.currentState, self.font, self.x + self.width/2 - 4, self.y + self.height/2, ALT_TEXT_COLOR, justification="center")
+            self.renderState(screen, self.currentState, self.y + self.height/2)
 
             screen.blit(self.image, (self.x + self.width - self.image.get_width() - 4, self.y + (self.height / 2) - (self.image.get_height() / 2)))
         if self.expanded:
             pygame.draw.rect(screen, ALT_BG_COLOR_4, (self.x, self.y, self.width, self.height), border_radius=3)
-            stamp(screen, self.currentState, self.font, self.x + self.width/2 - 4, self.y + self.initHeight/2, ALT_TEXT_COLOR, justification="center")
+            self.renderState(screen, self.currentState, self.y + self.initHeight/2)
 
             screen.blit(self.image, (self.x + self.width - self.image.get_width() - 4, self.y + (self.initHeight / 2) - (self.image.get_height() / 2)))
         
@@ -695,8 +706,7 @@ class Dropdown(Interactive):
             # selected item highlight
             pygame.draw.rect(screen, ALT_BG_COLOR_1, (self.x, self.y + self.initHeight + (self.currentStateIdx * self.initHeight), self.width, self.initHeight), border_radius=3)
             for idx, state in enumerate(self.states):
-                stamp(screen, state, self.font, self.x + self.width/2, self.y + self.initHeight/2 + ((idx + 1) * self.initHeight),
-                      ALT_TEXT_COLOR, justification="center")
+                self.renderState(screen, state, self.y + self.initHeight/2 + ((idx + 1) * self.initHeight))
 
     def cycleStates(self):
         self.currentStateIdx = (self.currentStateIdx + 1) % len(self.states)

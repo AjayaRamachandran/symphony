@@ -153,8 +153,9 @@ def toSavable(noteMap: dict):
     Converts an active noteMap into save-ready format (Note -> dict).
     Note: this method is repeat-safe; if input is already save-ready, nothing should break.
     '''
+    noteMapToSave = copy.deepcopy(noteMap)
     output = DEFAULT_NOTE_MAP
-    for color, notes in noteMap.items():
+    for color, notes in noteMapToSave.items():
         channel = []
         for note in notes:
             if isinstance(note, Note):
@@ -174,8 +175,9 @@ def fromSavable(noteMap: dict):
     Converts an active noteMap FROM save-ready format (dict -> Note).
     Note: this method is repeat-safe; if input is already Note-format, nothing should break.
     '''
+    noteMapToLoad = copy.deepcopy(noteMap)
     output = DEFAULT_NOTE_MAP
-    for color, notes in noteMap.items():
+    for color, notes in noteMapToLoad.items():
         channel = []
         for note in notes:
             if isinstance(note, Note):

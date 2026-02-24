@@ -228,41 +228,47 @@ zoomDimensions = [
 
 ###### ASSETS ######
 
+LARGE_SPACE = 24
+SMALL_SPACE = 6
+
 PlayPauseButton = gui.Button(pos=(26, 26), width=28, height=28, states=[playImage, pauseImage])
-AccidentalsButton = gui.Button(pos=(60, 26), width=28, height=28, states=[flatsImage, sharpsImage])
-PlayheadButton = gui.Button(pos=(94, 26), width=28, height=28, states=[headImage, headAltImage])
-BrushButton = gui.Button(pos=(128, 26), width=28, height=28, states=[brushImage, eraserImage, selectImage])
+AccidentalsButton = gui.Button(pos=(PlayPauseButton.x + PlayPauseButton.width + SMALL_SPACE, 26), width=28, height=28, states=[flatsImage, sharpsImage])
+PlayheadButton = gui.Button(pos=(AccidentalsButton.x + AccidentalsButton.width + SMALL_SPACE, 26), width=28, height=28, states=[headImage, headAltImage])
+BrushButton = gui.Button(pos=(PlayheadButton.x + PlayheadButton.width + SMALL_SPACE, 26), width=28, height=28, states=[brushImage, eraserImage, selectImage])
 LeftToolbar = frame.Panel((0, 0, width, height), gui.EMPTY_COLOR,
                            [PlayPauseButton, AccidentalsButton, PlayheadButton, BrushButton],
                            name="LeftToolbar")
 
-TempoDownButton = gui.Button(pos=(180, 26), width=20, height=28, states=[downChevronImage])
-TempoTextBox = gui.TextBox(pos=(205, 26), width=105, height=28, text='360')
-TempoUpButton = gui.Button(pos=(315, 26), width=20, height=28, states=[upChevronImage])
+TempoDownButton = gui.Button(pos=(BrushButton.x + BrushButton.width + LARGE_SPACE, 26), width=20, height=28, states=[downChevronImage])
+TempoTextBox = gui.TextBox(pos=(TempoDownButton.x + TempoDownButton.width + SMALL_SPACE, 26), width=105, height=28, text='360')
+TempoUpButton = gui.Button(pos=(TempoTextBox.x + TempoTextBox.width + SMALL_SPACE, 26), width=20, height=28, states=[upChevronImage])
 TempoControls = frame.Panel((0, 0, width, height), gui.EMPTY_COLOR,
                             [TempoDownButton, TempoTextBox, TempoUpButton],
                             name="TempoControls")
 
-BeatLengthDownButton = gui.Button(pos=(359, 26), width=20, height=28, states=[downChevronImage])
-BeatLengthTextBox = gui.TextBox(pos=(384, 26), width=30, height=28, text='4')
-BeatLengthUpButton = gui.Button(pos=(419, 26), width=20, height=28, states=[upChevronImage])
+BeatLengthDownButton = gui.Button(pos=(TempoUpButton.x + TempoUpButton.width + LARGE_SPACE, 26), width=20, height=28, states=[downChevronImage])
+BeatLengthTextBox = gui.TextBox(pos=(BeatLengthDownButton.x + BeatLengthDownButton.width + SMALL_SPACE, 26), width=30, height=28, text='4')
+BeatLengthUpButton = gui.Button(pos=(BeatLengthTextBox.x + BeatLengthTextBox.width + SMALL_SPACE, 26), width=20, height=28, states=[upChevronImage])
 BeatLengthControls = frame.Panel((0, 0, width, height), gui.EMPTY_COLOR,
                                     [BeatLengthDownButton, BeatLengthTextBox, BeatLengthUpButton],
                                     name="BeatLengthControls")
 
-BeatsPerMeasureDownButton = gui.Button(pos=(width - 472, 26), width=20, height=28, states=[downChevronImage])
-BeatsPerMeasureTextBox = gui.TextBox(pos=(width - 447, 26), width=30, height=28, text='4')
-BeatsPerMeasureUpButton = gui.Button(pos=(width - 412, 26), width=20, height=28, states=[upChevronImage])
+QuestionButton = gui.Button(pos=(width - 54, 26), width=28, height=28, states=[questionImage])
+
+ModeDropdown = gui.Dropdown(pos=(QuestionButton.x - 140 - LARGE_SPACE, 26), width=140, height=28, states=modes, image=upDownChevronImage)
+KeyDropdown = gui.Dropdown(pos=(ModeDropdown.x - 60 - SMALL_SPACE, 26), width=60, height=28, states=NOTES_FLAT, image=upDownChevronImage)
+
+WaveButton = gui.Dropdown(pos=(KeyDropdown.x - 64 - LARGE_SPACE, 26), width=64, height=28, states=waveImages, image=upDownChevronImage)
+colorStates = custom.getColorStates(28, 28, source_path)
+ColorButton = gui.Button(pos=(WaveButton.x - 28 - SMALL_SPACE, 26), width=28, height=28, states=colorStates)
+
+BeatsPerMeasureUpButton = gui.Button(pos=(ColorButton.x - 20 - LARGE_SPACE, 26), width=20, height=28, states=[upChevronImage])
+BeatsPerMeasureTextBox = gui.TextBox(pos=(BeatsPerMeasureUpButton.x - 30 - SMALL_SPACE, 26), width=30, height=28, text='4')
+BeatsPerMeasureDownButton = gui.Button(pos=(BeatsPerMeasureTextBox.x - 20 - SMALL_SPACE, 26), width=20, height=28, states=[downChevronImage])
 BeatsPerMeasureControls = frame.Panel((0, 0, width, height), gui.EMPTY_COLOR,
                                     [BeatsPerMeasureDownButton, BeatsPerMeasureTextBox, BeatsPerMeasureUpButton],
                                     name="BeatsPerMeasureControls")
 
-colorStates = custom.getColorStates(28, 28, source_path)
-ColorButton = gui.Button(pos=(width - 368, 26), width=28, height=28, states=colorStates)
-WaveButton = gui.Button(pos=(width - 335, 26), width=28, height=28, states=waveImages)
-KeyDropdown = gui.Dropdown(pos=(width - 283, 26), width=60, height=28, states=NOTES_FLAT, image=upDownChevronImage)
-ModeDropdown = gui.Dropdown(pos=(width - 218, 26), width=140, height=28, states=modes, image=upDownChevronImage)
-QuestionButton = gui.Button(pos=(width - 54, 26), width=28, height=28, states=[questionImage])
 RightToolbar = frame.Panel((0, 0, width, height), gui.EMPTY_COLOR,
                            [KeyDropdown, ModeDropdown, WaveButton, ColorButton, QuestionButton],
                            name="RightToolbar")
@@ -460,18 +466,19 @@ KeyDropdown.onClose(lambda: MasterPanel.render(screen))
 ModeDropdown.onSelect(finalizeMode)
 ModeDropdown.onClose(lambda: MasterPanel.render(screen))
 
-def cycleWave():
+def finalizeWave():
     global waveMap
-    WaveButton.cycleStates()
     waveMap[justColorNames[ColorButton.currentStateIdx]] = WaveButton.currentStateIdx
     PitchList.setWave(WaveButton.currentStateIdx)
-    WaveButton.render(screen)
 
 def colorSync():
-    ColorButton.render(screen)
-    WaveButton.setCurrentState(waveMap[justColorNames[ColorButton.currentStateIdx]])
-    PitchList.setWave(WaveButton.currentStateIdx)
-    WaveButton.render(screen)
+    if ColorButton.currentStateIdx != 6:
+        WaveButton.setCurrentState(waveMap[justColorNames[ColorButton.currentStateIdx]])
+        PitchList.setWave(WaveButton.currentStateIdx)
+    else:
+        if WaveButton.expanded:
+            WaveButton.handleClickOut()
+    ToolBar.render(screen)
     NoteGrid.color = ColorButton.currentStateIdx
     
     # Clear selections when switching to universal view (channel 6)
@@ -486,7 +493,8 @@ def cycleColor():
     ColorButton.cycleStates()
     colorSync()
 
-WaveButton.onMouseClick(cycleWave)
+WaveButton.onSelect(finalizeWave)
+WaveButton.onClose(lambda: MasterPanel.render(screen))
 ColorButton.onMouseClick(cycleColor)
 QuestionButton.onMouseClick(lambda: webbrowser.open(questions_url))
 
@@ -583,6 +591,10 @@ def handleClick():
     if KeyDropdown.expanded:
         if pygame.rect.Rect(KeyDropdown.x, KeyDropdown.y, KeyDropdown.width, KeyDropdown.height).collidepoint(pygame.mouse.get_pos()):
             #console.log("click was on key dropdown, we don't care")
+            return
+    if WaveButton.expanded:
+        if pygame.rect.Rect(WaveButton.x, WaveButton.y, WaveButton.width, WaveButton.height).collidepoint(pygame.mouse.get_pos()):
+            #console.log("click was on wave dropdown, we don't care")
             return
 
     mouseTime, mousePitch = custom.convertWorldToGrid(pygame.mouse.get_pos())
@@ -926,19 +938,26 @@ while run:
                     screen = pygame.display.set_mode((max(event.w, minWidth), max(event.h, minHeight)), pygame.RESIZABLE | pygame.SHOWN)
                     width, height = (max(event.w, minWidth), max(event.h, minHeight))
 
-                    BeatLengthDownButton.setPosition((359, 26))
-                    BeatLengthTextBox.setPosition((384, 26))
-                    BeatLengthUpButton.setPosition((419, 26))
+                    BeatLengthDownButton.setPosition((TempoUpButton.x + TempoUpButton.width + LARGE_SPACE, 26))
+                    BeatLengthTextBox.setPosition((BeatLengthDownButton.x + BeatLengthDownButton.width + SMALL_SPACE, 26))
+                    BeatLengthUpButton.setPosition((BeatLengthTextBox.x + BeatLengthTextBox.width + SMALL_SPACE, 26))
 
-                    BeatsPerMeasureDownButton.setPosition((width - 472, 26))
-                    BeatsPerMeasureTextBox.setPosition((width - 447, 26))
-                    BeatsPerMeasureUpButton.setPosition((width - 402, 26))
-
-                    ColorButton.setPosition((width - 368, 26))
-                    WaveButton.setPosition((width - 335, 26))
-                    KeyDropdown.setPosition((width - 283, 26))
-                    ModeDropdown.setPosition((width - 218, 26))
                     QuestionButton.setPosition((width - 54, 26))
+                    ModeDropdown.setPosition((QuestionButton.x - ModeDropdown.width - LARGE_SPACE, 26))
+                    KeyDropdown.setPosition((ModeDropdown.x - KeyDropdown.width - SMALL_SPACE, 26))
+
+                    if ColorButton.currentStateIdx != 6:
+                        WaveButton.setPosition((KeyDropdown.x - WaveButton.width - LARGE_SPACE, 26))
+                        ColorButton.setPosition((WaveButton.x - ColorButton.width - SMALL_SPACE, 26))
+                    else:
+                        if WaveButton.expanded:
+                            WaveButton.handleClickOut()
+                        WaveButton.setPosition((-300, 26))
+                        ColorButton.setPosition((KeyDropdown.x - ColorButton.width - SMALL_SPACE, 26))
+
+                    BeatsPerMeasureUpButton.setPosition((ColorButton.x - BeatsPerMeasureUpButton.width - LARGE_SPACE, 26))
+                    BeatsPerMeasureTextBox.setPosition((BeatsPerMeasureUpButton.x - BeatsPerMeasureTextBox.width - SMALL_SPACE, 26))
+                    BeatsPerMeasureDownButton.setPosition((BeatsPerMeasureTextBox.x - BeatsPerMeasureDownButton.width - SMALL_SPACE, 26))
 
                     BeatsPerMeasureControls.setRect((0, 0, width, height))
                     TempoControls.setRect((0, 0, width, height))
