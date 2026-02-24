@@ -32,6 +32,22 @@ def file_dump(command):
 
 ###### TESTS ######
 
+# write "kill" command
+kill_command = {
+    "command": "kill",
+    "id": str(uuid.uuid4()),
+    "pc_file_path": process_command_path,
+    "args": {
+        "project_file_name": working_file_name,
+        "project_folder_path": working_file_folder,
+        "symphony_data_path": symphony_data_folder
+    }
+}
+
+file_dump(kill_command)
+
+time.sleep(2)
+
 # initialize empty process command file
 with open(process_command_path, 'w') as pc_file:
     pc_file.write('')

@@ -93,13 +93,13 @@ def createNoteBuffer(note, waves=0, duration=1, volume=0.2, sample_rate=SAMPLE_R
             part = instrument_fn(t, freq, mag)
             wave += part * noteToMagnitude(note, waves)
 
-        # --- small fade-out for triangle wave to avoid pop ---
-        if waves == 1:
-            fade_time = 0.005  # 5 ms
-            fade_len = int(sample_rate * fade_time)
-            if fade_len > 0:
-                fade = np.linspace(1, 0, fade_len)
-                wave[-fade_len:] *= fade
+        # --- small fade-out for all waves to avoid pop ---
+        # if waves == 1:
+        fade_time = 0.005  # 5 ms
+        fade_len = int(sample_rate * fade_time)
+        if fade_len > 0:
+            fade = np.linspace(1, 0, fade_len)
+            wave[-fade_len:] *= fade
         # ----------------------------------------------------
 
         # normalize + volume

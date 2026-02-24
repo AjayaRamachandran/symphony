@@ -1,80 +1,224 @@
 # sound/instruments.py
 # module for handling the generation of sounds/instruments.
+
 ###### IMPORT ######
+
+import json
+from pathlib import Path
+import re
 
 import numpy as np
 
 ###### CONSTANTS ######
 
-PIANO_FULL_OVERTONES_MAP = {1.0: 23.74250602722168, 1.0241895914077759: 8.115197345072001, 1.048964262008667: 1.5708530460711505, 1.0743381977081299: 1.057464261972483, 1.1003259420394897: 0.7126820017294189, 1.1269423961639404: 0.6029901079885013, 1.1542025804519653: 0.7756579268398578, 1.1821223497390747: 0.6282622183272647, 1.2107173204421997: 0.43370695904246287, 1.240004062652588: 0.24542378016987082, 1.2699991464614868: 0.1636090360104721, 1.3007198572158813: 0.15221342051477438, 1.332183837890625: 0.07394636346347924, 1.3644086122512817: 0.09548886755372427, 1.3974131345748901: 0.1634969555839321, 1.4312160015106201: 0.20781499856607483, 1.4658364057540894: 0.18895483733782842, 1.5012943744659424: 0.1515909508833632, 1.5376100540161133: 0.13833211661541803, 1.5748041868209839: 0.12074840504646067, 1.6128979921340942: 0.08689976904669731, 1.6519132852554321: 0.07691179100093688, 1.6918723583221436: 0.08757869851508193, 1.7327979803085327: 0.13240138491732717, 1.7747135162353516: 0.10599071077996164, 1.817643165588379: 0.1261728409607236, 1.8616111278533936: 0.16165590954465617, 1.9066426753997803: 0.29844512639427645, 1.9527636766433716: 2.3732261741201226, 2.0: 4.7821962129270545}
-PIANO_END_OVERTONES_MAP = {1.0: 0.045132070779800415, 1.0241895914077759: 0.014855037049350676, 1.048964262008667: 0.0020437918220071135, 1.0743381977081299: 0.0011779278559333225, 1.1003259420394897: 0.0009770855121262858, 1.1269423961639404: 0.000990174915745031, 1.1542025804519653: 0.0009763249621151036, 1.1821223497390747: 0.0012452748140610152, 1.2107173204421997: 0.0007096831466128759, 1.240004062652588: 0.0004923197207843395, 1.2699991464614868: 0.0005808340327717232, 1.3007198572158813: 0.0006326087757654063, 1.332183837890625: 0.0007268677405789149, 1.3644086122512817: 0.0006339266638854546, 1.3974131345748901: 0.0003575757365212708, 1.4312160015106201: 0.00020344188153818325, 1.4658364057540894: 0.000145793724455187, 1.5012943744659424: 0.000258402961103463, 1.5376100540161133: 0.00033024541198782765, 1.5748041868209839: 0.00036499474333566016, 1.6128979921340942: 0.0005241069457277829, 1.6519132852554321: 0.0006855283747085391, 1.6918723583221436: 0.0005301312714413946, 1.7327979803085327: 0.000557191073601595, 1.7747135162353516: 0.0008061205468907649, 1.817643165588379: 0.0009325647644291917, 1.8616111278533936: 0.0006633284695679777, 1.9066426753997803: 0.0009981316864756825, 1.9527636766433716: 0.007192967096602358, 2.0: 0.01518737930089641}
-PIANO_BEGINNING_OVERTONES_MAP = {1.0: 151.884521484375, 1.0241895914077759: 56.03004982698789, 1.048964262008667: 14.992828033888616, 1.0743381977081299: 10.95224737121975, 1.1003259420394897: 7.400744812494107, 1.1269423961639404: 6.411108000000711, 1.1542025804519653: 8.430770627120282, 1.1821223497390747: 6.957584709211656, 1.2107173204421997: 4.809931066262814, 1.240004062652588: 2.674159437420495, 1.2699991464614868: 1.7495140971236327, 1.3007198572158813: 1.6151221387397041, 1.332183837890625: 0.7991906160653646, 1.3644086122512817: 1.0298594267707655, 1.3974131345748901: 1.821001443564997, 1.4312160015106201: 2.36418367375997, 1.4658364057540894: 2.126276587778021, 1.5012943744659424: 1.6994547996946394, 1.5376100540161133: 1.5561022509762226, 1.5748041868209839: 1.3627134192890842, 1.6128979921340942: 0.9696336771361782, 1.6519132852554321: 0.8377964024455256, 1.6918723583221436: 0.9265516795032116, 1.7327979803085327: 1.4288296159522238, 1.7747135162353516: 1.0591083582852512, 1.817643165588379: 1.2209192587245978, 1.8616111278533936: 1.5786349094427383, 1.9066426753997803: 2.9460920660840646, 1.9527636766433716: 15.13274264274554, 2.0: 29.663565975449245}
+GENERIC_TONE_MAP = {1.0: 1.0}
+
+GENERATED_PIANO_MAP_PATH = r"inner\\src\\sound\\maps\\piano_tones_map.json"
+GENERATED_GUITAR_MAP_PATH = r"inner\\src\\sound\\maps\\guitar_tones_map.json"
+GENERATED_MALE_VOICE_AAA_MAP_PATH = r"inner\\src\\sound\\maps\\male_voice_aaa_tones_map.json"
+GENERATED_MALE_VOICE_OOO_MAP_PATH = r"inner\\src\\sound\\maps\\male_voice_ooo_tones_map.json"
+GENERATED_MALE_VOICE_EEE_MAP_PATH = r"inner\\src\\sound\\maps\\male_voice_eee_tones_map.json"
+GENERATED_MALE_VOICE_MMM_MAP_PATH = r"inner\\src\\sound\\maps\\male_voice_mmm_tones_map.json"
+MALE_VOICE_AAA_MAPS_DIR = Path(r"inner\\src\\sound\\maps\\aaa")
+MALE_VOICE_AAA_FILE_HZ_PATTERN = re.compile(r"_([0-9]+(?:\.[0-9]+)?)hz$", re.IGNORECASE)
+
+GENERATED_BRASS_MAP_PATH = r"inner\\src\\sound\\maps\\brass_tones_map.json"
+
+def _load_generated_tones_map(map_path: Path) -> dict[float, float]:
+    try:
+        with open(map_path, "r", encoding="utf-8") as generated_map_file:
+            payload = json.load(generated_map_file)
+    except Exception:
+        return GENERIC_TONE_MAP
+
+    ratio_to_amplitude = payload.get("ratio_to_amplitude")
+    if not isinstance(ratio_to_amplitude, dict):
+        return GENERIC_TONE_MAP
+
+    loaded_map: dict[float, float] = {}
+    for ratio_key, amp_val in ratio_to_amplitude.items():
+        try:
+            ratio = float(ratio_key)
+            amp = float(amp_val)
+        except (TypeError, ValueError):
+            continue
+        loaded_map[ratio] = amp
+
+    return loaded_map if loaded_map else GENERIC_TONE_MAP
+
+
+def _load_male_voice_aaa_lut_maps() -> list[tuple[float, dict[float, float]]]:
+    lut_maps: list[tuple[float, dict[float, float]]] = []
+    if not MALE_VOICE_AAA_MAPS_DIR.exists():
+        return lut_maps
+
+    for map_file in MALE_VOICE_AAA_MAPS_DIR.glob("*.json"):
+        match = MALE_VOICE_AAA_FILE_HZ_PATTERN.search(map_file.stem)
+        if match is None:
+            continue
+        try:
+            root_hz = float(match.group(1))
+        except ValueError:
+            continue
+        lut_maps.append((root_hz, _load_generated_tones_map(map_file)))
+
+    lut_maps.sort(key=lambda item: item[0])
+    return lut_maps
+
+
+ACTIVE_PIANO_TONES_MAP = _load_generated_tones_map(GENERATED_PIANO_MAP_PATH)
+ACTIVE_GUITAR_TONES_MAP = _load_generated_tones_map(GENERATED_GUITAR_MAP_PATH)
+ACTIVE_MALE_VOICE_AAA_TONES_MAP = _load_generated_tones_map(GENERATED_MALE_VOICE_AAA_MAP_PATH)
+ACTIVE_BRASS_TONES_MAP = _load_generated_tones_map(GENERATED_BRASS_MAP_PATH)
+
+ACTIVE_MALE_VOICE_OOO_TONES_MAP = _load_generated_tones_map(GENERATED_MALE_VOICE_OOO_MAP_PATH)
+ACTIVE_MALE_VOICE_EEE_TONES_MAP = _load_generated_tones_map(GENERATED_MALE_VOICE_EEE_MAP_PATH)
+ACTIVE_MALE_VOICE_MMM_TONES_MAP = _load_generated_tones_map(GENERATED_MALE_VOICE_MMM_MAP_PATH)
+ACTIVE_MALE_VOICE_AAA_LUT_MAPS = _load_male_voice_aaa_lut_maps()
+
+PHASE_JITTER_STRENGTH = 1.0
+GENERIC_DECAY_BASE = 4.0
+GENERIC_DECAY_REF_FREQ = 440.0
 
 ###### METHODS / CLASSES ######
-
-'''
-INSTRUMENT SIGNATURE:
-
-input: t (np.ndarray) - array of floating-point values representing time passed in note (in seconds)
-input: freq (float) - frequency of the note (in Hz)
-input: magnitude (float) - magnitude of the note (0-1)
-
-output: np.ndarray - array of floating-point values representing the waveform of the instrument's sound
-'''
 
 def Square(t: np.ndarray, freq: float, magnitude: float) -> np.ndarray:
     return np.sign(np.sin(2 * np.pi * freq * t)) * magnitude
 
 
 def Triangle(t: np.ndarray, freq: float, magnitude: float) -> np.ndarray:
-    return (2 / np.pi) * np.arcsin(np.sin(2 * np.pi * freq * t)) * magnitude * 3
+    return (2 / np.pi) * np.arcsin(np.sin(2 * np.pi * freq * t)) * magnitude
 
 
 def Sawtooth(t: np.ndarray, freq: float, magnitude: float) -> np.ndarray:
     return 2 * (t * freq - np.floor(0.5 + t * freq)) * magnitude
 
 
-def Piano(t: np.ndarray, freq: float, magnitude: float) -> np.ndarray:
-    """
-    Build a piano-like tone by layering mapped overtone frequencies.
-    """
-    overtone_items = sorted(PIANO_BEGINNING_OVERTONES_MAP.items(), key=lambda item: item[0])
-    octave_partials = [(ratio, amp) for ratio, amp in overtone_items if ratio < 2.0]
-    if not octave_partials:
+def _root_frequency_decay_envelope(t: np.ndarray, root_freq: float, decay: bool, decay_power: float = 1.0) -> float | np.ndarray:
+    if not decay:
+        return 1.0
+    freq_scale = float(np.sqrt(max(float(root_freq), 1e-6) / GENERIC_DECAY_REF_FREQ))
+    freq_scale = float(np.clip(freq_scale, 0.35, 2.0))
+    decay_rate = GENERIC_DECAY_BASE * freq_scale
+    return np.exp(-decay_rate * t * decay_power)
+
+### ADDITIVE ENGINE ###
+
+def AdditiveInstrument(
+    t: np.ndarray,
+    freq: float,
+    magnitude: float,
+    tonesMap: dict[float, float],
+    decay: bool = True,
+    decay_power: float = 0.7,
+) -> np.ndarray:
+    if t.size == 0:
         return np.zeros_like(t)
 
-    first_amp = octave_partials[0][1]
-    last_amp = PIANO_BEGINNING_OVERTONES_MAP.get(2.0, first_amp)
-    octave_decay_ratio = (last_amp / first_amp) if first_amp else 1.0
-
-    octave_scales = [1.0]
-    for _ in range(6):
-        octave_scales.append(octave_scales[-1] * octave_decay_ratio)
-
     wave = np.zeros_like(t, dtype=np.float64)
+    for ratio, amp in tonesMap.items():
+        partial_freq = float(freq) * float(ratio)
+        if partial_freq <= 0:
+            continue
+        partial = float(amp) * np.sin(2 * np.pi * partial_freq * t)
+        wave += partial
 
-    for octave_idx, octave_scale in enumerate(octave_scales):
-        octave_base_freq = freq * (2 ** octave_idx)
-        for ratio, amp in octave_partials:
-            overtone_freq = octave_base_freq * ratio
-            wave += np.sin(2 * np.pi * overtone_freq * t) * amp * octave_scale
+    wave *= _root_frequency_decay_envelope(t, freq, decay, decay_power)
 
-    # Keep output in a stable range before final magnitude scaling.
-    normalizer = sum(amp for _, amp in octave_partials) * sum(octave_scales)
-    if normalizer > 0:
-        wave /= normalizer
+    peak = np.max(np.abs(wave))
+    if peak > 0:
+        wave /= peak
 
-    time_decay = np.exp(-4.0 * t)
-    return wave * time_decay * magnitude
+    return np.clip(wave * magnitude, -1.0, 1.0)
 
+### FFT INSTRUMENT ###
+
+def ComplexInstrument(t: np.ndarray, freq: float, magnitude: float, tonesMap: dict[float, float], decay: bool = True) -> np.ndarray:
+    overtone_items = sorted(tonesMap.items(), key=lambda item: item[0])
+    if not overtone_items or t.size == 0:
+        return np.zeros_like(t)
+
+    if t.size > 1:
+        dt = float(t[1] - t[0])
+        sample_rate = int(round(1.0 / dt)) if dt > 0 else 44100
+    else:
+        sample_rate = 44100
+
+    n_samples = int(t.size)
+    nyquist = sample_rate / 2.0
+    n_bins = (n_samples // 2) + 1
+    spectrum = np.zeros(n_bins, dtype=np.complex128)
+
+    total_amp = 0.0
+    for ratio, amp in overtone_items:
+        overtone_freq = freq * ratio
+        if overtone_freq <= 0 or overtone_freq > nyquist:
+            continue
+        bin_idx = int(round((overtone_freq / sample_rate) * n_samples))
+        if 0 <= bin_idx < n_bins:
+            phase = float(np.random.uniform(-np.pi, np.pi))
+            spectrum[bin_idx] += float(amp) * np.exp(1j * phase)
+            total_amp += float(amp)
+
+    wave = np.fft.irfft(spectrum, n=n_samples).astype(np.float64, copy=False)
+
+    if total_amp > 0:
+        wave /= total_amp
+    peak = np.max(np.abs(wave))
+    if peak > 0:
+        wave /= peak
+
+    time_decay = _root_frequency_decay_envelope(t, freq, decay)
+
+    result = wave * time_decay * magnitude * 3
+    return np.clip(result, -1.0, 1.0)
+
+### WRAPPERS ###
+
+def Piano(t: np.ndarray, freq: float, magnitude: float) -> np.ndarray:
+    return AdditiveInstrument(t, freq - 1, magnitude, ACTIVE_PIANO_TONES_MAP, decay=True, decay_power=0.3)
+
+def Guitar(t: np.ndarray, freq: float, magnitude: float) -> np.ndarray:
+    return AdditiveInstrument(t, freq, magnitude, ACTIVE_GUITAR_TONES_MAP, decay=True, decay_power=0.7)
+
+def MaleVoiceAah(t: np.ndarray, freq: float, magnitude: float) -> np.ndarray:
+    if not ACTIVE_MALE_VOICE_AAA_LUT_MAPS:
+        return AdditiveInstrument(t, freq, magnitude, ACTIVE_MALE_VOICE_AAA_TONES_MAP, decay=False)
+
+    input_freq = float(freq)
+    closest_hz, closest_map = min(
+        ACTIVE_MALE_VOICE_AAA_LUT_MAPS, key=lambda item: abs(item[0] - input_freq)
+    )
+    if closest_hz <= 0:
+        return AdditiveInstrument(t, freq, magnitude, ACTIVE_MALE_VOICE_AAA_TONES_MAP, decay=False)
+    return AdditiveInstrument(t, freq, magnitude, closest_map, decay=False)
+
+def MaleVoiceOoh(t: np.ndarray, freq: float, magnitude: float) -> np.ndarray:
+    return AdditiveInstrument(t, freq, magnitude, ACTIVE_MALE_VOICE_OOO_TONES_MAP, decay=False)
+
+def MaleVoiceEee(t: np.ndarray, freq: float, magnitude: float) -> np.ndarray:
+    return AdditiveInstrument(t, freq, magnitude, ACTIVE_MALE_VOICE_EEE_TONES_MAP, decay=False)
+
+def MaleVoiceMmm(t: np.ndarray, freq: float, magnitude: float) -> np.ndarray:
+    return AdditiveInstrument(t, freq, magnitude, ACTIVE_MALE_VOICE_MMM_TONES_MAP, decay=False)
+
+# def Brass(t: np.ndarray, freq: float, magnitude: float) -> np.ndarray:
+#     return AdditiveInstrument(t, freq, magnitude, ACTIVE_BRASS_TONES_MAP, decay=False)
+
+###### REGISTRY ######
 
 INSTRUMENTS_BY_WAVE = {
     0: Square,
     1: Triangle,
     2: Sawtooth,
-    # 3: Piano,
+    3: Piano,
+    4: Guitar,
+    5: MaleVoiceAah,
+    # 6: Brass,
+    # 6: MaleVoiceOoh,
+    # 7: MaleVoiceEee,
+    # 8: MaleVoiceMmm,
 }
-
 
 def get_instrument(waves: int):
     return INSTRUMENTS_BY_WAVE.get(waves, Sawtooth)

@@ -96,7 +96,18 @@ questionImage = pygame.image.load(f"{source_path}/assets/question.png")
 squareWaveImage = pygame.image.load(f"{source_path}/assets/square.png")
 sawtoothWaveImage = pygame.image.load(f"{source_path}/assets/sawtooth.png")
 triangleWaveImage = pygame.image.load(f"{source_path}/assets/triangle.png")
-waveImages = [squareWaveImage, triangleWaveImage, sawtoothWaveImage]
+guitarWaveImage = pygame.image.load(f"{source_path}/assets/guitar.png")
+pianoWaveImage = pygame.image.load(f"{source_path}/assets/piano.png")
+maleVoiceWaveImage = pygame.image.load(f"{source_path}/assets/male_voice.png")
+brassWaveImage = pygame.image.load(f"{source_path}/assets/brass.png")
+waveImages = [
+    squareWaveImage,
+    triangleWaveImage,
+    sawtoothWaveImage,
+    pianoWaveImage,
+    guitarWaveImage,
+    maleVoiceWaveImage
+]
 
 upChevronImage = pygame.image.load(f"{source_path}/assets/up.png")
 downChevronImage = pygame.image.load(f"{source_path}/assets/down.png")
@@ -186,7 +197,7 @@ colorsList = list[tuple[str, tuple[int, int, int]]](colors.items())
 justColors = [n[1] for n in colorsList]
 justColorNames = [n[0] for n in colorsList]
 
-waveTypes = ['square', 'triangle', 'sawtooth']
+waveTypes = ['square', 'triangle', 'sawtooth', 'piano', 'guitar', 'male_voice', 'brass']
 waveMap = {}
 for index, color in enumerate(colorsList):
     waveMap[color[0]] = 0
@@ -248,7 +259,7 @@ BeatsPerMeasureControls = frame.Panel((0, 0, width, height), gui.EMPTY_COLOR,
 
 colorStates = custom.getColorStates(28, 28, source_path)
 ColorButton = gui.Button(pos=(width - 368, 26), width=28, height=28, states=colorStates)
-WaveButton = gui.Button(pos=(width - 335, 26), width=28, height=28, states=[squareWaveImage, triangleWaveImage, sawtoothWaveImage])
+WaveButton = gui.Button(pos=(width - 335, 26), width=28, height=28, states=waveImages)
 KeyDropdown = gui.Dropdown(pos=(width - 283, 26), width=60, height=28, states=NOTES_FLAT, image=upDownChevronImage)
 ModeDropdown = gui.Dropdown(pos=(width - 218, 26), width=140, height=28, states=modes, image=upDownChevronImage)
 QuestionButton = gui.Button(pos=(width - 54, 26), width=28, height=28, states=[questionImage])
@@ -311,7 +322,7 @@ def playPauseToggle():
     PlayPauseButton.cycleStates()
     PlayPauseButton.render(screen)
     if playing:
-        play_obj = sp.playFull(noteMap, waveMap, PlayHead.time, tempo, 0.4,
+        play_obj = sp.playFull(noteMap, waveMap, PlayHead.time, tempo, volume=0.3,
                                channel='all' if ColorButton.currentStateIdx == 6 else ColorButton.currentStateIdx)
         PlayHead.play(tempo)
     else:
@@ -611,7 +622,7 @@ def handleClick():
                 "duration" : 1,
                 "data_fields" : {}
                 }))
-            sp.playNote(note=mousePitch, waves=waveMap[justColorNames[ColorButton.currentStateIdx]], duration=0.2, volume=0.12)
+            sp.playNote(note=mousePitch, waves=waveMap[justColorNames[ColorButton.currentStateIdx]], duration=0.2)
     elif brushType == "eraser":
         notes: list[custom.Note] = noteMap[currColorName]
         for note in notes:
@@ -642,7 +653,7 @@ def handleClick():
         else:
             clickedNote.select()
             if not extendingNote:
-                sp.playNote(note=clickedNote.pitch, waves=waveMap[justColorNames[ColorButton.currentStateIdx]], duration=0.2, volume=0.12)
+                sp.playNote(note=clickedNote.pitch, waves=waveMap[justColorNames[ColorButton.currentStateIdx]], duration=0.2)
 
         if extendingNote:
             for note in notes:
@@ -870,6 +881,7 @@ while run:
                 pygame.display.set_icon(gameIcon)
                 screen = pygame.display.set_mode((width, height), pygame.RESIZABLE | pygame.SHOWN)
             
+            colorSync()
             PlayHead.setHome(0)
             MasterPanel.render(screen)
             pygame.event.pump()
@@ -1011,6 +1023,7 @@ while run:
                     MasterPanel.render(screen)
 
             if gui_running == False:
+                PlayHead.stop()
                 break
             clock.tick(fps)
             pygame.display.flip()  # Update the display
