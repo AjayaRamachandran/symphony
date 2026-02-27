@@ -14,7 +14,6 @@ TransactionType(Transaction)
 - UserID (for now, we use 1, but in Symphony v1.2, this could be a unique id for each collaborator)
 - Action, defined as a callback that is performed on the document
 - Timestamp
-- PartialTransaction? (boolean) -- defines whether the transaction is complete or not. This allows us to know when notes aren't fully drawn or not
 ```
 
 ## How do we store transactions?
@@ -41,11 +40,9 @@ In code, these two stacks are instances of the `Stack` object. The stack object 
 
 ## How do we use transactions?
 
-When building the document, we start from the last cemented state of the document, and loop through the Undo stack. For each element, we run the callback so that it completes the action. By the time we make it to the last transaction, the document's current state should be fully constructed.
-
-For computational efficiency and file safety, we don't store ALL of the transactions to build up from the empty file. Instead, we continually cement the state of the file that is X (for now, X = 64) transactions ago. This acts as a "ground state" that we apply the transactions on top of. This ensures that we have a solid amount of undo room, while not having the program get heavier and heavier as the user does more things.
+When building the document, we have the current state of the document, and the initial state of the document (the state of the document when launching the GUI). Then, in parallel, as the user completes actions, we update the current version, and in parallel, we store each of the  finalized actions in an undoStack. When the user presses Undo (Ctrl + Z), we go from the initial state of the document, and apply the callbacks of all the transactions in the stack, without the most recent transaction.
 
 ## How do we save transactions?
 Short answer: we don't.
 
-Long answer: We need to replace our current save method -- we will take the ground state of the document plus the transaction history, essentially flatten that into a temporary savable "current form". We don't update the ground state to be this new current form because then every time we auto-save, we would lose the ability to undo to a state before that auto-save, and we don't want that.
+Long answer: We save the current state of the file, but we don't reload it or anything when saving. Weonly load from the undo/redo stacks when undoing or redoing, and all other times we keep the existing functionality of the current state.

@@ -189,12 +189,31 @@ class Interactive(Element):
         self.onClickOut = None
         self.onUnClick = None
         self.onDrag = None
+        self.onUnDrag = None
         self.onScroll = None
 
         self.lastClickedPosition = None
         self.mouseInside = False
         self.mouseInsideLastFrame = False
+        self.mousePressed = False
+        self.mousePressedLastFrame = False
+        self.mouseJustPressed = False
+        self.mouseJustReleased = False
+        self.mousePosition = (0, 0)
+        self.wasDraggedSinceClick = False
         self.redraw = False
+
+    def _updateMouseState(self):
+        '''
+        fields: none\n
+        outputs: nothing
+
+        Captures mouse button state transitions for this frame.
+        '''
+        self.mousePosition = pygame.mouse.get_pos()
+        self.mousePressed = bool(pygame.mouse.get_pressed()[0])
+        self.mouseJustPressed = self.mousePressed and not self.mousePressedLastFrame
+        self.mouseJustReleased = (not self.mousePressed) and self.mousePressedLastFrame
 
     def onMouseEnter(self, function):
         '''
@@ -263,6 +282,17 @@ class Interactive(Element):
 
         self.onDrag = function
 
+    def onMouseUnDrag(self, function):
+        '''
+        fields:
+            function (function | lambda) - an action to do.
+        outputs: nothing
+
+        Takes in a function or lambda, and sets it internally as the action to do when the object is undragged.
+        '''
+
+        self.onUnDrag = function
+
     def onHoverScroll(self, function):
         '''
         fields:
@@ -305,10 +335,11 @@ class Interactive(Element):
         Method to return whether the mouse has clicked the object
         '''
 
-        self.isClick = (self.mouseInside) and pygame.mouse.get_pressed()[0] and not self.mouseAlrDown
+        self.isClick = self.mouseInside and self.mouseJustPressed and not self.mouseAlrDown
         if self.isClick:
             self.mouseAlrDown = True
-            self.lastClickedPosition = pygame.mouse.get_pos()
+            self.lastClickedPosition = self.mousePosition
+            self.wasDraggedSinceClick = False
         return self.isClick
     
     def mouseClickedOut(self):
@@ -319,7 +350,7 @@ class Interactive(Element):
         Method to return whether the mouse has clicked outside the object
         '''
 
-        self.isOutClick = (not self.mouseInside) and pygame.mouse.get_pressed()[0] and not self.mouseAlrDown
+        self.isOutClick = (not self.mouseInside) and self.mouseJustPressed and not self.mouseAlrDown
         self.mouseAlrDown |= self.isOutClick
         return self.isOutClick
     
@@ -331,10 +362,12 @@ class Interactive(Element):
         Method to return whether the mouse has unclicked the object (let go of clicking)
         '''
 
-        self.isUnClick = (self.mouseInside) and (not pygame.mouse.get_pressed()[0]) and self.mouseAlrDown
-        if self.isUnClick:
+        didRelease = self.mouseAlrDown and self.mouseJustReleased
+        self.isUnClick = self.mouseInside and didRelease
+        if didRelease:
             self.mouseAlrDown = False
             self.lastClickedPosition = None
+            self.wasDraggedSinceClick = False
         return self.isUnClick
     
     def mouseDragged(self):
@@ -345,13 +378,31 @@ class Interactive(Element):
         Method to return whether the interactive element has been dragged
         '''
 
-        self.isDragged = self.mouseInside and pygame.mouse.get_pressed()[0] and self.mouseAlrDown
-        self.isDragged = self.mouseAlrDown and pygame.mouse.get_pressed()[0] and \
-           self.lastClickedPosition is not None and \
-           dist(pygame.mouse.get_pos(), self.lastClickedPosition) > DRAG_THRESHOLD
-        return ((pygame.mouse.get_pos()[0] - self.lastClickedPosition[0],
-                 pygame.mouse.get_pos()[1] - self.lastClickedPosition[1]) if self.isDragged else False)
-    
+        self.isDragged = self.mouseAlrDown and self.mousePressed and self.lastClickedPosition is not None
+        if not self.isDragged:
+            return False
+
+        delta = (
+            self.mousePosition[0] - self.lastClickedPosition[0],
+            self.mousePosition[1] - self.lastClickedPosition[1]
+        )
+        self.isDragged = dist(self.mousePosition, self.lastClickedPosition) > DRAG_THRESHOLD
+        if self.isDragged:
+            self.wasDraggedSinceClick = True
+            return delta
+        return False
+
+    def mouseUnDragged(self):
+        '''
+        fields: none\n
+        outputs: boolean
+
+        Method to return whether the interactive element has been undragged
+        '''
+
+        self.isUnDragged = self.wasDraggedSinceClick and self.mouseJustReleased and self.mouseAlrDown
+        return self.isUnDragged
+
     def scrolled(self):
         '''
         fields: none\n
@@ -396,6 +447,7 @@ class Interactive(Element):
         Updates the element on the screen (does not render it)
         '''
         self.mouseInside = mouseBounds((self.x, self.y, self.width, self.height))
+        self._updateMouseState()
         self.redraw = False
 
         if self.mouseEntered() and callable(self.onEnter):
@@ -406,20 +458,22 @@ class Interactive(Element):
             self.onClick()
         if self.mouseClickedOut() and callable(self.onClickOut):
             self.onClickOut()
-        if self.mouseUnClicked() and callable(self.onUnClick):
-            self.onUnClick()
-
         xy = self.mouseDragged() # dragging is False if nothing happens, contains values if something did
         if callable(self.onDrag):
             if xy:
                 self.onDrag(xy)
-
+        if callable(self.onUnDrag):
+            if self.mouseUnDragged():
+                self.onUnDrag()
+        if self.mouseUnClicked() and callable(self.onUnClick):
+            self.onUnClick()
         xy = self.scrolled() # scrolling is False if nothing happens, contains values if something did
         if callable(self.onScroll):
             if xy:
                 self.onScroll(xy)
         
         self.mouseInsideLastFrame = self.mouseInside
+        self.mousePressedLastFrame = self.mousePressed
     
     def render(self, screen: pygame.Surface):
         None

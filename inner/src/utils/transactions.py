@@ -7,8 +7,10 @@ from datetime import datetime
 ###### ENUMS ######
 TRANSACTION_TYPE = {
     "NEW_NOTE": "new_note",
-    "DELETE_NOTE": "delete_note",
-    "MOVE_NOTE": "move_note",
+    "MOVE_NOTES": "move_notes",
+    "SELECT_NOTES": "select_notes",
+    "UNSELECT_NOTES": "unselect_notes",
+    "DELETE_NOTES": "delete_notes",
     "CHANGE_TEMPO": "change_tempo",
     "CHANGE_TIME_SIGNATURE": "change_time_signature",
     "CHANGE_BEAT_LENGTH": "change_beat_length",
@@ -25,12 +27,12 @@ class Transaction():
     '''
     Base parent object for all transactions.
     '''
-    def __init__(self, userID=1, transactionType: TRANSACTION_TYPE = None, action=None, timestamp=None, partialTransaction: bool = False):
+    def __init__(self, userID=1, transactionType: str = None, action=None, title: str = None, timestamp=None):
         self.userID = userID
         self.transactionType = transactionType
         self.action = action
+        self.title = title if title is not None else transactionType
         self.timestamp = timestamp if (timestamp != None) else datetime.now()
-        self.partialTransaction = partialTransaction
 
     def setAction(self, action):
         '''
@@ -51,11 +53,18 @@ class Transaction():
         Runs the callback action for this transaction.
         '''
         if callable(self.action):
-            return self.action(document)
+            try:
+                return self.action(document)
+            except TypeError as error:
+                # Backwards compatibility for callbacks that take no args.
+                try:
+                    return self.action()
+                except TypeError:
+                    raise error
         return None
 
     def __repr__(self):
-        return f'Transaction(UserID={self.userID}, Timestamp={self.timestamp}, PartialTransaction={self.partialTransaction})'
+        return f'Transaction(UserID={self.userID}, Type={self.transactionType}, Title={self.title}, Timestamp={self.timestamp})'
 
     def __str__(self):
-        return f'{self.userID} completed {self.transactionType} at time {self.timestamp}, {"partial" if self.partialTransaction else "complete"}'
+        return f'{self.userID} completed {self.title} ({self.transactionType}) at time {self.timestamp}'
