@@ -3,7 +3,6 @@
 ###### CONSOLE ######
 
 #import console_controls.console_window as cw
-from datetime import datetime
 from console_controls.console import *
 
 ###### IMPORT ######
@@ -37,39 +36,16 @@ import gui.custom as custom
 import process_command.read_write as pcrw
 import utils.state_loading as sl
 import utils.file_io as fio
+import utils.platform_controller as plat
 import sound.sound_processing as sp
-from utils.stack import Stack
-from utils.transactions import Transaction
+import utils.project_state as pst
 
 console.log("Imported Internal Modules & Connected External Libraries "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
 lastTime = time.time()
 
 ###### PLATFORM DETECTION ######
 
-if sys.platform.startswith("win"):
-    console.message("Running on Windows")
-    platform = 'windows'
-    CMD_KEY = pygame.K_LCTRL
-elif sys.platform == "darwin":
-    console.message("Running on macOS")
-    platform = 'mac'
-    CMD_KEY = pygame.K_LMETA
-elif sys.platform.startswith("linux"):
-    console.message("Running on Linux")
-    platform = 'linux'
-    CMD_KEY = pygame.K_LCTRL
-else:
-    console.warn(f"Running on unknown platform: {sys.platform}")
-    platform = 'unknown'
-    CMD_KEY = pygame.K_LCTRL
-
-try:
-    from ctypes import windll
-    myappid = 'nimbial.symphony.editor.v1-1' # arbitrary string
-    windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
-except ImportError:
-    console.warn('Error importing windll or setting Unique AppID. You might be gui_running on a non-Windows platform.')
-    pass # Not on Windows or ctypes is not available
+platform, CMD_KEY = plat.getPlatformNameAndMeta()
 
 ####### SYSARG HANDLING ######
 
@@ -157,8 +133,6 @@ noteMap : dict[str, list[custom.Note]] = {}
 
 saveFrame = 0
 
-undoStack = Stack()
-redoStack = Stack()
 suspendTransactionCapture = False
 
 NOTES_SHARP = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
@@ -266,9 +240,9 @@ QuestionButton = gui.Button(pos=(width - 54, 26), width=28, height=28, states=[q
 ModeDropdown = gui.Dropdown(pos=(QuestionButton.x - 140 - LARGE_SPACE, 26), width=140, height=28, states=modes, image=upDownChevronImage)
 KeyDropdown = gui.Dropdown(pos=(ModeDropdown.x - 60 - SMALL_SPACE, 26), width=60, height=28, states=NOTES_FLAT, image=upDownChevronImage)
 
-WaveButton = gui.Dropdown(pos=(KeyDropdown.x - 64 - LARGE_SPACE, 26), width=64, height=28, states=waveImages, image=upDownChevronImage)
+WaveDropdown = gui.Dropdown(pos=(KeyDropdown.x - 64 - LARGE_SPACE, 26), width=64, height=28, states=waveImages, image=upDownChevronImage)
 colorStates = custom.getColorStates(28, 28, source_path)
-ColorButton = gui.Button(pos=(WaveButton.x - 28 - SMALL_SPACE, 26), width=28, height=28, states=colorStates)
+ColorButton = gui.Button(pos=(WaveDropdown.x - 28 - SMALL_SPACE, 26), width=28, height=28, states=colorStates)
 
 BeatsPerMeasureUpButton = gui.Button(pos=(ColorButton.x - 20 - LARGE_SPACE, 26), width=20, height=28, states=[upChevronImage])
 BeatsPerMeasureTextBox = gui.TextBox(pos=(BeatsPerMeasureUpButton.x - 30 - SMALL_SPACE, 26), width=30, height=28, text='4')
@@ -278,7 +252,7 @@ BeatsPerMeasureControls = frame.Panel((0, 0, width, height), gui.EMPTY_COLOR,
                                     name="BeatsPerMeasureControls")
 
 RightToolbar = frame.Panel((0, 0, width, height), gui.EMPTY_COLOR,
-                           [KeyDropdown, ModeDropdown, WaveButton, ColorButton, QuestionButton],
+                           [KeyDropdown, ModeDropdown, WaveDropdown, ColorButton, QuestionButton],
                            name="RightToolbar")
 
 ToolBar = frame.Panel((0, 0, width, height), (0, 0, 0, 0),
@@ -381,7 +355,7 @@ def tempoSync():
 
     TempoControls.render(screen)
     if tempo != oldTempo:
-        pushEditorSnapshotTransaction("CHANGE_TEMPO", "Change tempo")
+        psm.pushEditorSnapshotTransaction("CHANGE_TEMPO", "Change tempo")
 
 def tempoUp():
     global tempo
@@ -409,7 +383,7 @@ def beatsPerMeasureSync():
         NoteGrid.setIntervals(beatLength, beatsPerMeasure)
         NotePanel.render(screen)
     if beatsPerMeasure != oldBeatsPerMeasure:
-        pushEditorSnapshotTransaction("CHANGE_BEATS_PER_MEASURE", "Change beats per measure")
+        psm.pushEditorSnapshotTransaction("CHANGE_BEATS_PER_MEASURE", "Change beats per measure")
 
 def beatsPerMeasureUp():
     global beatsPerMeasure
@@ -437,7 +411,7 @@ def beatLengthSync():
         NoteGrid.setIntervals(beatLength, beatsPerMeasure)
         NotePanel.render(screen)
     if beatLength != oldBeatLength:
-        pushEditorSnapshotTransaction("CHANGE_BEAT_LENGTH", "Change beat length")
+        psm.pushEditorSnapshotTransaction("CHANGE_BEAT_LENGTH", "Change beat length")
 
 def beatLengthUp():
     global beatLength
@@ -475,14 +449,14 @@ def finalizeKey():
     key = KeyDropdown.currentState
     NoteGrid.setModeKey(key = KeyDropdown.currentStateIdx)
     PitchList.setModeKey(key = KeyDropdown.currentStateIdx)
-    pushEditorSnapshotTransaction("CHANGE_KEY", "Change key")
+    psm.pushEditorSnapshotTransaction("CHANGE_KEY", "Change key")
 
 def finalizeMode():
     global mode
     mode = ModeDropdown.currentState
     NoteGrid.setModeKey(mode = modesMap[ModeDropdown.currentState])
     PitchList.setModeKey(mode = modesMap[ModeDropdown.currentState])
-    pushEditorSnapshotTransaction("CHANGE_MODE", "Change mode")
+    psm.pushEditorSnapshotTransaction("CHANGE_MODE", "Change mode")
 
 KeyDropdown.onSelect(finalizeKey)
 KeyDropdown.onClose(lambda: MasterPanel.render(screen))
@@ -491,17 +465,17 @@ ModeDropdown.onClose(lambda: MasterPanel.render(screen))
 
 def finalizeWave():
     global waveMap
-    waveMap[justColorNames[ColorButton.currentStateIdx]] = WaveButton.currentStateIdx
-    PitchList.setWave(WaveButton.currentStateIdx)
-    pushEditorSnapshotTransaction("CHANGE_WAVE_TYPE", "Change wave type")
+    waveMap[justColorNames[ColorButton.currentStateIdx]] = WaveDropdown.currentStateIdx
+    PitchList.setWave(WaveDropdown.currentStateIdx)
+    psm.pushEditorSnapshotTransaction("CHANGE_WAVE_TYPE", "Change wave type")
 
 def colorSync():
     if ColorButton.currentStateIdx != 6:
-        WaveButton.setCurrentState(waveMap[justColorNames[ColorButton.currentStateIdx]])
-        PitchList.setWave(WaveButton.currentStateIdx)
+        WaveDropdown.setCurrentState(waveMap[justColorNames[ColorButton.currentStateIdx]])
+        PitchList.setWave(WaveDropdown.currentStateIdx)
     else:
-        if WaveButton.expanded:
-            WaveButton.handleClickOut()
+        if WaveDropdown.expanded:
+            WaveDropdown.handleClickOut()
     ToolBar.render(screen)
     NoteGrid.color = ColorButton.currentStateIdx
     
@@ -518,10 +492,10 @@ def cycleColor():
     ColorButton.cycleStates()
     colorSync()
     if oldColor != ColorButton.currentStateIdx:
-        pushEditorSnapshotTransaction("CHANGE_COLOR", "Change color channel")
+        psm.pushEditorSnapshotTransaction("CHANGE_COLOR", "Change color channel")
 
-WaveButton.onSelect(finalizeWave)
-WaveButton.onClose(lambda: MasterPanel.render(screen))
+WaveDropdown.onSelect(finalizeWave)
+WaveDropdown.onClose(lambda: MasterPanel.render(screen))
 ColorButton.onMouseClick(cycleColor)
 QuestionButton.onMouseClick(lambda: webbrowser.open(questions_url))
 
@@ -578,28 +552,6 @@ def preprocess():
     deleteZeroDurationNotes()
 
 
-def snapshotNoteMapState():
-    '''
-    fields: none\n
-    outputs: dict
-
-    Returns a deep-serializable snapshot of the current note map, including selection state.
-    '''
-    out = {}
-    for colorName, notes in noteMap.items():
-        channel = []
-        for note in notes:
-            channel.append({
-                "pitch": note.pitch,
-                "time": note.time,
-                "duration": note.duration,
-                "data_fields": copy.deepcopy(note.dataFields),
-                "selected": note.selected
-            })
-        out[colorName] = channel
-    return out
-
-
 def snapshotEditorState():
     '''
     fields: none\n
@@ -608,7 +560,7 @@ def snapshotEditorState():
     Returns a snapshot of editor state needed to replay undo/redo deterministically.
     '''
     return {
-        "noteMap": snapshotNoteMapState(),
+        "noteMap": pst.snapshotNoteMapState(noteMap),
         "waveMap": copy.deepcopy(waveMap),
         "tempo": int(tempo),
         "beatLength": int(beatLength),
@@ -617,7 +569,7 @@ def snapshotEditorState():
         "mode": str(ModeDropdown.currentState),
         "accidentals": "flats" if AccidentalsButton.currentStateIdx == 0 else "sharps",
         "colorIndex": int(ColorButton.currentStateIdx),
-        "waveIndex": int(WaveButton.currentStateIdx)
+        "waveIndex": int(WaveDropdown.currentStateIdx)
     }
 
 
@@ -649,19 +601,6 @@ def applyNoteMapSnapshot(targetNoteMap, noteMapSnapshot):
             else:
                 newNote.unselect()
             targetNoteMap[colorName].append(newNote)
-
-
-def replaceEditorState(targetState, snapshot):
-    '''
-    fields:
-        targetState (dict) - state object to overwrite\n
-        snapshot (dict) - snapshot to apply
-    outputs: nothing
-
-    Replaces one editor state map with another snapshot.
-    '''
-    targetState.clear()
-    targetState.update(copy.deepcopy(snapshot))
 
 
 def applyEditorStateToRuntime(stateSnapshot):
@@ -700,7 +639,7 @@ def applyEditorStateToRuntime(stateSnapshot):
             ModeDropdown.setCurrentState(modes.index(mode))
 
         ColorButton.setCurrentState(int(stateSnapshot.get("colorIndex", ColorButton.currentStateIdx)))
-        WaveButton.setCurrentState(int(stateSnapshot.get("waveIndex", WaveButton.currentStateIdx)))
+        WaveDropdown.setCurrentState(int(stateSnapshot.get("waveIndex", WaveDropdown.currentStateIdx)))
         NoteGrid.color = ColorButton.currentStateIdx
 
         TempoTextBox.setText(str(tempo) + " tpm")
@@ -716,196 +655,18 @@ def applyEditorStateToRuntime(stateSnapshot):
             key=NOTES_SHARP.index(key) if ("#" in key) else NOTES_FLAT.index(key),
             mode=modesMap[mode]
         )
-        PitchList.setWave(WaveButton.currentStateIdx)
+        PitchList.setWave(WaveDropdown.currentStateIdx)
         colorSync()
         preprocess()
         MasterPanel.render(screen)
     finally:
         suspendTransactionCapture = False
 
-
-def noteMapWithoutSelection(noteMapSnapshot):
-    '''
-    fields:
-        noteMapSnapshot (dict) - note map snapshot
-    outputs: dict
-
-    Returns a note-map snapshot stripped of selection flags for content comparisons.
-    '''
-    stripped = {}
-    for colorName, notes in noteMapSnapshot.items():
-        stripped[colorName] = []
-        for noteData in notes:
-            stripped[colorName].append({
-                "pitch": noteData["pitch"],
-                "time": noteData["time"],
-                "duration": noteData["duration"],
-                "data_fields": noteData.get("data_fields", {})
-            })
-    return stripped
-
-
-def selectedNoteCount(noteMapSnapshot):
-    '''
-    fields:
-        noteMapSnapshot (dict) - note map snapshot
-    outputs: number
-
-    Counts selected notes across all color channels in a snapshot.
-    '''
-    count = 0
-    for _colorName, notes in noteMapSnapshot.items():
-        for noteData in notes:
-            if noteData.get("selected", False):
-                count += 1
-    return count
-
-
-def pushEditorSnapshotTransaction(transactionType, title):
-    '''
-    fields:
-        transactionType (string) - transaction enum/type label\n
-        title (string) - human-readable transaction title
-    outputs: nothing
-
-    Captures current editor state and pushes it as a finalized undo transaction.
-    '''
-    if suspendTransactionCapture:
-        return
-    snapshot = snapshotEditorState()
-    undoStack.push(
-        Transaction(
-            transactionType=transactionType,
-            title=title,
-            action=lambda document, s=snapshot: replaceEditorState(document, s),
-            timestamp=datetime.now()
-        )
-    )
-    redoStack.flush()
-
-
-initialEditorState = snapshotEditorState()
-pendingInteractionStartState = None
-pendingInteractionKind = None
-
-
-def beginInteractionTransaction(kind):
-    '''
-    fields:
-        kind (string) - interaction category (brush/eraser/select)
-    outputs: nothing
-
-    Starts a pending interaction transaction by storing the pre-action snapshot.
-    '''
-    global pendingInteractionStartState, pendingInteractionKind
-    if suspendTransactionCapture:
-        return
-    pendingInteractionStartState = snapshotEditorState()
-    pendingInteractionKind = kind
-
-
-def finalizeInteractionTransaction():
-    '''
-    fields: none\n
-    outputs: nothing
-
-    Finalizes an interaction transaction and records one intent-level undo entry if state changed.
-    '''
-    global pendingInteractionStartState, pendingInteractionKind
-    if suspendTransactionCapture:
-        pendingInteractionStartState = None
-        pendingInteractionKind = None
-        return
-    if pendingInteractionStartState is None:
-        return
-
-    currentState = snapshotEditorState()
-    if pendingInteractionStartState == currentState:
-        pendingInteractionStartState = None
-        pendingInteractionKind = None
-        return
-
-    if pendingInteractionKind == "brush":
-        transactionType = "NEW_NOTE"
-        title = "Draw note"
-    elif pendingInteractionKind == "eraser":
-        transactionType = "DELETE_NOTES"
-        title = "Delete note(s)"
-    else:
-        noteDataBefore = noteMapWithoutSelection(pendingInteractionStartState["noteMap"])
-        noteDataAfter = noteMapWithoutSelection(currentState["noteMap"])
-        if noteDataBefore != noteDataAfter:
-            transactionType = "MOVE_NOTES"
-            title = "Move selection"
-        else:
-            selectedBefore = selectedNoteCount(pendingInteractionStartState["noteMap"])
-            selectedAfter = selectedNoteCount(currentState["noteMap"])
-            if selectedAfter >= selectedBefore:
-                transactionType = "SELECT_NOTES"
-                title = "Select notes"
-            else:
-                transactionType = "UNSELECT_NOTES"
-                title = "Unselect notes"
-
-    pushEditorSnapshotTransaction(transactionType, title)
-    pendingInteractionStartState = None
-    pendingInteractionKind = None
-
-
-def replayUndoTransactions():
-    '''
-    fields: none\n
-    outputs: nothing
-
-    Rebuilds runtime state from the initial snapshot and all current undo transactions.
-    '''
-    replayState = copy.deepcopy(initialEditorState)
-    for transaction in undoStack.getAll():
-        transaction.execute(replayState)
-    applyEditorStateToRuntime(replayState)
-
-
-def performUndo():
-    '''
-    fields: none\n
-    outputs: nothing
-
-    Moves the latest undo transaction to redo and replays resulting editor state.
-    '''
-    transaction = undoStack.pop()
-    if transaction is None:
-        return
-    redoStack.push(transaction)
-    replayUndoTransactions()
-
-
-def performRedo():
-    '''
-    fields: none\n
-    outputs: nothing
-
-    Restores the latest redo transaction to undo and replays resulting editor state.
-    '''
-    transaction = redoStack.pop()
-    if transaction is None:
-        return
-    undoStack.push(transaction)
-    replayUndoTransactions()
-
-
-def resetTransactionHistory():
-    '''
-    fields: none\n
-    outputs: nothing
-
-    Resets initial replay baseline and clears undo/redo stacks for a newly loaded document.
-    '''
-    global initialEditorState, pendingInteractionStartState, pendingInteractionKind
-    initialEditorState = snapshotEditorState()
-    pendingInteractionStartState = None
-    pendingInteractionKind = None
-    undoStack.flush()
-    redoStack.flush()
+psm = pst.ProjectStateManager(
+    snapshotEditorState=snapshotEditorState,
+    applyEditorStateToRuntime=applyEditorStateToRuntime,
+    isCaptureSuspended=lambda: suspendTransactionCapture
+)
     
 console.log("Initialized Static Methods "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
 lastTime = time.time()
@@ -957,8 +718,8 @@ def handleClick():
         if pygame.rect.Rect(KeyDropdown.x, KeyDropdown.y, KeyDropdown.width, KeyDropdown.height).collidepoint(pygame.mouse.get_pos()):
             #console.log("click was on key dropdown, we don't care")
             return
-    if WaveButton.expanded:
-        if pygame.rect.Rect(WaveButton.x, WaveButton.y, WaveButton.width, WaveButton.height).collidepoint(pygame.mouse.get_pos()):
+    if WaveDropdown.expanded:
+        if pygame.rect.Rect(WaveDropdown.x, WaveDropdown.y, WaveDropdown.width, WaveDropdown.height).collidepoint(pygame.mouse.get_pos()):
             #console.log("click was on wave dropdown, we don't care")
             return
 
@@ -980,7 +741,7 @@ def handleClick():
         return
 
     if brushType in ["brush", "eraser", "select"]:
-        beginInteractionTransaction(brushType)
+        psm.beginInteractionTransaction(brushType)
 
     currColorName = colorsList[ColorButton.currentStateIdx][0]
     if not (currColorName in noteMap):
@@ -1158,7 +919,7 @@ def handleUnDrag():
     if pygame.mouse.get_pos()[1] < 80:
         return
 
-    finalizeInteractionTransaction()
+    psm.finalizeInteractionTransaction()
     NoteGrid.selectionRect = None
     preprocess()
     pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
@@ -1167,7 +928,7 @@ def handleUnDrag():
 def handleUnClick():
     if pygame.mouse.get_pos()[1] < 80:
         return
-    finalizeInteractionTransaction()
+    psm.finalizeInteractionTransaction()
     NoteGrid.selectionRect = None
     preprocess()
     pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
@@ -1277,7 +1038,7 @@ while run:
             colorSync()
             PlayHead.setHome(0)
             MasterPanel.render(screen)
-            resetTransactionHistory()
+            psm.resetTransactionHistory()
             pygame.event.pump()
             pygame.display.flip()
 
@@ -1329,12 +1090,12 @@ while run:
                     KeyDropdown.setPosition((ModeDropdown.x - KeyDropdown.width - SMALL_SPACE, 26))
 
                     if ColorButton.currentStateIdx != 6:
-                        WaveButton.setPosition((KeyDropdown.x - WaveButton.width - LARGE_SPACE, 26))
-                        ColorButton.setPosition((WaveButton.x - ColorButton.width - SMALL_SPACE, 26))
+                        WaveDropdown.setPosition((KeyDropdown.x - WaveDropdown.width - LARGE_SPACE, 26))
+                        ColorButton.setPosition((WaveDropdown.x - ColorButton.width - SMALL_SPACE, 26))
                     else:
-                        if WaveButton.expanded:
-                            WaveButton.handleClickOut()
-                        WaveButton.setPosition((-300, 26))
+                        if WaveDropdown.expanded:
+                            WaveDropdown.handleClickOut()
+                        WaveDropdown.setPosition((-300, 26))
                         ColorButton.setPosition((KeyDropdown.x - ColorButton.width - SMALL_SPACE, 26))
 
                     BeatsPerMeasureUpButton.setPosition((ColorButton.x - BeatsPerMeasureUpButton.width - LARGE_SPACE, 26))
@@ -1379,7 +1140,7 @@ while run:
                                     noteMap[justColorNames[ColorButton.currentStateIdx]] = draggingNotes
                             colorSync()
                             if oldColorIdx != ColorButton.currentStateIdx:
-                                pushEditorSnapshotTransaction("CHANGE_COLOR", "Change color channel")
+                                psm.pushEditorSnapshotTransaction("CHANGE_COLOR", "Change color channel")
                     if event.key in [pygame.K_MINUS, pygame.K_EQUALS]: # zoom out horizontally
                         if pygame.key.get_pressed()[CMD_KEY]:
                             zoomIndex = zoomDimensions.index((custom.tileWidth, custom.tileHeight))
@@ -1397,15 +1158,15 @@ while run:
                                 if not note.selected
                             ]
                         if beforeDelete != snapshotEditorState():
-                            pushEditorSnapshotTransaction("DELETE_NOTES", "Delete selected notes")
+                            psm.pushEditorSnapshotTransaction("DELETE_NOTES", "Delete selected notes")
                         NotePanel.render(screen)
                     elif event.key == pygame.K_z and pygame.key.get_pressed()[CMD_KEY]:
                         if pygame.key.get_pressed()[pygame.K_LSHIFT] or pygame.key.get_pressed()[pygame.K_RSHIFT]:
-                            performRedo()
+                            psm.performRedo()
                         else:
-                            performUndo()
+                            psm.performUndo()
                     elif event.key == pygame.K_y and pygame.key.get_pressed()[CMD_KEY]:
-                        performRedo()
+                        psm.performRedo()
                     elif event.key == CMD_KEY: # Switch to eraser momentarily
                         brushType = "eraser"
                         BrushButton.setCurrentState(1)
