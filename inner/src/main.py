@@ -1144,7 +1144,7 @@ def handleDrag(xy):
                 note_rect = pygame.Rect(note_x, note_y, note.duration * custom.tileWidth, custom.tileHeight)
 
                 if rect.colliderect(note_rect): note.select()
-                else: note.unselect()
+                elif not pygame.key.get_pressed()[pygame.K_LSHIFT]: note.unselect()
 
     NotePanel.render(screen)
 
