@@ -251,7 +251,7 @@ app.whenReady().then(() => {
       // Build command and arguments
       let command, args;
       if (isPythonScript) {
-        command = process.platform === "win32" ? "python" : "python3";
+        command = process.platform === "win32" ? "pythonw" : "python3";
         args = ["-u", scriptPath, sourcePath, commandPath];
       } else {
         command = scriptPath;
@@ -261,8 +261,8 @@ app.whenReady().then(() => {
       // Function to spawn the process
       function spawnEditor() {
         const child = spawn(command, args, {
-          stdio: ["inherit"],
-          detached: true, // Keep attached to Node terminal for debugging
+          stdio: ["ignore", "pipe", "pipe"],
+          detached: true, // Keep child independent from Electron lifecycle
         });
 
         // Pipe stdout and stderr to the parent process for live feedback

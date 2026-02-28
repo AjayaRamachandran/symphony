@@ -1,13 +1,8 @@
-node_modules
-src/assets/directory.json
-src/assets/recently-viewed.json
-src/assets/starred.json
-src/assets/user-settings.json
-dist/
-# build/
-venv/
+**/node_modules
+**/dist
+**/build/main
+venv
 .env
-inner/src/build/main
 .vscode/
-__pycache__
+**/__pycache__/
 *.pyc
