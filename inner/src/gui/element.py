@@ -767,7 +767,7 @@ class Dropdown(Interactive):
         self.currentState = self.states[self.currentStateIdx]
     
     def setCurrentState(self, idx):
-        self.currentStateIdx = idx
+        self.currentStateIdx = idx % len(self.states)
         self.currentState = self.states[self.currentStateIdx]
 
 
