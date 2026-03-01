@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://www.dropbox.com/scl/fi/l0q1c2el848gt3wqeyvc2/SymphonyLogo.png?rlkey=rs2kxjanpmnpw3fywwqj3vj80&st=0ba0ujkq&raw=1" width="198" height="208">
+  <img src="./src/assets/icon-dark-512.png" width="128" height="128">
   <h1 align='center'><b>Symphony</b></h1>
   <p style="font-size: 16px;" align='center'>Let's create something amazing.</p>
 </p>
@@ -15,15 +15,15 @@
 
 <img src="https://www.dropbox.com/scl/fi/sj3qb5zu4x82k8s6785rn/Symphony-SS.png?rlkey=lxpta4hjcdhybl4400nrql20o&st=wpe8nxt3&raw=1" style="border-radius: 5px;">
 
-## Overview
+## Overview: *Monorepo*
 
 **[Symphony](https://powerscore.vercel.app/)** is a music creation software for people of all skill levels. With a strong focus on **intuitive design**, Symphony takes away the usual learning curve that makes many creatives shy away from conventional tools. For drawing up a simple musical idea, conventional DAWs are *far too complex*, requiring lengthy project setups, and catering to high-power users, which can clutter the interface for simple experimentative sessions. *Symphony* aims to provide that space where users can **jump right in and start drafting**, keeping the user experience simple yet powerful.
 
-When you're ready to move on to the more technical phase, *Symphony* gives you power features like **stacking multiple sounds** or **playing with wave types**, but also lets you ***export your projects*** into a myriad of standard music file types (.midi, .mscz, etc), ensuring you can continue your creative flow without restarting.
+When you're ready to move on to the more technical phase, *Symphony* gives you power features like **stacking multiple sounds** or **setting up simple instruments** to export into audio formats (.mp3, .flac, .wav), but also lets you ***export your projects*** into a myriad of standard music file types (.midi, .musicxml), ensuring you can continue your creative flow without restarting.
 
 ## Codebase Information
 
-*Symphony* is made with what I'm calling the **RENSP** stack <small><small>*(I don't think that'll catch on)*</small></small>. It consists of <u>**R**</u>eact, <u>**E**</u>lectron, <u>**N**</u>ode, <u>**S**</u>DL2, and <u>**P**</u>ygame.Mixer; A slightly unconventional stack, but it's tailor-fit at each step of the column to ensure maximum efficiency and minimal boilerplate.
+*Symphony* is made with what I'm calling the **RENSP** stack <small><small>*(I don't think that'll catch on)*</small></small>. It consists of <u>**R**</u>eact, <u>**E**</u>lectron, <u>**N**</u>ode, <u>**S**</u>DL2, and <u>**P**</u>ygame.Mixer; An unconventional stack, but it's tailor-fit at each step of the column to ensure maximum efficiency and minimal boilerplate.
 
 <img src='https://www.dropbox.com/scl/fi/m7vp194gkiovxp7oydcbk/StackBreakdown.jpg?rlkey=628b5o9vmvycfaugiqdxvmaa9&st=95zmxofb&raw=1' style='border-radius:5px;'>
 
@@ -33,11 +33,11 @@ When you're ready to move on to the more technical phase, *Symphony* gives you p
 
 - **Node for the Backend:** This is really as a sub-layer of Electron, which interfaces with Node's IPC renderer to handle file management and state logic of the Project Manager.
 
-- **SDL2 for the Editor Interface:** This is done via Python's Pygame library, and allows us to essentially take advantage of precise, pixel-level rendering of complex elements beyond the capabilites of traditional DOM-style renders, and since we're doing it all inside of the Python main process we can handle all system functionality *under the same hood as the frontend* without needing compartmentalization *hell* with endpoints and external calls. This did mean we spent a good while reconstructing basic UI functionality from scratch, like scrolling, selecting, dragging, etc, but the end result is total program control, which is worth it when designing a tightly integrated editor and playback system.
+- **SDL2 for the Editor Interface:** This is done via Python's Pygame library, and allows us to essentially take advantage of precise, pixel-level rendering of complex elements beyond the capabilites of traditional DOM-style renders, and since we're doing it all inside of the Python main process we can handle system functionality like sound generation and playback *under the same hood* as the frontend logic. This did mean I spent a good while reconstructing basic UI functionality from scratch, like scrolling, selecting, dragging, etc, but the end result is total program control, which is worth it when designing a tightly integrated editor and playback system.
 
-- **Pygame.Mixer for Audio:** Another just... obvious option. We initially experimented with the Simpleaudio library when starting out, but found that switching to Pygame.Mixer was a small migration effort that completely eliminated what used to be frequent, inexplicable crashes from segmentation faults in the Simpleaudio library. Mixer also runs significantly faster, reducing playback latency.
+- **Pygame.Mixer for Audio:** Another just... obvious option. I initially experimented with the Simpleaudio library when starting out, but found that switching to Pygame.Mixer was a small migration effort that completely eliminated what used to be frequent, inexplicable crashes from segmentation faults in the Simpleaudio library. Mixer also runs significantly faster, reducing playback latency.
 
-## Design Language
+## Design
 
 Symphony has a clean, consistent UI design language we're calling Slate. It features a dark, yet contrast-rich look with plenty of design flair, while adhering to strict principles of design.
 ### Typeface Choice
@@ -48,7 +48,7 @@ Symphony has a clean, consistent UI design language we're calling Slate. It feat
 
 There are **two** major fonts used across Symphony: *Instrument Sans*, and *Inter*.
 
-- ***Instrument Sans*** is recognizable by its slightly wide stance, smaller natural kerning, and low x-height. This makes it great for big titles, where legibility is not an issue. It also has a touch of character, with features like the tilted terminals visible in letters like the lowercase 't', without being too bold or divisive.
+- ***Instrument Sans*** is recognizable by its slightly wide stance, smaller natural kerning, and low x-height. This makes it great for big titles, where legibility is not an issue. It also has a touch of character, with features like the tilted terminals visible in letters like the lowercase 't', without being too bold or hard to read.
 
 - ***Inter*** is characterized by its simplicity, sacrificing uniqueness for legibility. It's designed to be readable at even tiny sizes, with very high x-height and consistent minimum internal spacing to avoid clashing. As both the project manager and editor feature text at small sizes throughout, Inter was a clear choice.
 
@@ -90,12 +90,10 @@ On top of our extensive button design considerations, we also need to work pract
 
 ## *Footnote:* Technical Challenges & Future Considerations
 
-*Symphony* is still under active development, but we can already identify some pain points in development and crutches that might hinder its widespread adoption. However, these we want to see crop up post-beta-release, because, to be honest, I really don't know how big each one is until it's in the hands of testers. (I'm subtly urging you to download this and test it yourself \*wink wink\*)
+- **Growing codebase (monorepo architecture):** Codebase management as a solo developer is definitely a major challenge. Pieces interact with each other across the entire platform, components calling other components from wildly different places -- I do believe that with this project, it was almost a must to keep my components and styles organized. Thus, the repo, while large, is well-fragmented into digestible pieces. With v1.1, big changes here include splitting up the "monofile" editor program into a scoped, organized set of feature-oriented files that build into a single executable.
 
-- **Growing codebase:** Codebase management as a solo developer is definitely a major challenge. Pieces interact with each other across the entire platform, components calling other components from wildly different places -- I do believe that with this project, it was almost a must to keep my components and styles organized. Thus, the repo, while large, is well-fragmented into digestible pieces.
+- **Performance:** The editor GUI, which is written in Python and uses a real-time game library for UI logic, was originally running on a game loop, which wasted a lot of compute, especially if the program was left idle. While this was okay for the limited capabilities of version 1.0, I knew that in order to add new GUI elements and app functionality, this framework was too fragile and slow. Thus, with v1.1, we have implemented deferred hierarchical rendering (a.k.a. lazy rendering), which essentially intelligently decides which UI elements and groups of elements actually need to update each frame, and to sit idle when the user is inactive (vastly reducing idle compute).
 
-- **Monofile editor:** Initially a method to keep function call order consistent (and Z-layering easy) and essentially create a easy-to-access single file to handle the editor processes, has now become an absolutely gigantic "monofile" editor that is over 1,400 lines of code long. Making changes in this file is cumbersome, as it often involves injecting new code at precarious locations in the file. If I had the time, I would completely refactor the inner editor to adopt a similar component structure as the project manager, if not for the visuals then at least breaking up various tasks of the Editor into multiple files to avoid this "hunting".
-  - Symphony v1.1, which should come out sometime in Spring of 2026, aims to refactor the codebase such that there is clear separation of concerns and true object-oriented logic. This is currently in development.
+- **Load Times:** On some devices, load times were taking up to 90 seconds. This was simply unacceptable, and caused by the Python runtime needing to spin up from nothing every time the editor would need to be called upon. To combat this, v1.1 uses a daemon architecture that avoids spin up times by keeping the python program pre-loaded while the project manager is running, and simply calling upon it to open the GUI.
 
-- **Performance Limits:** While not imminent, the Editor, which runs on a realtime loop rather than an Event-based DOM, can put strain on lower-end PCs, since when in fullscreen, the app is pushing a lot of pixels manually. This is in part due to Python being a slower language but also a lack of optimization in the rendering process -- we have optimized a lot **WHAT** we are rendering (screenspace culling, hashmapping, object-oriented buttons) but not **HOW** we are rendering it (example: pausing screen updates when blurred focus, event-based UI updates, etc.).
-  - Symphony v1.1 will implement deferred rendering, which is the idea of letting the screen only update when needed. It will also operate under a hierarchal UI model (similar to a DOM) where elements are objects that have their own update and render logic -- this allows us to *aggressively* optimize our deferred rendering logic down to the individual GUI element level (almost making it event-based). This is also in development, but already shows strong promise in optimizing what was a low-efficiency realtime loop into something far more manageable, especially as we aim to add newer features.
+- **Inter-Process Communication:** We're using multiple languages and frameworks, and it was imperative that there was a clean mode of communication between programs to convey user settings, project configurations, and task calls. The result of ideating solutions to this problem was essentially a proper JSON-file-based API I'm calling the Process Command Architecture, which wraps writes and polls to a common json file into what is essentially API calls.

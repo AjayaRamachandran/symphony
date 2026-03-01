@@ -211,13 +211,14 @@
   font-family: Instrument Sans, sans-serif;
 }
 .call-to-action.inactive {
-  border: 2px solid hsl(23, 0%, 56%);
+  /* border: 2px solid hsl(23, 0%, 56%);
   background: linear-gradient(
     90deg,
     var(--alternate-background) 0%,
     var(--alternate-background) 50%,
     hsl(23, 0%, 31%) 100%
-  );
+  ); */
+  visibility: hidden;
 }
 
 .call-to-action-2 {

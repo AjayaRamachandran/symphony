@@ -173,7 +173,7 @@ function RightPanel() {
           )}
         </div>
 
-        {/* <Tooltip
+        <Tooltip
           text={
             selectedFile && selectedFile.slice(-9) === ".symphony"
               ? "Click to open in editor, or double click file."
@@ -201,7 +201,7 @@ function RightPanel() {
             <div>Open in Editor</div>
             <PencilRuler size={16} strokeWidth={2.5} />
           </button>
-        </Tooltip> */}
+        </Tooltip>
       </>
     </div>
   );
