@@ -12,7 +12,6 @@ function UserSettings({ onComplete }) {
   const [settings, setSettings] = useState({
     needs_onboarding: true,
     search_for_updates: true,
-    close_project_manager_when_editing: false,
     show_splash_screen: true,
     user_name: "",
     show_console: false,
@@ -102,7 +101,7 @@ function UserSettings({ onComplete }) {
           behind.
         </div>
 
-        <div className="setting-row">
+        {/*<div className="setting-row">
           <div className="modal-body2">
             Close Project Manager when in Editor
           </div>
@@ -114,7 +113,7 @@ function UserSettings({ onComplete }) {
         <div className="modal-subtext wide">
           Closes the Project Manager when you decide to open a Symphony in the
           editor.
-        </div>
+        </div>*/}
 
         <div className="setting-row">
           <div className="modal-body2">

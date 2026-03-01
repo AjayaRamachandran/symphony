@@ -245,6 +245,16 @@
   background: var(--gray-50);
   cursor: not-allowed;
 }
+.call-to-action-2.red {
+  background-color: var(--dark-inactive-bad);
+}
+
+.call-to-action-2.green {
+  background-color: var(--dark-active-good);
+}
+.call-to-action-2.gray {
+  background-color: var(--gray-50);
+}
 
 /* If you have right-panel, add similar rules */
 .right-panel,

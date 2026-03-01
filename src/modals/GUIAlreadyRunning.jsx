@@ -6,7 +6,6 @@ function GUIAlreadyRunning({ onComplete }) {
     <>
       <div
         className="modal-title"
-
         style={{ marginBottom: "15px" }}
       >
         Unable to Open File

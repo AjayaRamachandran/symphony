@@ -143,14 +143,6 @@
   display: flex;
 }
 
-.call-to-action-2.red {
-  background-color: var(--dark-inactive-bad);
-}
-
-.call-to-action-2.green {
-  background-color: var(--dark-active-good);
-}
-
 .setting-row {
   display: flex;
   justify-content: space-between;

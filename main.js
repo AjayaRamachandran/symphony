@@ -48,7 +48,6 @@ const PROCESS_COMMAND_PATH = path.join(USER_DATA_PATH, "process-command.json");
 const DEFAULT_SETTINGS = {
   needs_onboarding: true,
   search_for_updates: true,
-  close_project_manager_when_editing: false,
   show_splash_screen: true,
   user_name: "",
   fancy_graphics: true,
@@ -59,6 +58,25 @@ const DEFAULT_SETTINGS = {
 };
 
 let mainWindow;
+
+async function fetchJsonInMain(url, options = {}) {
+  const parsedUrl = new URL(url);
+  if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+    throw new Error(`Unsupported protocol: ${parsedUrl.protocol}`);
+  }
+
+  const response = await fetch(url, {
+    method: options.method || "GET",
+    headers: options.headers || {},
+    body: options.body,
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  return response.json();
+}
 
 app.whenReady().then(() => {
   // On first run, copy default JSONs from asar to userData if missing
@@ -339,6 +357,14 @@ app.whenReady().then(() => {
   });
   ipcMain.on("open-external", (event, url) => {
     shell.openExternal(url);
+  });
+  ipcMain.handle("fetch-json", async (_event, url, options = {}) => {
+    try {
+      const data = await fetchJsonInMain(url, options);
+      return { success: true, data };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
   });
   ipcMain.handle("file-exists", async (event, filePath) =>
     fs.existsSync(filePath),
@@ -669,8 +695,11 @@ app.whenReady().then(() => {
         userSettings = JSON.parse(data);
       }
 
+      // Remove retired setting key if present in older user files.
+      const { close_project_manager_when_editing, ...sanitizedUserSettings } =
+        userSettings;
       // Merge defaults with user settings
-      const updatedSettings = { ...DEFAULT_SETTINGS, ...userSettings };
+      const updatedSettings = { ...DEFAULT_SETTINGS, ...sanitizedUserSettings };
 
       // Save merged settings back to file (in case new keys were added)
       fs.writeFileSync(

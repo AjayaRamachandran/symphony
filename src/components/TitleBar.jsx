@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 
 import { Square, Copy } from "lucide-react";
 import Icon from "@/assets/icon-dark.svg";
+import ProgramData from "@/assets/program-data.json";
 
 function TitleBar() {
   const [isMaximized, setIsMaximized] = useState(false);
@@ -51,7 +52,7 @@ function TitleBar() {
 
         <div className="titlebar-center">
           <img src={Icon} width="16px" style={{ filter: "drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5))" }} />
-          <div>Project Manager - Symphony v1.1</div>
+          <div>Project Manager - Symphony v{ProgramData.version}</div>
         </div>
 
         {!isMac && (

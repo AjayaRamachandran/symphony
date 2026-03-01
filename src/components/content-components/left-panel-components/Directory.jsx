@@ -11,10 +11,12 @@ import DeleteConfirmationModal from "@/modals/DeleteConfirmationModal";
 import SameNameWarning from "@/modals/SameNameWarning";
 import InvalidDrop from "@/modals/InvalidDrop";
 import SplashScreen from "@/modals/SplashScreen";
+import NewVersionAvailable from "@/modals/NewVersionAvailable";
 
 import { useDirectory } from "@/contexts/DirectoryContext";
 
 import "./directory.css";
+import ProgramData from "@/assets/program-data.json";
 
 function Directory() {
   const sections = ["Projects", "Exports", "Symphony Auto-Save"];
@@ -39,6 +41,8 @@ function Directory() {
   const [hoverDir, setHoverDir] = useState(null);
   const [hoverName, setHoverName] = useState(null);
   const [showInvalidModal, setShowInvalidModal] = useState(false);
+  const [showNewVersionAvailable, setShowNewVersionAvailable] = useState(false);
+  const [version, setVersion] = useState("");
   const dragCounter = useRef(0);
 
   // Track which directory is being dragged over for styling
@@ -62,6 +66,21 @@ function Directory() {
     window.electronAPI.getUserSettings().then((result) => {
       if (result["show_splash_screen"]) {
         setShowSplashScreen(true);
+      }
+      if (result["search_for_updates"]) {
+        window.electronAPI.fetchJson(`${ProgramData.website}/api/v1/version`).then((result) => {
+          if (!result?.success) {
+            throw new Error(result?.error || "Failed to fetch version");
+          }
+
+          const data = result.data;
+          setVersion(data.version);
+          if (data.version !== ProgramData.version) {
+            setShowNewVersionAvailable(true);
+          }
+        }).catch((error) => {
+          console.error("Error fetching version:", error);
+        });
       }
     });
   }, []);
@@ -296,7 +315,17 @@ function Directory() {
           }}
         />
       </GenericModal>
-
+      <GenericModal
+        isOpen={showNewVersionAvailable}
+        onClose={() => setShowNewVersionAvailable(false)}
+        showXButton={false}
+      >
+        <NewVersionAvailable
+          onComplete={() => { setShowNewVersionAvailable(false); window.electronAPI.openExternal(`${ProgramData.website}/download`); }}
+          onClose={() => setShowNewVersionAvailable(false)}
+          version={version}
+        />
+      </GenericModal>
       <GenericModal
         isOpen={showEdit}
         onClose={() => {

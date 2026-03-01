@@ -43,6 +43,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // User Settings
   getUserSettings: () => ipcRenderer.invoke('get-user-settings'),
   updateUserSettings: (key, value) => ipcRenderer.invoke('update-user-settings', key, value),
+  fetchJson: (url, options) => ipcRenderer.invoke('fetch-json', url, options),
 
   // Symphony File Commands
   getSymphonyFiles: (directoryPath) => ipcRenderer.invoke('get-symphony-files', directoryPath),
