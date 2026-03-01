@@ -19,6 +19,7 @@ import "./modals-styling/splash-screen.css";
 import banner from "@/assets/banner.svg";
 import symphonyFileTypeIcon from "@/assets/symphony-file-type-icon.svg";
 import { useDirectory } from "@/contexts/DirectoryContext";
+import ProgramData from "@/assets/program-data.json";
 
 function SplashScreen({ onComplete }) {
   const [userName, setUserName] = useState("");
@@ -189,7 +190,7 @@ function SplashScreen({ onComplete }) {
         <div className="quick-launch scrollable med-bg">
           <button
             className="quick-launch-medium"
-            onClick={() => openExternal("https://symphony.nimbial.com/docs")}
+            onClick={() => openExternal(`${ProgramData.website}/docs`)}
           >
             <BookMarked style={{ flexShrink: 0 }} size={16} strokeWidth={1.5} />
             <div className="truncated-text" style={{ marginLeft: "6px" }}>
@@ -202,7 +203,7 @@ function SplashScreen({ onComplete }) {
           <button
             className="quick-launch-medium"
             onClick={() =>
-              openExternal("https://symphony.nimbial.com/download")
+              openExternal(`${ProgramData.website}/download`)
             }
           >
             <GitBranch style={{ flexShrink: 0 }} size={16} strokeWidth={1.5} />

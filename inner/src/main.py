@@ -76,17 +76,17 @@ questionImage = pygame.image.load(f"{source_path}/assets/question.png")
 squareWaveImage = pygame.image.load(f"{source_path}/assets/square.png")
 sawtoothWaveImage = pygame.image.load(f"{source_path}/assets/sawtooth.png")
 triangleWaveImage = pygame.image.load(f"{source_path}/assets/triangle.png")
-guitarWaveImage = pygame.image.load(f"{source_path}/assets/guitar.png")
-pianoWaveImage = pygame.image.load(f"{source_path}/assets/piano.png")
-maleVoiceWaveImage = pygame.image.load(f"{source_path}/assets/male_voice.png")
-brassWaveImage = pygame.image.load(f"{source_path}/assets/brass.png")
+triangleInstrumentImage = pygame.image.load(f"{source_path}/assets/bells.png")
+# guitarInstrumentImage = pygame.image.load(f"{source_path}/assets/guitar.png")
+pianoInstrumentImage = pygame.image.load(f"{source_path}/assets/piano.png")
+# maleVoiceWaveImage = pygame.image.load(f"{source_path}/assets/male-voice.png")
+# brassWaveImage = pygame.image.load(f"{source_path}/assets/brass.png")
 waveImages = [
     squareWaveImage,
     triangleWaveImage,
     sawtoothWaveImage,
-    pianoWaveImage,
-    guitarWaveImage,
-    maleVoiceWaveImage
+    pianoInstrumentImage,
+    triangleInstrumentImage,
 ]
 
 upChevronImage = pygame.image.load(f"{source_path}/assets/up.png")

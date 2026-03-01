@@ -178,7 +178,7 @@ def ComplexInstrument(t: np.ndarray, freq: float, magnitude: float, tonesMap: di
 def Piano(t: np.ndarray, freq: float, magnitude: float) -> np.ndarray:
     return AdditiveInstrument(t, freq - 1, magnitude, ACTIVE_PIANO_TONES_MAP, decay=True, decay_power=0.3)
 
-def Guitar(t: np.ndarray, freq: float, magnitude: float) -> np.ndarray:
+def Bells(t: np.ndarray, freq: float, magnitude: float) -> np.ndarray:
     return AdditiveInstrument(t, freq, magnitude, ACTIVE_GUITAR_TONES_MAP, decay=True, decay_power=0.7)
 
 def MaleVoiceAah(t: np.ndarray, freq: float, magnitude: float) -> np.ndarray:
@@ -212,8 +212,8 @@ INSTRUMENTS_BY_WAVE = {
     1: Triangle,
     2: Sawtooth,
     3: Piano,
-    4: Guitar,
-    5: MaleVoiceAah,
+    4: Bells,
+    # 5: MaleVoiceAah,
     # 6: Brass,
     # 6: MaleVoiceOoh,
     # 7: MaleVoiceEee,
