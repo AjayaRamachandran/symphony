@@ -474,9 +474,20 @@ def colorSync():
     if ColorButton.currentStateIdx != 6:
         WaveDropdown.setCurrentState(instrumentMap[justColorNames[ColorButton.currentStateIdx]])
         PitchList.setWave(WaveDropdown.currentStateIdx)
+        WaveDropdown.setPosition((KeyDropdown.x - WaveDropdown.width - LARGE_SPACE, 26))
+        ColorButton.setPosition((WaveDropdown.x - ColorButton.width - SMALL_SPACE, 26))
+        BeatsPerMeasureDownButton.setPosition((ColorButton.x - BeatsPerMeasureDownButton.width - LARGE_SPACE, 26))
+        BeatsPerMeasureTextBox.setPosition((BeatsPerMeasureDownButton.x - BeatsPerMeasureTextBox.width - SMALL_SPACE, 26))
+        BeatsPerMeasureUpButton.setPosition((BeatsPerMeasureTextBox.x - BeatsPerMeasureUpButton.width - SMALL_SPACE, 26))
     else:
         if WaveDropdown.expanded:
             WaveDropdown.handleClickOut()
+        WaveDropdown.setPosition((-300, 26))
+        ColorButton.setPosition((KeyDropdown.x - ColorButton.width - LARGE_SPACE, 26))
+        BeatsPerMeasureDownButton.setPosition((ColorButton.x - BeatsPerMeasureDownButton.width - LARGE_SPACE, 26))
+        BeatsPerMeasureTextBox.setPosition((BeatsPerMeasureDownButton.x - BeatsPerMeasureTextBox.width - SMALL_SPACE, 26))
+        BeatsPerMeasureUpButton.setPosition((BeatsPerMeasureTextBox.x - BeatsPerMeasureUpButton.width - SMALL_SPACE, 26))
+
     ToolBar.render(screen)
     NoteGrid.color = ColorButton.currentStateIdx
     
