@@ -222,6 +222,7 @@ app.whenReady().then(() => {
           );
 
           if (data.id === id && data.status) {
+            console.log(data);
             return resolve(data);
           }
         } catch {}
@@ -545,27 +546,6 @@ app.whenReady().then(() => {
     }
   });
 
-  // Metadata Operations
-  ipcMain.handle("get-metadata", async (event, filePath) => {
-    try {
-      const metaPath = filePath.replace(/\.symphony$/, ".json");
-      return fs.existsSync(metaPath)
-        ? JSON.parse(fs.readFileSync(metaPath, "utf-8"))
-        : {};
-    } catch (err) {
-      return { error: err.message };
-    }
-  });
-  ipcMain.handle("set-metadata", async (event, { filePath, metadata }) => {
-    try {
-      const metaPath = filePath.replace(/\.symphony$/, ".json");
-      fs.writeFileSync(metaPath, JSON.stringify(metadata, null, 2), "utf-8");
-      return { success: true };
-    } catch (err) {
-      return { success: false, error: err.message };
-    }
-  });
-
   // Recently Viewed
   function addRecentlyViewed(filePath) {
     if (!filePath) return;
@@ -586,7 +566,7 @@ app.whenReady().then(() => {
           !(r.name === entry.name && r.fileLocation === entry.fileLocation),
       );
       recent.unshift(entry);
-      if (recent.length > 20) recent = recent.slice(0, 20);
+      if (recent.length > 15) recent = recent.slice(0, 15);
       fs.writeFileSync(
         RECENTLY_VIEWED_PATH,
         JSON.stringify(recent, null, 2),
@@ -639,6 +619,14 @@ app.whenReady().then(() => {
       }
     },
   );
+  ipcMain.handle("clear-recently-viewed", async () => {
+    try {
+      fs.writeFileSync(RECENTLY_VIEWED_PATH, "[]", "utf-8");
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  });
 
   // Starred Files
   ipcMain.handle("get-stars", async () => {

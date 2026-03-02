@@ -13,6 +13,7 @@ function NewFile() {
   const {
     globalDirectory,
     setGlobalDirectory,
+    setSelectedFile,
     setGlobalUpdateTimestamp,
     viewType,
   } = useDirectory();
@@ -41,6 +42,14 @@ function NewFile() {
     console.log(result);
     setShowNewFile(false);
     setGlobalUpdateTimestamp(Date.now());
+    if (result.status === "success") {
+      setSelectedFile(path.basename(result.payload.project_file_path));
+      await window.electronAPI.doProcessCommand(
+        result.payload.project_file_path,
+        "open",
+        {},
+      );
+    }
   };
 
   return (

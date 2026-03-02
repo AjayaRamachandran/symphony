@@ -47,7 +47,6 @@ function OnboardingModal({ onComplete }) {
       ></img>
       <div
         className="modal-big-title"
-
         style={{ margin: "15px 0px", width: "500px" }}
       >
         Welcome to Symphony v1.1

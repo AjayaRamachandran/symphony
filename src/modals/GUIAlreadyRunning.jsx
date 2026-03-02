@@ -15,7 +15,6 @@ function GUIAlreadyRunning({ onComplete }) {
       </div>
       <button
         className={"call-to-action-2"}
-
         onClick={() => onComplete()}
       >
         Got it

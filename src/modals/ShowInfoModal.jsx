@@ -6,6 +6,28 @@ function ShowInfoModal({ filePath }) {
   const [error, setError] = useState(null);
   const hasFetched = useRef(false); // <-- Track if fetch has already run
 
+  const formatLabel = (input) => {
+    const text = String(input ?? "N/A");
+    if (!text) return "N/A";
+    return text.charAt(0).toUpperCase() + text.slice(1);
+  };
+
+  const formatValue = (value) => {
+    if (value === null || value === undefined) return "N/A";
+
+    if (Array.isArray(value)) {
+      return value.map((item) => String(item ?? "")).join(", ");
+    }
+
+    if (typeof value === "object") {
+      return JSON.stringify(value);
+    }
+
+    const text = String(value);
+    if (!text) return "N/A";
+    return text.charAt(0).toUpperCase() + text.slice(1);
+  };
+
   useEffect(() => {
     if (hasFetched.current || !filePath) return;
 
@@ -35,7 +57,6 @@ function ShowInfoModal({ filePath }) {
     <>
       <div
         className="modal-title"
-
         style={{ display: "flex", marginBottom: "15px", alignItems: "center" }}
       >
         File Properties
@@ -69,11 +90,9 @@ function ShowInfoModal({ filePath }) {
           {Object.entries(fileInfo).map(([key, value]) => (
             <div key={key}>
               <strong style={{ marginRight: "4px" }}>
-                {key[0].toUpperCase() + key.slice(1)}:
+                {formatLabel(key)}:
               </strong>{" "}
-              {typeof value === "object"
-                ? JSON.stringify(value[0].toUpperCase() + value.slice(1))
-                : String(value)[0].toUpperCase() + String(value).slice(1)}
+              {formatValue(value)}
             </div>
           ))}
         </div>

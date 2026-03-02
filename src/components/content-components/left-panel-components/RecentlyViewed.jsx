@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from "react";
 
-import { Music, FolderClosed, KeyboardMusic, Music4 } from "lucide-react";
+import {
+  Music,
+  FolderClosed,
+  KeyboardMusic,
+  Music4,
+  Trash2,
+} from "lucide-react";
 import path from "path-browserify";
 
 import Tooltip from "@/ui/Tooltip";
@@ -92,12 +98,34 @@ function RecentlyViewed() {
     setGlobalUpdateTimestamp(Date.now());
   };
 
+  const clearRecentlyViewed = async () => {
+    try {
+      await window.electronAPI.clearRecentlyViewed();
+      setRecentlyViewed([]);
+      setGlobalUpdateTimestamp(Date.now());
+    } catch (error) {
+      console.error("Failed to clear recently viewed:", error);
+    }
+  };
+
   return (
     <>
+      <div className="section-title-row">
+        <div className="section-title uppercase">Recently Launched</div>
+        <Tooltip text="Empty Recents">
+          <button
+            className="recently-viewed-clear-button"
+            onClick={clearRecentlyViewed}
+            disabled={recentlyViewed.length === 0}
+          >
+            <Trash2 size={14} strokeWidth={1.6} />
+          </button>
+        </Tooltip>
+      </div>
       <div className="recently-viewed scrollable med-bg">
         {recentlyViewed.length > 0 &&
           recentlyViewed.map((item, recentIndex) => {
-            if (recentIndex < 12) {
+            if (recentIndex < 9) {
               const Icon = fileTypes[item.type];
               return (
                 <Tooltip

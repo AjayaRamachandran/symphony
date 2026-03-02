@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import { Search } from "lucide-react";
 import { useDirectory } from "@/contexts/DirectoryContext";
 
@@ -38,11 +38,14 @@ const Field = ({
     }
   };
 
-  const placeholderNode = useMemo(() => {
-    if (placeholder === null || placeholder === undefined) return null;
-    if (React.isValidElement(placeholder)) return placeholder;
-    return <span>{placeholder}</span>;
-  }, [placeholder]);
+  let placeholderNode = null;
+  if (placeholder !== null && placeholder !== undefined) {
+    placeholderNode = React.isValidElement(placeholder) ? (
+      placeholder
+    ) : (
+      <span>{placeholder}</span>
+    );
+  }
 
   const hasValue = String(value ?? "").length > 0;
 

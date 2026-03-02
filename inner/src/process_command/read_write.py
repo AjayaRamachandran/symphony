@@ -62,7 +62,7 @@ def operateProcessCommand(file_path):
                     "payload": {}
                 }, dump_file)
             return new_pc
-    elif pc['command'] in ['retrieve', 'instantiate', 'export', 'convert']:
+    elif pc['command'] in ['retrieve', 'instantiate', 'export', 'convert', 'update_metadata']:
         command = pc['command']
         new_pc = copy.deepcopy(pc)
         console.log(command + '...')
@@ -75,6 +75,8 @@ def operateProcessCommand(file_path):
                 pce.export(pc)
             elif command == 'convert':
                 pce.convert(pc)
+            elif command == 'update_metadata':
+                pce.updateMetadata(pc)
         except Exception:
             traceback.print_exc()
             with open(file_path, 'w') as dump_file:

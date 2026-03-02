@@ -105,7 +105,7 @@ function Toolbar() {
   const isStarred = async (filePath) => {
     try {
       const stars = await window.electronAPI.getStars();
-      console.log(stars);
+      // console.log(stars);
       //console.log(filePath)
       // Normalize input path
       const normalizedTarget = path.normalize(filePath).replace(/\\/g, "/");

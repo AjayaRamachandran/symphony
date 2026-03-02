@@ -9,7 +9,6 @@ function DeleteConfirmationModal({
     <>
       <div
         className="modal-title"
-
         style={{ marginBottom: "15px" }}
       >
         Confirm
@@ -20,7 +19,6 @@ function DeleteConfirmationModal({
       </div>
       <button
         className={"call-to-action-2 red"}
-
         onClick={() => onComplete()}
       >
         {action}

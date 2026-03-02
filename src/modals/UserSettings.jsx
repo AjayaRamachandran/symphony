@@ -43,7 +43,6 @@ function UserSettings({ onComplete }) {
     <>
       <div
         className="modal-title"
-
         style={{ marginBottom: "15px" }}
       >
         <Settings size={20} />
@@ -146,7 +145,7 @@ function UserSettings({ onComplete }) {
         </div>
 
         {/* <div className='setting-row'>
-          <div text-style='display' className='modal-body2 wide'>Launch Symphony on Startup</div>
+          <div className='modal-body2 wide display'>Launch Symphony on Startup</div>
           <label className='switch'>
             <input type='checkbox' checked={settings.launch_on_startup} onChange={() => handleToggle('launch_on_startup')} />
             <span className='slider'></span>
@@ -214,7 +213,6 @@ function UserSettings({ onComplete }) {
 
       <button
         className="call-to-action-2"
-
         onClick={() => onComplete()}
       >
         Save & Exit

@@ -14,6 +14,7 @@ import Field from "@/ui/Field";
 import Dropdown from "@/ui/Dropdown";
 import Tooltip from "@/ui/Tooltip";
 import { useDirectory } from "@/contexts/DirectoryContext";
+import { normalizePath } from "@/utils/normalizePath";
 import InitExportFolder from "@/modals/InitExportFolder";
 
 const formats = [
@@ -62,11 +63,20 @@ function ExportModal({ onClose, onComplete }) {
   const finish = async (pathToFile) => {
     document.body.style.cursor = "wait";
     try {
-      await window.electronAPI.doProcessCommand(
+      const result = await window.electronAPI.doProcessCommand(
         path.join(globalDirectory, path.basename(selectedFile)),
         "export",
         { dest_folder_path: selectedFolder.value, file_type: format.toLowerCase() },
       );
+      console.log(result);
+      if (result.status === "success") {
+        const normalizedOutputFilePath = normalizePath(result.payload.output_file_path);
+        setSelectedFile(path.basename(normalizedOutputFilePath));
+        setGlobalDirectory(path.dirname(normalizedOutputFilePath));
+        console.log(`output file path: ${normalizedOutputFilePath}`);
+        console.log(`set global directory to ${path.dirname(normalizedOutputFilePath)}`);
+        console.log(`set selected file to ${path.basename(normalizedOutputFilePath)}`);
+      }
     } finally {
       document.body.style.cursor = "default";
     }
@@ -87,7 +97,6 @@ function ExportModal({ onClose, onComplete }) {
         <>
           <div
             className="modal-title"
-
             style={{ marginBottom: "25px" }}
           >
             Export to...
@@ -140,8 +149,6 @@ function ExportModal({ onClose, onComplete }) {
                 ? null
                 : async () => {
                   await finish(selectedFolder.value);
-                  setGlobalDirectory(selectedFolder.value);
-                  setSelectedFile(null);
                   onClose();
                 }
             }

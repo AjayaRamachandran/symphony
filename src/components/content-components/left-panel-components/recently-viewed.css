@@ -1,3 +1,31 @@
+.section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 27px;
+}
+
+.section-title-row .section-title {
+  margin-top: 0;
+  margin-bottom: 5px;
+}
+
+.recently-viewed-clear-button {
+  margin-bottom: 4px;
+  color: var(--gray-50);
+  background-color: var(--alternate-background);
+  border-radius: 5px;
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  padding: 4px;
+}
+
+.recently-viewed-clear-button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
 .recently-viewed {
   flex: 1;
   border-radius: 7px;

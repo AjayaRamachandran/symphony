@@ -130,7 +130,6 @@ function EditModal({
     <>
       <div
         className="modal-title"
-
         style={{ marginBottom: "25px" }}
       >
         Edit Folder
@@ -165,7 +164,6 @@ function EditModal({
         <button
           className={"call-to-action-2 red"}
           style={{ marginLeft: 0 }}
-
           onClick={settingsShowDelete ? onConfirm : onComplete}
         >
           <Trash2 size={16} />
@@ -181,7 +179,6 @@ function EditModal({
               : " locked")
           }
           style={{ marginLeft: 0 }}
-
           onClick={
             params.dir !== sourceLocation ||
               params.dest !== destination ||

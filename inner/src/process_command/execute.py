@@ -43,6 +43,9 @@ def retrieve(pc_file: dict):
         tiles = maxNoteEndTime
         payload = {
             'fileInfo' : {
+                'Description' : ps['meta']['file_data']['description'],
+                'Composer' : ps['meta']['file_data']['composer'],
+                'Collaborators' : ps['meta']['file_data']['collaborators'],
                 'Key' : ps["key"],
                 'Mode' : ps["mode"],
                 'Tempo (tpm)' : ps["tpm"],
@@ -91,7 +94,7 @@ def instantiate(pc_file: dict):
             "status" : "success",
             "id" : pc_file['id'],
             "message" : "",
-            "payload" : { }
+            "payload" : { "project_file_path": project_file_path }
         }, f)
 
 
@@ -119,18 +122,18 @@ def export(pc_file: dict):
     arr2d = sp.toSound(finalWave, returnType='2DArray')
 
     if output_file_type == 'wav':
-        exporting.exportToWav(arr2d, path.join(dest_folder_path, project_file_name) + '.wav', sample_rate=44100)
+        output_file_path = exporting.exportToWav(arr2d, path.join(dest_folder_path, project_file_name) + '.wav', sample_rate=44100)
     elif output_file_type == 'flac':
-        exporting.exportToFlac(arr2d, path.join(dest_folder_path, project_file_name) + '.flac', sample_rate=44100)
+        output_file_path = exporting.exportToFlac(arr2d, path.join(dest_folder_path, project_file_name) + '.flac', sample_rate=44100)
     elif output_file_type == 'mp3':
-        exporting.exportToMp3(arr2d, path.join(dest_folder_path, project_file_name) + '.mp3', sample_rate=44100)
+        output_file_path = exporting.exportToMp3(arr2d, path.join(dest_folder_path, project_file_name) + '.mp3', sample_rate=44100)
 
     with open(response_file_path, 'w') as f:
         json.dump({
             "status" : "success",
             "id" : pc_file['id'],
             "message" : "",
-            "payload" : { }
+            "payload" : { "output_file_path": output_file_path }
         }, f)
 
 
@@ -155,8 +158,7 @@ def convert(pc_file: dict):
         ps = sl.toProgramState(pkl.load(pf))
 
     if output_file_type == 'midi':
-        converting.createMidiFromNotes(ps['noteMap'],
-                               path.join(dest_folder_path, project_file_name) + '.mid')
+        output_file_path = converting.createMidiFromNotes(ps['noteMap'], path.join(dest_folder_path, project_file_name) + '.mid')
     if output_file_type == 'musicxml':
         if args['time_sig_denominator'] == 'auto': time_sig_denominator = 4
         else: time_sig_denominator = args['time_sig_denominator']
@@ -167,7 +169,7 @@ def convert(pc_file: dict):
         if args['time_sig_numerator'] == 'auto': time_sig_numerator = ps['beatsPerMeasure']
         else: time_sig_numerator = args['time_sig_numerator']
 
-        converting.createMusicXMLFromNotes(ps['noteMap'],
+        output_file_path = converting.createMusicXMLFromNotes(ps['noteMap'],
                                    path.join(dest_folder_path, project_file_name) + '.musicxml',
                                    bpm,
                                    time_sig_numerator,
@@ -182,5 +184,44 @@ def convert(pc_file: dict):
             "status" : "success",
             "id" : pc_file['id'],
             "message" : "",
-            "payload" : { }
+            "payload" : { "output_file_path": output_file_path }
+        }, f)
+
+
+def updateMetadata(pc_file: dict):
+    '''
+    fields:
+        pc_file (dict) - the data contained within the process command file.
+    outputs: nothing
+
+    Updates the metadata of the project.
+    '''
+    args = pc_file['args']
+
+    project_file_name = args['project_file_name']
+    project_folder_path = args['project_folder_path']
+    metadata = args['metadata']
+
+    project_file_path = path.join(project_folder_path, project_file_name) + '.symphony'
+    with open(project_file_path, "rb") as pf:
+        ps = sl.toProgramState(pkl.load(pf))
+
+    default_file_data = sl.DEFAULT_META_FIELD["file_data"]
+    has_required_metadata_fields = (
+        isinstance(metadata, dict)
+        and all(field in metadata for field in default_file_data.keys())
+    )
+    saved_metadata = metadata if has_required_metadata_fields else dict(default_file_data)
+    ps['meta']['file_data'] = saved_metadata
+    response_file_path = pc_file['pc_file_path']
+
+    with open(project_file_path, "wb") as pf:
+        pkl.dump(ps, pf)
+
+    with open(response_file_path, 'w') as f:
+        json.dump({
+            "status" : "success",
+            "id" : pc_file['id'],
+            "message" : "",
+            "payload" : { "metadata": saved_metadata }
         }, f)

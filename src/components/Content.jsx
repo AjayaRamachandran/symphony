@@ -6,12 +6,15 @@ import RightPanel from "./content-components/RightPanel";
 
 import GenericModal from "@/modals/GenericModal";
 import OnboardingModal from "@/modals/OnboardingModal";
+import { useDirectory } from "@/contexts/DirectoryContext";
 
 import "./content.css";
 
 function Content() {
   const [showOnboardingModal, setShowOnboardingModal] = useState(false);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  const { selectedFile, globalDirectory } = useDirectory();
+  const rightPanelKey = `${globalDirectory || ""}::${selectedFile || ""}`;
   useEffect(() => {
     window.electronAPI.getUserSettings().then((result) => {
       setNeedsOnboarding(result["needs_onboarding"]);
@@ -28,7 +31,7 @@ function Content() {
           <div className="content">
             <LeftPanel />
             <CenterPanel />
-            <RightPanel />
+            <RightPanel key={rightPanelKey} />
           </div>
         </>
       )}

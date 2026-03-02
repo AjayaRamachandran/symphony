@@ -113,14 +113,12 @@ function SplashScreen({ onComplete }) {
       >
         <div
           className="modal-big-title"
-
           style={{ margin: "0px 0px", fontSize: "28px" }}
         >
           {userFirstName ? "Hi " + userFirstName.split(" ")[0] : "Welcome"}!
         </div>
         <div
           className="modal-paragraph"
-
           style={{ fontSize: "14px", marginBottom: "28px", marginTop: "8px" }}
         >
           Let's create something amazing.

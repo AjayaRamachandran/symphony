@@ -173,7 +173,9 @@ function Directory() {
   };
 
   return (
-    <div className="directory scrollable med-bg">
+    <>
+      <div className="section-title uppercase">Directory</div>
+      <div className="directory scrollable med-bg">
       {sections.map((section, sectionIndex) => (
         <React.Fragment key={sectionIndex}>
           <div className="directory-section">
@@ -412,7 +414,8 @@ function Directory() {
           }}
         />
       </GenericModal>
-    </div>
+      </div>
+    </>
   );
 }
 

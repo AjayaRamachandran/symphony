@@ -32,6 +32,7 @@ def dumpToFile(workingFile: str, destFile: str, programState: dict, autoSave: st
     tpm = programState["tpm"]
     beatLength = programState["beatLength"]
     beatsPerMeasure = programState["beatsPerMeasure"]
+    meta = programState.get("meta")
 
     saveReadyNoteMap = sl.toSavable(noteMap)
 
@@ -39,7 +40,7 @@ def dumpToFile(workingFile: str, destFile: str, programState: dict, autoSave: st
     localTime = time.localtime(epochSeconds)
     readableTime = time.strftime('%Y-%m-%d at %H:%M:%S', localTime)
 
-    programState = sl.newProgramState(key, mode, tpm, saveReadyNoteMap, waveMap, beatLength, beatsPerMeasure)
+    programState = sl.newProgramState(key, mode, tpm, saveReadyNoteMap, waveMap, beatLength, beatsPerMeasure, meta=meta)
 
     with open(workingFile, 'wb') as file:
         pkl.dump(programState, file, -1)
@@ -68,9 +69,10 @@ def simpleDump(filePath: str, programState: dict):
     tpm = programState["tpm"]
     beatLength = programState["beatLength"]
     beatsPerMeasure = programState["beatsPerMeasure"]
+    meta = programState.get("meta")
 
     saveReadyNoteMap = sl.toSavable(noteMap)
-    programState = sl.newProgramState(key, mode, tpm, saveReadyNoteMap, waveMap, beatLength, beatsPerMeasure)
+    programState = sl.newProgramState(key, mode, tpm, saveReadyNoteMap, waveMap, beatLength, beatsPerMeasure, meta=meta)
 
     with open(filePath, 'wb') as file:
         pkl.dump(programState, file, -1)

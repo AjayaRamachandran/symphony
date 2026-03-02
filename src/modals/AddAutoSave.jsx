@@ -50,7 +50,6 @@ function AddAutoSave({ onClose }) {
               ? "call-to-action-2 locked"
               : "call-to-action-2"
           }
-
           onClick={
             sourceLocation == "" || destination == "" || projectName == ""
               ? null

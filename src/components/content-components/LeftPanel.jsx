@@ -52,9 +52,7 @@ function LeftPanel() {
             </button>
           </Tooltip>
         </div>
-        <div className="section-title">DIRECTORY</div>
         <Directory />
-        <div className="section-title">RECENTLY LAUNCHED</div>
         <RecentlyViewed />
       </div>
       <GenericModal

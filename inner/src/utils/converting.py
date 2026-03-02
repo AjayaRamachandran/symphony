@@ -19,7 +19,7 @@ def createMidiFromNotes(noteMap: dict, filename: str, instrumentName="Acoustic G
         noteMap (dict) - noteMap data\n
         filename (string) - path of output folder\n
         instrumentName (string) - instrument type to use\n
-    outputs: nothing
+    outputs: string (the output file path)
 
     Generates a MIDI file from a 1.1 noteMap and saves it to a file.
     '''
@@ -47,6 +47,7 @@ def createMidiFromNotes(noteMap: dict, filename: str, instrumentName="Acoustic G
 
     midi.instruments.append(instrument)
     midi.write(candidate)
+    return candidate
 
 def createMusicXMLFromNotes(
     noteMap: dict,
@@ -70,7 +71,7 @@ def createMusicXMLFromNotes(
         key (str) - tonic (e.g. "C#", "Db")\n
         mode (str) - musical mode\n
         colorClefMap (dict) - color → clef name (ex. "Treble", "Bass (8vb)")\n
-    outputs: nothing
+    outputs: string (the output file path)
 
     Generates a MuseScore-compatible MusicXML notation file.
     '''

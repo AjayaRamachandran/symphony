@@ -72,7 +72,6 @@ function NewFolder({ defaultDestProp = "", onClose, onConflict }) {
     <>
       <div
         className="modal-title"
-
         style={{ marginBottom: "25px" }}
       >
         Add New Folder

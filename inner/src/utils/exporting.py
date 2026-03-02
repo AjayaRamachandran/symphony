@@ -18,7 +18,7 @@ def exportToWav(arr2d: np.ndarray, filename: str, sample_rate: int = 44100): # f
         arr2d (np.ndarray) - sound data\n
         filename (str) - the output file name\n
         sample_rate (number) - the sample rate of the audio\n
-    outputs: nothing
+    outputs: string (the output file path)
     
     Take a 2-D array and write it to a WAV file using soundfile library. If file exists, appends an incrementing number to the filename.
     '''
@@ -30,6 +30,7 @@ def exportToWav(arr2d: np.ndarray, filename: str, sample_rate: int = 44100): # f
         counter += 1
     sf.write(candidate, arr2d, sample_rate, subtype='PCM_16')
     console.log('Completed WAV Export.')
+    return candidate
 
 
 def exportToFlac(arr2d: np.ndarray, filename: str, sample_rate: int = 44100):
@@ -38,7 +39,7 @@ def exportToFlac(arr2d: np.ndarray, filename: str, sample_rate: int = 44100):
         arr2d (np.ndarray) - sound data\n
         filename (str) - output filepath\n
         sample_rate (number) - sample rate\n
-    outputs: nothing
+    outputs: string (the output file path)
 
     Take a 2-D array and write it to a FLAC file.
     If file exists, appends an incrementing number to the filename.
@@ -55,6 +56,7 @@ def exportToFlac(arr2d: np.ndarray, filename: str, sample_rate: int = 44100):
 
     sf.write(candidate, arr2d, sample_rate, format="FLAC")
     console.log('Completed FLAC Export.')
+    return candidate
 
 
 def exportToMp3(arr2d: np.ndarray, filename: str, sample_rate: int = 44100, quality: float = 0.6):
@@ -64,7 +66,7 @@ def exportToMp3(arr2d: np.ndarray, filename: str, sample_rate: int = 44100, qual
         filename (str) - output filepath\n
         sample_rate (number) - sample rate\n
         quality (float) - mp3 quality (0 to 1.0)\n
-    outputs: nothing
+    outputs: string (the output file path)
 
     Take a 2-D array and write it to an Ogg Vorbis file.
     If file exists, appends an incrementing number to the filename.
@@ -97,3 +99,4 @@ def exportToMp3(arr2d: np.ndarray, filename: str, sample_rate: int = 44100, qual
         compression_level=(1-quality)
     )
     console.log('Completed MP3 Export.')
+    return candidate

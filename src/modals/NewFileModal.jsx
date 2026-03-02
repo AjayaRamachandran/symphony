@@ -42,7 +42,6 @@ function NewFileModal({ onClose }) {
         className={
           projectName == "" ? "call-to-action-2 locked" : "call-to-action-2"
         }
-
         onClick={() => onClose(projectName)}
       >
         Create

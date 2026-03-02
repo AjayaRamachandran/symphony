@@ -6,7 +6,6 @@ function InvalidDrop({ onComplete }) {
     <>
       <div
         className="modal-title"
-
         style={{ marginBottom: "15px" }}
       >
         Invalid Drop
@@ -16,7 +15,6 @@ function InvalidDrop({ onComplete }) {
       </div>
       <button
         className={"call-to-action-2"}
-
         onClick={() => onComplete()}
       >
         Okay

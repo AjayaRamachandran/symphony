@@ -6,6 +6,7 @@ import path from "path-browserify";
 import Dropdown from "@/ui/Dropdown";
 import Field from "@/ui/Field";
 import { useDirectory } from "@/contexts/DirectoryContext";
+import { normalizePath } from "@/utils/normalizePath";
 import InitExportFolder from "@/modals/InitExportFolder";
 import GenericModal from "@/modals/GenericModal";
 import "./modals-styling/convert-modal.css";
@@ -393,11 +394,20 @@ function ConvertModal({ onClose, onComplete }) {
         Object.assign(args, buildMusicXmlArgs());
       }
 
-      await window.electronAPI.doProcessCommand(
+      const result = await window.electronAPI.doProcessCommand(
         path.join(globalDirectory, path.basename(selectedFile)),
         "convert",
         args,
       );
+      console.log(result);
+      if (result.status === "success") {
+        const normalizedOutputFilePath = normalizePath(result.payload.output_file_path);
+        setGlobalDirectory(path.dirname(normalizedOutputFilePath));
+        setSelectedFile(path.basename(normalizedOutputFilePath));
+        console.log(`output file path: ${normalizedOutputFilePath}`);
+        console.log(`set global directory to ${path.dirname(normalizedOutputFilePath)}`);
+        console.log(`set selected file to ${path.basename(normalizedOutputFilePath)}`);
+      }
     } finally {
       document.body.style.cursor = "default";
     }
@@ -588,7 +598,6 @@ function ConvertModal({ onClose, onComplete }) {
           <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "22px" }}>
             <button
               className={canSubmit ? "call-to-action-2" : "call-to-action-2 locked"}
-
               onClick={
                 !canSubmit
                   ? null
@@ -599,8 +608,6 @@ function ConvertModal({ onClose, onComplete }) {
                     }
 
                     await finish();
-                    setGlobalDirectory(selectedFolder.value);
-                    setSelectedFile(null);
                     if (onComplete) onComplete();
                     onClose();
                   }
@@ -621,8 +628,7 @@ function ConvertModal({ onClose, onComplete }) {
           >
             <div style={{ width: "470px" }}>
               <div
-                className="modal-title"
-                text-style="display"
+                className="modal-title display"
                 style={{ marginBottom: "8px" }}
               >
                 Create New Instrument Preset

@@ -13,68 +13,57 @@ import numpy as np
 
 GENERIC_TONE_MAP = {1.0: 1.0}
 
-GENERATED_PIANO_MAP_PATH = r"inner\\src\\sound\\maps\\piano_tones_map.json"
-GENERATED_GUITAR_MAP_PATH = r"inner\\src\\sound\\maps\\guitar_tones_map.json"
-GENERATED_MALE_VOICE_AAA_MAP_PATH = r"inner\\src\\sound\\maps\\male_voice_aaa_tones_map.json"
-GENERATED_MALE_VOICE_OOO_MAP_PATH = r"inner\\src\\sound\\maps\\male_voice_ooo_tones_map.json"
-GENERATED_MALE_VOICE_EEE_MAP_PATH = r"inner\\src\\sound\\maps\\male_voice_eee_tones_map.json"
-GENERATED_MALE_VOICE_MMM_MAP_PATH = r"inner\\src\\sound\\maps\\male_voice_mmm_tones_map.json"
-MALE_VOICE_AAA_MAPS_DIR = Path(r"inner\\src\\sound\\maps\\aaa")
-MALE_VOICE_AAA_FILE_HZ_PATTERN = re.compile(r"_([0-9]+(?:\.[0-9]+)?)hz$", re.IGNORECASE)
+ACTIVE_PIANO_TONES_MAP = {
+  "mode": "full",
+  "ratio_to_amplitude": {
+    "0.12517239739106154": 1.2871310710906982,
+    "0.20142019165228545": 1.3530174493789673,
+    "1.0": 7.166596412658691,
+    "1.990756859872307": 5.453855514526367,
+    "3.009048340815759": 1.706058144569397,
+    "4.013037016637489": 1.4692285060882568,
+    "5.027287138721416": 0.7135562300682068,
+    "6.065744477032464": 0.22622086107730865,
+    "7.137746838349019": 0.14152146875858307,
+    "8.19152528791629": 0.2609124481678009,
+    "9.28392726577476": 0.10105157643556595,
+    "10.391111196913263": 0.0162956602871418
+  },
+  "root_frequency_hz": 524.8164672851562,
+  "window_duration_s": 0.2,
+  "window_start_s": 0.6
+}
 
-GENERATED_BRASS_MAP_PATH = r"inner\\src\\sound\\maps\\brass_tones_map.json"
-
-def _load_generated_tones_map(map_path: Path) -> dict[float, float]:
-    try:
-        with open(map_path, "r", encoding="utf-8") as generated_map_file:
-            payload = json.load(generated_map_file)
-    except Exception:
-        return GENERIC_TONE_MAP
-
-    ratio_to_amplitude = payload.get("ratio_to_amplitude")
-    if not isinstance(ratio_to_amplitude, dict):
-        return GENERIC_TONE_MAP
-
-    loaded_map: dict[float, float] = {}
-    for ratio_key, amp_val in ratio_to_amplitude.items():
-        try:
-            ratio = float(ratio_key)
-            amp = float(amp_val)
-        except (TypeError, ValueError):
-            continue
-        loaded_map[ratio] = amp
-
-    return loaded_map if loaded_map else GENERIC_TONE_MAP
-
-
-def _load_male_voice_aaa_lut_maps() -> list[tuple[float, dict[float, float]]]:
-    lut_maps: list[tuple[float, dict[float, float]]] = []
-    if not MALE_VOICE_AAA_MAPS_DIR.exists():
-        return lut_maps
-
-    for map_file in MALE_VOICE_AAA_MAPS_DIR.glob("*.json"):
-        match = MALE_VOICE_AAA_FILE_HZ_PATTERN.search(map_file.stem)
-        if match is None:
-            continue
-        try:
-            root_hz = float(match.group(1))
-        except ValueError:
-            continue
-        lut_maps.append((root_hz, _load_generated_tones_map(map_file)))
-
-    lut_maps.sort(key=lambda item: item[0])
-    return lut_maps
-
-
-ACTIVE_PIANO_TONES_MAP = _load_generated_tones_map(GENERATED_PIANO_MAP_PATH)
-ACTIVE_GUITAR_TONES_MAP = _load_generated_tones_map(GENERATED_GUITAR_MAP_PATH)
-ACTIVE_MALE_VOICE_AAA_TONES_MAP = _load_generated_tones_map(GENERATED_MALE_VOICE_AAA_MAP_PATH)
-ACTIVE_BRASS_TONES_MAP = _load_generated_tones_map(GENERATED_BRASS_MAP_PATH)
-
-ACTIVE_MALE_VOICE_OOO_TONES_MAP = _load_generated_tones_map(GENERATED_MALE_VOICE_OOO_MAP_PATH)
-ACTIVE_MALE_VOICE_EEE_TONES_MAP = _load_generated_tones_map(GENERATED_MALE_VOICE_EEE_MAP_PATH)
-ACTIVE_MALE_VOICE_MMM_TONES_MAP = _load_generated_tones_map(GENERATED_MALE_VOICE_MMM_MAP_PATH)
-ACTIVE_MALE_VOICE_AAA_LUT_MAPS = _load_male_voice_aaa_lut_maps()
+ACTIVE_BELLS_TONES_MAP = {
+  "mode": "full",
+  "ratio_to_amplitude": {
+    "1.0": 73.73168182373047,
+    "1.9907569730128027": 81.62438201904297,
+    "2.9716145551536357": 64.74060821533203,
+    "3.963113411775611": 42.132293701171875,
+    "4.964745528128782": 91.01268005371094,
+    "5.990284269632932": 24.234329223632812,
+    "6.96125866826892": 32.08193588256836,
+    "7.9889817490563": 9.296048164367676,
+    "8.941732722032826": 21.840566635131836,
+    "9.883601723884535": 5.68519401550293,
+    "10.924681330402766": 14.564982414245605,
+    "11.92520031098834": 77.2205810546875,
+    "12.855406629392482": 4.740595817565918,
+    "13.858173399379389": 5.825884819030762,
+    "14.93916037148389": 1.8241504430770874,
+    "15.904120802403988": 19.095888137817383,
+    "16.931410215427633": 0.9660757184028625,
+    "17.800815871964282": 1.7104504108428955,
+    "19.923707853862517": 1.1313793659210205,
+    "22.865138360224115": 1.0612810850143433,
+    "30.11487823198177": 0.07450783252716064,
+    "33.70632264564371": 0.7302631139755249
+  },
+  "root_frequency_hz": 221.2460174560547,
+  "window_duration_s": 0.2,
+  "window_start_s": 0.10000000000000003
+}
 
 PHASE_JITTER_STRENGTH = 1.0
 GENERIC_DECAY_BASE = 4.0
@@ -116,7 +105,7 @@ def AdditiveInstrument(
         return np.zeros_like(t)
 
     wave = np.zeros_like(t, dtype=np.float64)
-    for ratio, amp in tonesMap.items():
+    for ratio, amp in tonesMap["ratio_to_amplitude"].items():
         partial_freq = float(freq) * float(ratio)
         if partial_freq <= 0:
             continue
@@ -179,31 +168,7 @@ def Piano(t: np.ndarray, freq: float, magnitude: float) -> np.ndarray:
     return AdditiveInstrument(t, freq - 1, magnitude, ACTIVE_PIANO_TONES_MAP, decay=True, decay_power=0.3)
 
 def Bells(t: np.ndarray, freq: float, magnitude: float) -> np.ndarray:
-    return AdditiveInstrument(t, freq, magnitude, ACTIVE_GUITAR_TONES_MAP, decay=True, decay_power=0.7)
-
-def MaleVoiceAah(t: np.ndarray, freq: float, magnitude: float) -> np.ndarray:
-    if not ACTIVE_MALE_VOICE_AAA_LUT_MAPS:
-        return AdditiveInstrument(t, freq, magnitude, ACTIVE_MALE_VOICE_AAA_TONES_MAP, decay=False)
-
-    input_freq = float(freq)
-    closest_hz, closest_map = min(
-        ACTIVE_MALE_VOICE_AAA_LUT_MAPS, key=lambda item: abs(item[0] - input_freq)
-    )
-    if closest_hz <= 0:
-        return AdditiveInstrument(t, freq, magnitude, ACTIVE_MALE_VOICE_AAA_TONES_MAP, decay=False)
-    return AdditiveInstrument(t, freq, magnitude, closest_map, decay=False)
-
-def MaleVoiceOoh(t: np.ndarray, freq: float, magnitude: float) -> np.ndarray:
-    return AdditiveInstrument(t, freq, magnitude, ACTIVE_MALE_VOICE_OOO_TONES_MAP, decay=False)
-
-def MaleVoiceEee(t: np.ndarray, freq: float, magnitude: float) -> np.ndarray:
-    return AdditiveInstrument(t, freq, magnitude, ACTIVE_MALE_VOICE_EEE_TONES_MAP, decay=False)
-
-def MaleVoiceMmm(t: np.ndarray, freq: float, magnitude: float) -> np.ndarray:
-    return AdditiveInstrument(t, freq, magnitude, ACTIVE_MALE_VOICE_MMM_TONES_MAP, decay=False)
-
-# def Brass(t: np.ndarray, freq: float, magnitude: float) -> np.ndarray:
-#     return AdditiveInstrument(t, freq, magnitude, ACTIVE_BRASS_TONES_MAP, decay=False)
+    return AdditiveInstrument(t, freq, magnitude, ACTIVE_BELLS_TONES_MAP, decay=True, decay_power=0.7)
 
 ###### REGISTRY ######
 
@@ -213,11 +178,6 @@ INSTRUMENTS_BY_WAVE = {
     2: Sawtooth,
     3: Piano,
     4: Bells,
-    # 5: MaleVoiceAah,
-    # 6: Brass,
-    # 6: MaleVoiceOoh,
-    # 7: MaleVoiceEee,
-    # 8: MaleVoiceMmm,
 }
 
 def get_instrument(waves: int):

@@ -27,13 +27,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getSectionForPath: (filePath) => ipcRenderer.invoke('get-section-for-path', filePath),
   checkIfExists: (data) => ipcRenderer.invoke('check-if-exists', data),
 
-  // Metadata Operations
-  getMetadata: (filePath) => ipcRenderer.invoke('get-metadata', filePath),
-  setMetadata: (filePath, metadata) => ipcRenderer.invoke('set-metadata', { filePath, metadata }),
-
   // Recently Viewed
   getRecentlyViewed: () => ipcRenderer.invoke('get-recently-viewed'),
   recentlyViewedDelete: (fileName) => ipcRenderer.invoke('recently-viewed-delete', fileName),
+  clearRecentlyViewed: () => ipcRenderer.invoke('clear-recently-viewed'),
 
   // Starred Files
   getStars: () => ipcRenderer.invoke('get-stars'),

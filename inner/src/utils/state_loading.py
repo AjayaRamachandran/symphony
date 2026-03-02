@@ -33,14 +33,39 @@ DEFAULT_WAVE_MAP = {
 
 DEFAULT_META_FIELD = {
     "version" : "1.1",
+    "file_data" : {
+        "description" : "",
+        "composer" : "",
+        "collaborators" : "",
+    },
     "plugins" : []
 }
 
+def _has_required_shape(candidate: dict, required: dict) -> bool:
+    """
+    Returns True when `candidate` includes every key in `required`.
+    Nested dict keys are also validated recursively.
+    """
+    if not isinstance(candidate, dict):
+        return False
+
+    for key, required_value in required.items():
+        if key not in candidate:
+            return False
+
+        if isinstance(required_value, dict):
+            candidate_value = candidate.get(key)
+            if not _has_required_shape(candidate_value, required_value):
+                return False
+
+    return True
+
 ###### METHODS / CLASSES ######
 
-def newProgramState(key : str, mode : str, tpm : int, noteMap : dict, waveMap : dict, beatLength : int, beatsPerMeasure : int):
+def newProgramState(key : str, mode : str, tpm : int, noteMap : dict, waveMap : dict, beatLength : int, beatsPerMeasure : int, meta: dict = None):
+    stateMeta = copy.deepcopy(meta) if _has_required_shape(meta, DEFAULT_META_FIELD) else copy.deepcopy(DEFAULT_META_FIELD)
     return {
-        "meta" : DEFAULT_META_FIELD,
+        "meta" : stateMeta,
         "key" : key,
         "mode" : mode,
         "tpm" : tpm,
@@ -62,25 +87,27 @@ def toProgramState(state):
     '''
 
     if isinstance(state, dict):
-        stateMeta = state.get("meta", DEFAULT_META_FIELD)
+        userMeta = state.get("meta")
+        stateMeta = copy.deepcopy(userMeta) if _has_required_shape(userMeta, DEFAULT_META_FIELD) else copy.deepcopy(DEFAULT_META_FIELD)
+
         stateKey = state.get("key", "Eb")
         stateMode = state.get("mode", "Lydian")
         stateTpm = round(state.get("tpm", 360))
-        stateWaves = state.get("waveMap", DEFAULT_WAVE_MAP)
-        newNoteMap = fromSavable(state.get("noteMap", DEFAULT_NOTE_MAP)) # load from dict back into note format
+        stateWaves = state.get("waveMap", copy.deepcopy(DEFAULT_WAVE_MAP))
+        newNoteMap = fromSavable(state.get("noteMap", copy.deepcopy(DEFAULT_NOTE_MAP))) # load from dict back into note format
         stateBeatLength = state.get("beatLength", 4)
         stateBeatsPerMeasure = state.get("beatsPerMeasure", 4)
     else:
         # ProgramState is older than the "meta" field -- no need to check here
-        stateMeta = DEFAULT_META_FIELD
+        stateMeta = copy.deepcopy(DEFAULT_META_FIELD)
         stateKey = getattr(state, "key", "Eb")
         stateMode = getattr(state, "mode", "Lydian")
-        stateWaves = getattr(state, "waveMap", getattr(state, "wavemap", DEFAULT_WAVE_MAP))
+        stateWaves = getattr(state, "waveMap", getattr(state, "wavemap", copy.deepcopy(DEFAULT_WAVE_MAP)))
         stateTpm = round(int(3600 / getattr(state, "ticksPerTile", 10))) # Migration of ticksPerTile to tpm storage in 1.1+
         stateBeatLength = 4 # ProgramState is also older than BeatLength being stored in the file
         stateBeatsPerMeasure = 4 # ProgramState is also older than BeatsPerMeasure being stored in the file
 
-        newNoteMap = getattr(state, "noteMap", DEFAULT_NOTE_MAP)
+        newNoteMap = getattr(state, "noteMap", copy.deepcopy(DEFAULT_NOTE_MAP))
         newNoteMap = noteMap1_0To1_1(newNoteMap)
     #console.log(stateTpm)
 
@@ -125,8 +152,8 @@ def noteMap1_0To1_1(noteMap : dict):
 
     Converts the 1.0 noteMap into 1.1 format.
     '''
-    newNoteMap = DEFAULT_NOTE_MAP
-    for color, _empty in DEFAULT_NOTE_MAP.items():
+    newNoteMap = copy.deepcopy(DEFAULT_NOTE_MAP)
+    for color, _empty in copy.deepcopy(DEFAULT_NOTE_MAP).items():
         strikeList = []
         for el, note in noteMap.items():
             if (note.lead and note.color == color):
@@ -154,7 +181,7 @@ def toSavable(noteMap: dict):
     Note: this method is repeat-safe; if input is already save-ready, nothing should break.
     '''
     noteMapToSave = copy.deepcopy(noteMap)
-    output = DEFAULT_NOTE_MAP
+    output = copy.deepcopy(DEFAULT_NOTE_MAP)
     for color, notes in noteMapToSave.items():
         channel = []
         for note in notes:
@@ -176,7 +203,7 @@ def fromSavable(noteMap: dict):
     Note: this method is repeat-safe; if input is already Note-format, nothing should break.
     '''
     noteMapToLoad = copy.deepcopy(noteMap)
-    output = DEFAULT_NOTE_MAP
+    output = copy.deepcopy(DEFAULT_NOTE_MAP)
     for color, notes in noteMapToLoad.items():
         channel = []
         for note in notes:
@@ -200,5 +227,5 @@ def flattenTransactionsOntoState(state: dict, transactions: list[Transaction]):
     '''
     newState = copy.deepcopy(state)
     for transaction in transactions:
-        transaction.execute(newState.get("noteMap", DEFAULT_NOTE_MAP))
+        transaction.execute(newState.get("noteMap", copy.deepcopy(DEFAULT_NOTE_MAP)))
     return newState

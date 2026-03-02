@@ -76,17 +76,17 @@ questionImage = pygame.image.load(f"{source_path}/assets/question.png")
 squareWaveImage = pygame.image.load(f"{source_path}/assets/square.png")
 sawtoothWaveImage = pygame.image.load(f"{source_path}/assets/sawtooth.png")
 triangleWaveImage = pygame.image.load(f"{source_path}/assets/triangle.png")
-triangleInstrumentImage = pygame.image.load(f"{source_path}/assets/bells.png")
 # guitarInstrumentImage = pygame.image.load(f"{source_path}/assets/guitar.png")
 pianoInstrumentImage = pygame.image.load(f"{source_path}/assets/piano.png")
+bellsImage = pygame.image.load(f"{source_path}/assets/bells.png")
 # maleVoiceWaveImage = pygame.image.load(f"{source_path}/assets/male-voice.png")
 # brassWaveImage = pygame.image.load(f"{source_path}/assets/brass.png")
-waveImages = [
+instrumentImages = [
     squareWaveImage,
     triangleWaveImage,
     sawtoothWaveImage,
     pianoInstrumentImage,
-    triangleInstrumentImage,
+    bellsImage
 ]
 
 upChevronImage = pygame.image.load(f"{source_path}/assets/up.png")
@@ -99,7 +99,7 @@ lastTime = time.time()
 ###### PYGAME & WINDOW INITIALIZE ######
 
 width, height = (1100, 592)
-minWidth, minHeight = (925, 592)
+minWidth, minHeight = (1000, 592)
 
 iconPath = f'{source_path}/assets/icon32x32.png'
 if path.exists(iconPath):
@@ -130,6 +130,7 @@ play_obj = None # global to hold the last Channel/Sound so it doesn't get garbag
 
 page = "Editor"
 noteMap : dict[str, list[custom.Note]] = {}
+projectMeta = copy.deepcopy(sl.DEFAULT_META_FIELD)
 
 saveFrame = 0
 
@@ -179,10 +180,10 @@ colorsList = list[tuple[str, tuple[int, int, int]]](colors.items())
 justColors = [n[1] for n in colorsList]
 justColorNames = [n[0] for n in colorsList]
 
-waveTypes = ['square', 'triangle', 'sawtooth', 'piano', 'guitar', 'male_voice', 'brass']
-waveMap = {}
+instrumentTypes = ['square', 'triangle', 'sawtooth', 'piano', 'bells']
+instrumentMap = {}
 for index, color in enumerate(colorsList):
-    waveMap[color[0]] = 0
+    instrumentMap[color[0]] = 0
 
 accidentals = "flats"
 head = False
@@ -240,7 +241,7 @@ QuestionButton = gui.Button(pos=(width - 54, 26), width=28, height=28, states=[q
 ModeDropdown = gui.Dropdown(pos=(QuestionButton.x - 140 - LARGE_SPACE, 26), width=140, height=28, states=modes, image=upDownChevronImage)
 KeyDropdown = gui.Dropdown(pos=(ModeDropdown.x - 60 - SMALL_SPACE, 26), width=60, height=28, states=NOTES_FLAT, image=upDownChevronImage)
 
-WaveDropdown = gui.Dropdown(pos=(KeyDropdown.x - 64 - LARGE_SPACE, 26), width=64, height=28, states=waveImages, image=upDownChevronImage)
+WaveDropdown = gui.Dropdown(pos=(KeyDropdown.x - 64 - LARGE_SPACE, 26), width=64, height=28, states=instrumentImages, image=upDownChevronImage)
 colorStates = custom.getColorStates(28, 28, source_path)
 ColorButton = gui.Button(pos=(WaveDropdown.x - 28 - SMALL_SPACE, 26), width=28, height=28, states=colorStates)
 
@@ -310,7 +311,7 @@ def playPauseToggle():
     PlayPauseButton.cycleStates()
     PlayPauseButton.render(screen)
     if playing:
-        play_obj = sp.playFull(noteMap, waveMap, PlayHead.time, tempo, volume=0.3,
+        play_obj = sp.playFull(noteMap, instrumentMap, PlayHead.time, tempo, volume=0.3,
                                channel='all' if ColorButton.currentStateIdx == 6 else ColorButton.currentStateIdx)
         PlayHead.play(tempo)
     else:
@@ -464,14 +465,14 @@ ModeDropdown.onSelect(finalizeMode)
 ModeDropdown.onClose(lambda: MasterPanel.render(screen))
 
 def finalizeWave():
-    global waveMap
-    waveMap[justColorNames[ColorButton.currentStateIdx]] = WaveDropdown.currentStateIdx
+    global instrumentMap
+    instrumentMap[justColorNames[ColorButton.currentStateIdx]] = WaveDropdown.currentStateIdx
     PitchList.setWave(WaveDropdown.currentStateIdx)
     psm.pushEditorSnapshotTransaction("CHANGE_WAVE_TYPE", "Change wave type")
 
 def colorSync():
     if ColorButton.currentStateIdx != 6:
-        WaveDropdown.setCurrentState(waveMap[justColorNames[ColorButton.currentStateIdx]])
+        WaveDropdown.setCurrentState(instrumentMap[justColorNames[ColorButton.currentStateIdx]])
         PitchList.setWave(WaveDropdown.currentStateIdx)
     else:
         if WaveDropdown.expanded:
@@ -561,7 +562,7 @@ def snapshotEditorState():
     '''
     return {
         "noteMap": pst.snapshotNoteMapState(noteMap),
-        "waveMap": copy.deepcopy(waveMap),
+        "waveMap": copy.deepcopy(instrumentMap),
         "tempo": int(tempo),
         "beatLength": int(beatLength),
         "beatsPerMeasure": int(beatsPerMeasure),
@@ -611,13 +612,13 @@ def applyEditorStateToRuntime(stateSnapshot):
 
     Applies a replayed snapshot to live runtime globals and UI controls.
     '''
-    global noteMap, waveMap, tempo, beatLength, beatsPerMeasure, key, mode
+    global noteMap, instrumentMap, tempo, beatLength, beatsPerMeasure, key, mode
     global suspendTransactionCapture
 
     suspendTransactionCapture = True
     try:
         applyNoteMapSnapshot(noteMap, stateSnapshot.get("noteMap", {}))
-        waveMap = copy.deepcopy(stateSnapshot.get("waveMap", waveMap))
+        instrumentMap = copy.deepcopy(stateSnapshot.get("waveMap", instrumentMap))
         tempo = int(stateSnapshot.get("tempo", tempo))
         beatLength = int(stateSnapshot.get("beatLength", beatLength))
         beatsPerMeasure = int(stateSnapshot.get("beatsPerMeasure", beatsPerMeasure))
@@ -706,7 +707,7 @@ def removeAt(time, pitch, color):
     return None
 
 def handleClick():
-    global selectingAnything, draggingSelection, selectionStartPos, dragStartGridPos, drawStartPos, extendingNote, extendStartGridPos, head, waveMap
+    global selectingAnything, draggingSelection, selectionStartPos, dragStartGridPos, drawStartPos, extendingNote, extendStartGridPos, head, instrumentMap
     if pygame.mouse.get_pos()[1] < 80:
         #console.log("click was outside of the notepanel, we don't care")
         return
@@ -763,7 +764,7 @@ def handleClick():
                 "duration" : 1,
                 "data_fields" : {}
                 }))
-            sp.playNote(note=mousePitch, waves=waveMap[justColorNames[ColorButton.currentStateIdx]], duration=0.2)
+            sp.playNote(note=mousePitch, waves=instrumentMap[justColorNames[ColorButton.currentStateIdx]], duration=0.2)
     elif brushType == "eraser":
         notes: list[custom.Note] = noteMap[currColorName]
         removeAt(mouseTime, mousePitch, currColorName)
@@ -790,7 +791,7 @@ def handleClick():
         else:
             clickedNote.select()
             if not extendingNote:
-                sp.playNote(note=clickedNote.pitch, waves=waveMap[justColorNames[ColorButton.currentStateIdx]], duration=0.2)
+                sp.playNote(note=clickedNote.pitch, waves=instrumentMap[justColorNames[ColorButton.currentStateIdx]], duration=0.2)
 
         if extendingNote:
             for note in notes:
@@ -983,7 +984,7 @@ while run:
             autoSave = False if settings['disable_auto_save'] else directory["Symphony Auto-Save"][0]["Auto-Save"]
 
             noteMap : dict[str: list] = ps["noteMap"]
-            waveMap = ps["waveMap"]
+            instrumentMap = ps["waveMap"]
             key = ps["key"]
             beatLength = ps['beatLength']
             beatsPerMeasure = ps['beatsPerMeasure']
@@ -995,6 +996,7 @@ while run:
                 accidentals = "flats"
             mode = ps["mode"]
             tempo = ps["tpm"]
+            projectMeta = copy.deepcopy(ps["meta"])
 
             NoteGrid.setModeKey(key = NOTES_SHARP.index(key) if ('#' in key) else NOTES_FLAT.index(key),
                         mode = modesMap[mode])
@@ -1055,7 +1057,7 @@ while run:
                 worldMessage = fio.dumpToFile(
                                         working_file_path,
                                         working_file_path,
-                                        sl.newProgramState(key, mode, tempo, noteMap, waveMap, beatLength, beatsPerMeasure),
+                                        sl.newProgramState(key, mode, tempo, noteMap, instrumentMap, beatLength, beatsPerMeasure, meta=projectMeta),
                                         autoSave,
                                         title_text,
                                         sessionID)
@@ -1179,7 +1181,7 @@ while run:
                         playPauseToggle()
                     elif event.key == pygame.K_s:
                         if pygame.key.get_pressed()[CMD_KEY]: # if the user presses Ctrl+S (to save)
-                            worldMessage = fio.dumpToFile(working_file_path, working_file_path, sl.newProgramState(key, mode, tempo, noteMap, waveMap, beatLength, beatsPerMeasure), autoSave, title_text, sessionID)
+                            worldMessage = fio.dumpToFile(working_file_path, working_file_path, sl.newProgramState(key, mode, tempo, noteMap, instrumentMap, beatLength, beatsPerMeasure, meta=projectMeta), autoSave, title_text, sessionID)
                             saveFrame = 0
                 elif event.type == pygame.KEYUP:
                     if event.key == CMD_KEY: # Switches away from eraser when Ctrl is let go
@@ -1207,7 +1209,7 @@ while run:
             traceback.print_exc()
             break
 
-    worldMessage = fio.dumpToFile(working_file_path, working_file_path, sl.newProgramState(key, mode, tempo, noteMap, waveMap, beatLength, beatsPerMeasure), autoSave, title_text, sessionID)
+    worldMessage = fio.dumpToFile(working_file_path, working_file_path, sl.newProgramState(key, mode, tempo, noteMap, instrumentMap, beatLength, beatsPerMeasure, meta=projectMeta), autoSave, title_text, sessionID)
     
     try:
         # on macOS, hiding the window works better than destroying it, i think
