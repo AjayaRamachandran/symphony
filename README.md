@@ -83,7 +83,11 @@ Symphony has many *modals*. These are floating widgets that display task-sensiti
 <p align='center'>
 <img src='https://www.dropbox.com/scl/fi/yef3ytl1u5malkg98e7o7/Boldness-on-Sizing.jpg?rlkey=57c3l260eaa5wbe20kmsiydev&st=p44tungh&raw=1' width='65%'>
 </p>
-On top of our extensive button design considerations, we also need to work practicality into design aesthetics. While plain text is great at describing the purpose of a button, practically it is impossible to give text to every button on the screen. In areas like the toolbar, we use icons instead. Here, we are trading initial affordance with better space usage. But to keep users from having to guess what buttons do, we employ hover tooltips on all icon-only buttons, and for any text fields where internal text is truncated for space. This ensures that all navigational information is accessible, even if not visible at once. <br><br/>
+On top of our extensive button design considerations, we also need to work practicality into design aesthetics. While plain text is great at describing the purpose of a button, practically it is impossible to give text to every button on the screen. In areas like the toolbar, we use icons instead. Here, we are trading initial affordance with better space usage. But to keep users from having to guess what buttons do, we employ hover tooltips on all icon-only buttons, and for any text fields where internal text is truncated for space. This ensures that all navigational information is accessible, even if not visible at once.
+
+> This is also closely aligned with a different design ideology we follow in Symphony, **continued intent**. This is the idea that an action should suggest the actions that follow it, like creating a symphony -> opening created symphony or exporting -> highlighting exported file. Tooltips, which came before continued intent was formalized, is now a subset of the larger design framework.
+
+<br><br/>
 <p align='center'>
 <img src='https://www.dropbox.com/scl/fi/3a7qy0d5lhugk1kkeyujq/Intuitiveness.jpg?rlkey=4gwbovn39g86qcdbk2b2oy3fw&st=zp5tqk9h&raw=1' width='55%'>
 </p>
