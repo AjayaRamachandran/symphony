@@ -86,19 +86,25 @@ function App() {
   useEffect(() => {
     const handler = async (e) => {
       const isAccelKey = e.ctrlKey || e.metaKey;
+      const target = e.target;
+      const isEditingText =
+        target instanceof HTMLElement &&
+        (target.isContentEditable ||
+          ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName) ||
+          Boolean(target.closest('[contenteditable="true"], input, textarea, select, [role="textbox"]')));
 
       if (e.key === "F12") {
         window.electronAPI.toggleDevTools();
       }
-      if (isAccelKey && e.key.toLowerCase() === "c") handleCopy();
-      if (isAccelKey && e.key.toLowerCase() === "x") handleCut();
-      if (isAccelKey && e.key.toLowerCase() === "v") await handlePaste();
-      if (isAccelKey && e.key.toLowerCase() === "d") await handleDuplicate();
-      if (isAccelKey && e.key.toLowerCase() === "k") {
+      if (!isEditingText && isAccelKey && e.key.toLowerCase() === "c") handleCopy();
+      if (!isEditingText && isAccelKey && e.key.toLowerCase() === "x") handleCut();
+      if (!isEditingText && isAccelKey && e.key.toLowerCase() === "v") await handlePaste();
+      if (!isEditingText && isAccelKey && e.key.toLowerCase() === "d") await handleDuplicate();
+      if (!isEditingText && isAccelKey && e.key.toLowerCase() === "k") {
         e.preventDefault();
         window.dispatchEvent(new CustomEvent("symphony:focus-search"));
       }
-      if (isAccelKey && e.key.toLowerCase() === "n") {
+      if (!isEditingText && isAccelKey && e.key.toLowerCase() === "n") {
         e.preventDefault();
         window.dispatchEvent(new CustomEvent("symphony:new-file"));
       }

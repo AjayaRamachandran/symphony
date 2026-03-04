@@ -281,7 +281,6 @@ function RightPanel() {
                 text={
                   globalDirectory && path.join(globalDirectory, selectedFile)
                 }
-                align="left"
                 className="tooltip-block"
               >
                 <div
@@ -311,8 +310,8 @@ function RightPanel() {
         <Tooltip
           text={
             selectedFile && selectedFile.slice(-9) === ".symphony"
-              ? "Click to open in editor, or double click file."
-              : "Select a Symphony to open it in the editor."
+              ? "Open the selected Symphony in the Editor."
+              : "Select a Symphony to open it in the Editor."
           }
           className="tooltip-block"
         >

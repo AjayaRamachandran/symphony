@@ -256,8 +256,10 @@ RightToolbar = frame.Panel((0, 0, width, height), gui.EMPTY_COLOR,
                            [KeyDropdown, ModeDropdown, WaveDropdown, ColorButton, QuestionButton],
                            name="RightToolbar")
 
+WorldMessage = gui.Label(pos=(0, 1), width=width, height=20, text=worldMessage)
+
 ToolBar = frame.Panel((0, 0, width, height), (0, 0, 0, 0),
-                          [RightToolbar, LeftToolbar, BeatLengthControls, BeatsPerMeasureControls, TempoControls],
+                          [RightToolbar, LeftToolbar, BeatLengthControls, BeatsPerMeasureControls, TempoControls, WorldMessage],
                           name="ToolBar")
 
 def toolBarGraphics(screen):
@@ -300,6 +302,40 @@ console.log("Initialized GUI Objects "+ '(' + str(round(time.time() - lastTime, 
 lastTime = time.time()
 
 ###### GUI LOGIC ######
+
+PlayPauseButton.onMouseEnter(lambda: (WorldMessage.setText("Control playback"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
+PlayPauseButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
+AccidentalsButton.onMouseEnter(lambda: (WorldMessage.setText("Toggle between sharps and flats"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
+AccidentalsButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
+PlayheadButton.onMouseEnter(lambda: (WorldMessage.setText("Set where to play from"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
+PlayheadButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
+BrushButton.onMouseEnter(lambda: (WorldMessage.setText("Toggle brush type"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
+BrushButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
+
+TempoDownButton.onMouseEnter(lambda: (WorldMessage.setText("Decrease tempo"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
+TempoDownButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
+TempoUpButton.onMouseEnter(lambda: (WorldMessage.setText("Increase tempo"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
+TempoUpButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
+BeatLengthDownButton.onMouseEnter(lambda: (WorldMessage.setText("Decrease beat length (in tiles)"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
+BeatLengthDownButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
+BeatLengthUpButton.onMouseEnter(lambda: (WorldMessage.setText("Increase beat length (in tiles)"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
+BeatLengthUpButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
+BeatsPerMeasureDownButton.onMouseEnter(lambda: (WorldMessage.setText("Decrease # of beats per measure"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
+BeatsPerMeasureDownButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
+BeatsPerMeasureUpButton.onMouseEnter(lambda: (WorldMessage.setText("Increase # of beats per measure"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
+BeatsPerMeasureUpButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
+
+QuestionButton.onMouseEnter(lambda: (WorldMessage.setText("Open Symphony Help"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
+QuestionButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
+
+ModeDropdown.onMouseEnter(lambda: (WorldMessage.setText("Change musical mode"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
+ModeDropdown.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
+KeyDropdown.onMouseEnter(lambda: (WorldMessage.setText("Change key"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
+KeyDropdown.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
+WaveDropdown.onMouseEnter(lambda: (WorldMessage.setText("Change the sound of this channel"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
+WaveDropdown.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
+ColorButton.onMouseEnter(lambda: (WorldMessage.setText("Cycle color channel"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
+ColorButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
 
 # Key, Mode
 KeyDropdown.setCurrentState(keyIndex)
@@ -719,8 +755,8 @@ def removeAt(time, pitch, color):
 
 def handleClick():
     global selectingAnything, draggingSelection, selectionStartPos, dragStartGridPos, drawStartPos, extendingNote, extendStartGridPos, head, instrumentMap
-    if pygame.mouse.get_pos()[1] < 80:
-        #console.log("click was outside of the notepanel, we don't care")
+    if (pygame.mouse.get_pos()[1] < 80) or (pygame.mouse.get_pos()[0] < 80):
+        # console.log("click was outside of the notegrid, we don't care")
         return
     if ModeDropdown.expanded:
         if pygame.rect.Rect(ModeDropdown.x, ModeDropdown.y, ModeDropdown.width, ModeDropdown.height).collidepoint(pygame.mouse.get_pos()):
@@ -993,6 +1029,9 @@ while run:
                 directory = json.load(directory_file)
 
             autoSave = False if settings['disable_auto_save'] else directory["Symphony Auto-Save"][0]["Auto-Save"]
+            showButtonTooltips = settings['show_button_tooltips']
+
+            WorldMessage.setDisabled(not showButtonTooltips)
 
             noteMap : dict[str: list] = ps["noteMap"]
             instrumentMap = ps["waveMap"]
@@ -1139,18 +1178,23 @@ while run:
                         if not (TempoTextBox.selected or BeatLengthTextBox.selected or BeatsPerMeasureTextBox.selected):
                             oldColorIdx = ColorButton.currentStateIdx
                             numKeyPressed = [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7].index(event.key)
+                            altHeld = pygame.key.get_pressed()[pygame.K_LALT] or pygame.key.get_pressed()[pygame.K_RALT]
                             draggingNotes = []
+                            draggingNotesToNewChannel = altHeld and numKeyPressed < 6 and NoteGrid.mouseInside and pygame.mouse.get_pressed()[0]
                             # Only move notes when dragging to channels 1-6 (indices 0-5), not to universal view (channel 7, index 6)
-                            if numKeyPressed < 6 and NoteGrid.mouseInside and pygame.mouse.get_pressed()[0]:
+                            if draggingNotesToNewChannel:
                                 draggingNotes = [note for note in noteMap[justColorNames[ColorButton.currentStateIdx]] if note.selected]
                                 noteMap[justColorNames[ColorButton.currentStateIdx]] = [note for note in noteMap[justColorNames[ColorButton.currentStateIdx]] if not note.selected]
                             ColorButton.setCurrentState(numKeyPressed)
-                            if numKeyPressed < 6 and NoteGrid.mouseInside and pygame.mouse.get_pressed()[0]:
+                            if draggingNotesToNewChannel:
                                 try:
-                                    noteMap[justColorNames[ColorButton.currentStateIdx]].append(*draggingNotes)
+                                    for note in draggingNotes:
+                                        noteMap[justColorNames[ColorButton.currentStateIdx]].append(note)
                                 except Exception as e:
-                                    console.warn("Color channel to paste into was empty. Setting instead of appending...")
-                                    noteMap[justColorNames[ColorButton.currentStateIdx]] = draggingNotes
+                                    console.error(e)
+                            elif oldColorIdx != ColorButton.currentStateIdx:
+                                for notes in noteMap.values():
+                                    clearSelection(notes)  # Clear selected notes on channel-only switch (no Alt-drag transfer).
                             colorSync()
                             if oldColorIdx != ColorButton.currentStateIdx:
                                 psm.pushEditorSnapshotTransaction("CHANGE_COLOR", "Change color channel")

@@ -43,11 +43,11 @@ function NewFile() {
     setShowNewFile(false);
     setGlobalUpdateTimestamp(Date.now());
     if (result.status === "success") {
-      setSelectedFile(path.basename(result.payload.project_file_path));
+      const normalizedPath = result.payload.project_file_path.replace(/\\/g, "/");
+      setSelectedFile(path.basename(normalizedPath));
       await window.electronAPI.doProcessCommand(
-        result.payload.project_file_path,
+        normalizedPath,
         "open",
-        {},
       );
     }
   };

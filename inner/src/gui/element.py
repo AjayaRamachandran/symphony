@@ -53,8 +53,8 @@ def init(sourcePath):
     TITLE1 = pygame.font.Font(mainFont, 60)
     HEADING1 = pygame.font.Font(mainFont, 24)
     SUBHEADING1 = pygame.font.Font(mainFont, 14)
-    BODY = pygame.font.Font(mainFont, 14)
-    SUBSCRIPT1 = pygame.font.Font(mainFont, 11)
+    BODY = pygame.font.Font(mainFont, 13)
+    SUBSCRIPT1 = pygame.font.Font(mainFont, 12)
 
 ###### METHODS ######
 
@@ -775,31 +775,31 @@ class Dropdown(Interactive):
         self.currentStateIdx = idx
         self.currentState = self.states[self.currentStateIdx]
 
-
-class Scrollbar(Interactive):
+class Label(Element):
     '''
-    Class to contain scroll bars, which inherit an interactive, having interactive slidability.
-    Need to define self.onMouseDrag to enable dragging functionality (specific to slider)
+    Class to contain labels, which inherit an element, having a text and a font.
     '''
-    def __init__(self, pos, width, height, maxWidth, orientation='horizontal'):
+    def __init__(self, pos, width, height, text = '', font: pygame.font.Font=None):
         super().__init__(pos, width, height)
 
-        # scroll bar properties
-        self.offset = []
-        self.dragging = False
-        self.maxWidth = maxWidth
+        # label properties
+        self.text = text
+        self.font = font if (font != None) else BODY
+        self.redraw = False
+        self.disabled = False
 
-        self.onMouseEnter(lambda: setattr(self, "redraw", True))
-        self.onMouseLeave(lambda: setattr(self, "redraw", True))
-        self.onMouseClick(lambda: (setattr(self, "redraw", True),
-                                   self.setOffset(),
-                                   setattr(self, "dragging", True)))
-        
-        self.onMouseUnClick(lambda: (setattr(self, "redraw", True),
-                                     setattr(self, "dragging", False)))
+    def setText(self, text):
+        self.text = text
+        self.redraw = True
 
-    def setOffset(self):
-        self.offset = [pygame.mouse.get_pos()[0] - self.x, pygame.mouse.get_pos()[1] - self.y]
+    def setDisabled(self, disabled):
+        self.disabled = disabled
 
     def update(self, screen):
-        super().update(screen)
+        if self.redraw and not self.disabled:
+            self.render(screen)
+    
+    def render(self, screen: pygame.Surface):
+        pygame.draw.rect(screen, BG_COLOR, (self.x, self.y, self.width, self.height), border_radius=3)
+        stamp(screen, self.text, self.font, self.x + self.width/2, self.y + self.height/2, ALT_TEXT_COLOR, justification="center")
+        self.redraw = False

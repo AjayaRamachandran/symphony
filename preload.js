@@ -48,5 +48,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Editor Program
   openEditorProgram: () => ipcRenderer.invoke('open-editor-program'),
-  doProcessCommand: (event, symphonyFilePath, command, extraArgs) => ipcRenderer.invoke('do-process-command', event, symphonyFilePath, command, extraArgs),
+  doProcessCommand: (symphonyFilePath, command, extraArgs) => ipcRenderer.invoke('do-process-command', symphonyFilePath, command, extraArgs),
 });

@@ -18,6 +18,8 @@ function UserSettings({ onComplete }) {
     fancy_graphics: true,
     disable_auto_save: false,
     disable_delete_confirm: false,
+    show_button_tooltips: true,
+    clef_presets: {},
   });
 
   const handleUserNameChange = (name) => {
@@ -98,6 +100,19 @@ function UserSettings({ onComplete }) {
         <div className="modal-subtext wide">
           On launch, get the latest Symphony version and prompt an update if I'm
           behind.
+        </div>
+
+        <div className="setting-row" style={{ marginTop: "30px" }}>
+          <div className="modal-body2">
+            Show Button Tooltips in Editor
+          </div>
+          <Switch
+            checked={settings.show_button_tooltips}
+            onChange={() => handleToggle("show_button_tooltips")}
+          />
+        </div>
+        <div className="modal-subtext wide">
+          Show tooltips for each button in the Editor toolbar when hovering over them.
         </div>
 
         {/*<div className="setting-row">

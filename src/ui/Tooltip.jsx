@@ -35,22 +35,29 @@ function Tooltip({
 
     const triggerRect = wrapperRef.current.getBoundingClientRect();
     const tooltipRect = tooltipRef.current.getBoundingClientRect();
+    const computedScale = Number.parseFloat(
+      window.getComputedStyle(tooltipRef.current).scale,
+    );
+    const normalizedScale =
+      Number.isFinite(computedScale) && computedScale > 0 ? computedScale : 1;
+    const tooltipWidth = tooltipRect.width / normalizedScale;
+    const tooltipHeight = tooltipRect.height / normalizedScale;
     const gap = 6;
     const viewportPadding = 8;
 
-    let top = triggerRect.top - tooltipRect.height - gap;
-    let left = triggerRect.left + triggerRect.width / 2 - tooltipRect.width / 2;
+    let top = triggerRect.top - tooltipHeight - gap;
+    let left = triggerRect.left + triggerRect.width / 2 - tooltipWidth / 2;
 
     if (align === "left") {
-      top = triggerRect.top + triggerRect.height / 2 - tooltipRect.height / 2;
-      left = triggerRect.left - tooltipRect.width - gap;
+      top = triggerRect.top + triggerRect.height / 2 - tooltipHeight / 2;
+      left = triggerRect.left - tooltipWidth - gap;
     } else if (align === "right") {
-      top = triggerRect.top + triggerRect.height / 2 - tooltipRect.height / 2;
+      top = triggerRect.top + triggerRect.height / 2 - tooltipHeight / 2;
       left = triggerRect.right + gap;
     }
 
-    const maxLeft = window.innerWidth - tooltipRect.width - viewportPadding;
-    const maxTop = window.innerHeight - tooltipRect.height - viewportPadding;
+    const maxLeft = window.innerWidth - tooltipWidth - viewportPadding;
+    const maxTop = window.innerHeight - tooltipHeight - viewportPadding;
     setPosition({
       left: Math.max(viewportPadding, Math.min(left, maxLeft)),
       top: Math.max(viewportPadding, Math.min(top, maxTop)),

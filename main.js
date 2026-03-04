@@ -54,6 +54,7 @@ const DEFAULT_SETTINGS = {
   show_console: false,
   disable_auto_save: false,
   disable_delete_confirm: false,
+  show_button_tooltips: true,
   clef_presets: {},
 };
 

@@ -13,7 +13,7 @@
   color: var(--tinted-foreground);
   background-color: var(--background);
   padding: 7px 12px 15px 12px;
-  min-height: 39%;
+  min-height: 37%;
   overflow-y: auto;
 }
 

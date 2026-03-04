@@ -182,7 +182,7 @@ function Directory() {
             {section}
             {section !== "Symphony Auto-Save" && (
               <>
-                <Tooltip text="New Folder" align="left">
+                <Tooltip text="New Folder">
                   <button
                     className="plus-button"
                     onClick={() => setOpenSection(section)}
@@ -261,7 +261,6 @@ function Directory() {
                   </span>
                   <Tooltip
                     text={section === "Symphony Auto-Save" ? "Remove" : "Edit"}
-                    align="left"
                   >
                     <span
                       style={{

@@ -102,7 +102,7 @@ class PitchList(gui.Interactive):
 
         self.onMouseEnter(lambda: (setattr(self, 'redraw', True), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
         self.onMouseLeave(lambda: (setattr(self, 'redraw', True), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
-        self.onMouseClick(lambda: setattr(self, 'redraw', True))
+        self.onMouseClick(self.onPitchListClick)
 
     def setModeKey(self, mode=None, key=None):
         '''
@@ -122,6 +122,25 @@ class PitchList(gui.Interactive):
 
     def setLinkedPanels(self, panel: frame.Panel):
         self.panel = panel
+
+    def onPitchListClick(self):
+        '''
+        Handles pitch list clicks and plays the clicked note.
+        '''
+        global viewRow, tileHeight
+
+        self.redraw = True
+
+        mouseY = pygame.mouse.get_pos()[1]
+        baseRow = int(viewRow)
+        frac = viewRow - baseRow
+        offsetY = (-frac) * tileHeight + self.y
+        rowOffset = floor((mouseY - offsetY) / tileHeight)
+        rowIndex = baseRow + rowOffset
+
+        note = (-1 - (rowIndex % 12)) + 12 * (7 - rowIndex // 12) + 1
+        sp.playNote(note=note, waves=self.wave, duration=0.2)
+        console.log(f"played note {note}")
 
     def update(self, screen):
         super().update(screen)
@@ -146,9 +165,6 @@ class PitchList(gui.Interactive):
 
             pygame.draw.rect(screen, gui.ALT_BG_COLOR_4 if litRow else gui.ALT_BG_COLOR_3, (1, offsetY + 1, 78, tileHeight - 2), border_radius=3)
             gui.stamp(screen, f"{noteToWrite} {octaveToWrite}", gui.SUBHEADING1, 5, offsetY + 5, gui.ALT_TEXT_COLOR)
-
-            if pygame.mouse.get_pressed()[0] and gui.mouseBounds((1, offsetY + 1, 78, tileHeight - 2)):
-                sp.playNote(note=(-1 - (rowIndex % 12)) + 12 * (7 - rowIndex // 12) + 1, waves=self.wave, duration=0.2)
 
             offsetY += tileHeight
             y += 1
