@@ -596,6 +596,12 @@ def trimOverlappingNotes():
                     current.duration = max(0, next_note.time - current.time)
 
 def preprocess():
+    '''
+    fields: none
+    outputs: nothing
+
+    Preprocesses the note map to remove overlapping notes and delete notes with zero duration.
+    '''
     trimOverlappingNotes()
     deleteZeroDurationNotes()
 
@@ -1224,6 +1230,10 @@ while run:
                             psm.performUndo()
                     elif event.key == pygame.K_y and pygame.key.get_pressed()[CMD_KEY]:
                         psm.performRedo()
+                    elif event.key == pygame.K_a:
+                        for note in noteMap[justColorNames[ColorButton.currentStateIdx]]:
+                            note.select()
+                        NotePanel.render(screen)
                     elif event.key == CMD_KEY: # Switch to eraser momentarily
                         brushType = "eraser"
                         BrushButton.setCurrentState(1)
