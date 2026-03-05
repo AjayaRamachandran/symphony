@@ -800,6 +800,7 @@ class Label(Element):
             self.render(screen)
     
     def render(self, screen: pygame.Surface):
-        pygame.draw.rect(screen, BG_COLOR, (self.x, self.y, self.width, self.height), border_radius=3)
-        stamp(screen, self.text, self.font, self.x + self.width/2, self.y + self.height/2, ALT_TEXT_COLOR, justification="center")
-        self.redraw = False
+        if not self.disabled:
+            pygame.draw.rect(screen, BG_COLOR, (self.x, self.y, self.width, self.height), border_radius=3)
+            stamp(screen, self.text, self.font, self.x + self.width/2, self.y + self.height/2, ALT_TEXT_COLOR, justification="center")
+            self.redraw = False

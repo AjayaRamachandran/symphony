@@ -297,6 +297,8 @@ MasterPanel = frame.Panel((0, 0, width, height), gui.BG_COLOR, [GridPanel, ToolB
 
 NoteGrid.setModeKey(key = NOTES_SHARP.index(key) if ('#' in key) else NOTES_FLAT.index(key),
                     mode = modesMap[mode])
+PitchList.setModeKey(key = NOTES_SHARP.index(key) if ('#' in key) else NOTES_FLAT.index(key),
+                    mode = modesMap[mode])
 
 console.log("Initialized GUI Objects "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
 lastTime = time.time()
@@ -1056,6 +1058,8 @@ while run:
 
             NoteGrid.setModeKey(key = NOTES_SHARP.index(key) if ('#' in key) else NOTES_FLAT.index(key),
                         mode = modesMap[mode])
+            PitchList.setModeKey(key = NOTES_SHARP.index(key) if ('#' in key) else NOTES_FLAT.index(key),
+                        mode = modesMap[mode])
             KeyDropdown.setCurrentState(keyIndex)
             ModeDropdown.setCurrentState(modes.index(mode))
             TempoTextBox.setText(str(tempo) + ' tpm')
@@ -1186,7 +1190,7 @@ while run:
                             numKeyPressed = [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7].index(event.key)
                             altHeld = pygame.key.get_pressed()[pygame.K_LALT] or pygame.key.get_pressed()[pygame.K_RALT]
                             draggingNotes = []
-                            draggingNotesToNewChannel = altHeld and numKeyPressed < 6 and NoteGrid.mouseInside and pygame.mouse.get_pressed()[0]
+                            draggingNotesToNewChannel = numKeyPressed < 6 and NoteGrid.mouseInside and pygame.mouse.get_pressed()[0]
                             # Only move notes when dragging to channels 1-6 (indices 0-5), not to universal view (channel 7, index 6)
                             if draggingNotesToNewChannel:
                                 draggingNotes = [note for note in noteMap[justColorNames[ColorButton.currentStateIdx]] if note.selected]
