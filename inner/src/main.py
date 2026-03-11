@@ -1177,7 +1177,7 @@ while run:
                     PitchList.height = height
                     NoteGrid.viewBounds()
 
-                    ToolBar.setRect((0, 0, width, 80))
+                    ToolBar.setRect((0, 0, width, height))
                     GridPanel.setRect((0, 80, width, height - 80))
                     MasterPanel.setRect((0, 0, width, height))
 

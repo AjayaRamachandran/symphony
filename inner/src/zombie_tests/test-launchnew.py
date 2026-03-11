@@ -46,7 +46,7 @@ kill_command = {
 
 file_dump(kill_command)
 
-time.sleep(2)
+time.sleep(1)
 
 # initialize empty process command file
 with open(process_command_path, 'w') as pc_file:
@@ -64,7 +64,7 @@ subprocess.Popen(
     close_fds=True
 )
 
-time.sleep(3)
+time.sleep(2)
 
 # write "instantiate" command
 instantiate_command = {
@@ -80,7 +80,7 @@ instantiate_command = {
 
 file_dump(instantiate_command)
 
-time.sleep(2)
+time.sleep(1)
 
 # write "open" command
 open_command = {

@@ -5,6 +5,8 @@
   "user_name": "Ajaya Laptop",
   "fancy_graphics": true,
   "show_console": false,
-  "disable_auto_save": true,
-  "disable_delete_confirm": false
+  "disable_auto_save": false,
+  "disable_delete_confirm": false,
+  "show_button_tooltips": false,
+  "clef_presets": {}
 }
