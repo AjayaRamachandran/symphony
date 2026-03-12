@@ -3,6 +3,7 @@
 ###### IMPORT ######
 
 import dill as pkl
+import os
 
 ###### INTERNAL MODULES ######
 
@@ -46,7 +47,9 @@ def dumpToFile(workingFile: str, destFile: str, programState: dict, autoSave: st
         pkl.dump(programState, file, -1)
 
     if (autoSave):
-        with open(autoSave + '/' + titleText + ' Backup ' + sessionID + '.symphony', 'wb') as auto_save_file:
+        os.makedirs(autoSave, exist_ok=True)
+        auto_save_path = os.path.join(autoSave, f"{titleText} Backup {sessionID}.symphony")
+        with open(auto_save_path, 'wb') as auto_save_file:
             pkl.dump(programState, auto_save_file, -1)
     
     worldMessage = (f"Last Saved {readableTime} to " + destFile) if (destFile != workingFile) else "You have unsaved changes - Please save to a file on your PC."

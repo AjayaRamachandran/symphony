@@ -736,6 +736,7 @@ dragStartGridPos = None
 drawStartPos = None
 extendingNote = False
 extendStartGridPos = None
+activeBrushNote = None
 
 def getNoteAt(notes, time, pitch):
     for note in notes:
@@ -745,7 +746,8 @@ def getNoteAt(notes, time, pitch):
 
 def getExtendingNote(notes, time, pitch):
     for note in notes:
-        if note.pitch == pitch and (note.time + note.duration - 0.42) <= time < note.time + note.duration:
+        delta = 0.5 if note.duration > 1 else 0.25
+        if note.pitch == pitch and (note.time + note.duration - delta) <= time < note.time + note.duration:
             return note
     return False
 
@@ -762,7 +764,7 @@ def removeAt(time, pitch, color):
     return None
 
 def handleClick():
-    global selectingAnything, draggingSelection, selectionStartPos, dragStartGridPos, drawStartPos, extendingNote, extendStartGridPos, head, instrumentMap
+    global selectingAnything, draggingSelection, selectionStartPos, dragStartGridPos, drawStartPos, extendingNote, extendStartGridPos, activeBrushNote, head, instrumentMap
     if (pygame.mouse.get_pos()[1] < 80) or (pygame.mouse.get_pos()[0] < 80):
         # console.log("click was outside of the notegrid, we don't care")
         return
@@ -806,23 +808,20 @@ def handleClick():
 
     if brushType == "brush":
         notes: list[custom.Note] = noteMap[currColorName]
-        noteAlrExists = False
-        for note in notes:
-            if (mousePitch == note.pitch) and (
-                (mouseTime >= note.time) and (mouseTime < note.time + note.duration)
-                ):
-                noteAlrExists = True
-        if not noteAlrExists:
-            noteMap[currColorName].append(custom.Note({
-                "pitch" : mousePitch,
-                "time" : mouseTime,
-                "duration" : 1,
-                "data_fields" : {}
-                }))
-            sp.playNote(note=mousePitch, waves=instrumentMap[justColorNames[ColorButton.currentStateIdx]], duration=0.2)
+        activeBrushNote = custom.Note({
+            "pitch" : mousePitch,
+            "time" : mouseTime,
+            "duration" : 1,
+            "data_fields" : {}
+        })
+        # Track the note created for this mouse-down so drag only extends this note.
+        noteMap[currColorName].append(activeBrushNote)
+        sp.playNote(note=mousePitch, waves=instrumentMap[justColorNames[ColorButton.currentStateIdx]], duration=0.2)
     elif brushType == "eraser":
         notes: list[custom.Note] = noteMap[currColorName]
         removeAt(mouseTime, mousePitch, currColorName)
+    else:
+        activeBrushNote = None
 
     clickedNote = getNoteAt(notes, mouseTime, mousePitch)
     shiftHeld = pygame.key.get_pressed()[pygame.K_LSHIFT]
@@ -880,7 +879,7 @@ def handleClick():
     NotePanel.render(screen)
 
 def handleDrag(xy):
-    global selectingAnything, draggingSelection, drawStartPos, extendingNote
+    global selectingAnything, draggingSelection, drawStartPos, extendingNote, activeBrushNote
     if pygame.mouse.get_pos()[1] < 80:
         return
 
@@ -892,28 +891,12 @@ def handleDrag(xy):
     notes = noteMap[currColorName]
 
     if brushType == "brush":
-        notes: list[custom.Note] = noteMap[currColorName]
-        maxTimeBefore = float('-inf')
-        closestNote = None
-        notesInPitch: list[custom.Note] = []
-        for note in notes:
-            if (mousePitch == note.pitch):
-                notesInPitch.append(note)
-                closestNote: custom.Note = None
-        for note in notesInPitch:
-            if (drawStartPos[1] == note.pitch) and (mouseTime >= note.time) and (note.time >= maxTimeBefore):
-                closestNote = note
-
-        try: notes.remove(closestNote)
-        except: None
-
-        if closestNote != None:
-            notes.append(custom.Note({
-                "pitch" : closestNote.pitch,
-                "time" : closestNote.time,
-                "duration" : mouseTime - closestNote.time + 1,
-                "data_fields" : closestNote.dataFields
-            }))
+        if not activeBrushNote:
+            return
+        if mousePitch != activeBrushNote.pitch:
+            return
+        if mouseTime >= activeBrushNote.time:
+            activeBrushNote.duration = mouseTime - activeBrushNote.time + 1
     elif brushType == "eraser":
         notes: list[custom.Note] = noteMap[currColorName]
         for note in notes:
@@ -972,21 +955,27 @@ def handleUnDrag():
 
     Finalizes drag interactions, commits transaction state, and restores normal cursor/render state.
     '''
+    global activeBrushNote
     if pygame.mouse.get_pos()[1] < 80:
+        activeBrushNote = None
         return
 
     psm.finalizeInteractionTransaction()
     NoteGrid.selectionRect = None
     preprocess()
+    activeBrushNote = None
     pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
     NotePanel.render(screen)
 
 def handleUnClick():
+    global activeBrushNote
     if pygame.mouse.get_pos()[1] < 80:
+        activeBrushNote = None
         return
     psm.finalizeInteractionTransaction()
     NoteGrid.selectionRect = None
     preprocess()
+    activeBrushNote = None
     pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
     NotePanel.render(screen)
 
