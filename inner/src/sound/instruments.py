@@ -68,6 +68,20 @@ ACTIVE_BELLS_TONES_MAP = {
 PHASE_JITTER_STRENGTH = 1.0
 GENERIC_DECAY_BASE = 4.0
 GENERIC_DECAY_REF_FREQ = 440.0
+PIANO2_HARMONIC_COUNT = 20
+PIANO2_FIRST_OVERTONE_SCALE = 0.35
+PIANO2_FUNDAMENTAL_DECAY_RATE = 0.9
+PIANO2_OVERTONE_DECAY_RATE_BASE = 1.4
+PIANO2_GAUSSIAN_DECAY_FACTOR = 0.3
+PIANO2_HAMMER_POSITION = 0.115
+PIANO2_OVERTONE_EXP_FALLOFF = 0.2
+PIANO2_SPECTRAL_TILT = 0.78
+PIANO2_UNISON_CENTS = (-0.75, 0.0, 0.82)
+PIANO2_UNISON_GAINS = (0.28, 0.44, 0.28)
+PIANO2_DECAY_LINEAR_MIX = 0.08
+PIANO2_BASE_JITTER_CENTS = 0.35
+PIANO2_HARMONIC_JITTER_CENTS = 0.05
+PIANO2_UNISON_JITTER_CENTS = 0.12
 
 ###### METHODS / CLASSES ######
 
@@ -170,13 +184,85 @@ def Piano(t: np.ndarray, freq: float, magnitude: float) -> np.ndarray:
 def Bells(t: np.ndarray, freq: float, magnitude: float) -> np.ndarray:
     return AdditiveInstrument(t, freq, magnitude, ACTIVE_BELLS_TONES_MAP, decay=True, decay_power=0.7)
 
+def Piano2(t: np.ndarray, freq: float, magnitude: float) -> np.ndarray:
+    if t.size == 0:
+        return np.zeros_like(t)
+
+    freq_scale = float(np.sqrt(max(float(freq), 1e-6) / GENERIC_DECAY_REF_FREQ))
+    freq_scale = float(np.clip(freq_scale, 0.35, 2.0))
+    freq_decay_scale = float(np.clip((max(float(freq), 1e-6) / GENERIC_DECAY_REF_FREQ) ** 0.25, 0.8, 1.35))
+
+    wave = np.zeros_like(t, dtype=np.float64)
+
+    # Build overtone amplitudes from a piano-like excitation model:
+    # hammer-position comb filtering + smooth spectral tilt + high-order rolloff.
+    hammer_denominator = max(np.sin(np.pi * PIANO2_HAMMER_POSITION), 1e-9)
+    second_harmonic_raw = (
+        abs(np.sin(2 * np.pi * PIANO2_HAMMER_POSITION)) / hammer_denominator
+    ) * (2.0 ** (-PIANO2_SPECTRAL_TILT)) * np.exp(-PIANO2_OVERTONE_EXP_FALLOFF * (2 - 1))
+    overtone_scale = PIANO2_FIRST_OVERTONE_SCALE / max(second_harmonic_raw, 1e-9)
+
+    inharmonicity_b = float(np.clip(1.8e-4 * (max(float(freq), 1e-6) / GENERIC_DECAY_REF_FREQ) ** 0.3, 8e-5, 4e-4))
+    rng = np.random.default_rng()
+
+    for harmonic_index in range(1, PIANO2_HARMONIC_COUNT + 1):
+        if harmonic_index == 1:
+            partial_amp = 1.0
+            decay_rate = PIANO2_FUNDAMENTAL_DECAY_RATE * freq_scale * freq_decay_scale
+        else:
+            hammer_weight = abs(np.sin(np.pi * harmonic_index * PIANO2_HAMMER_POSITION)) / hammer_denominator
+            spectral_tilt = harmonic_index ** (-PIANO2_SPECTRAL_TILT)
+            spectral_rolloff = np.exp(-PIANO2_OVERTONE_EXP_FALLOFF * (harmonic_index - 1))
+            partial_amp = overtone_scale * hammer_weight * spectral_tilt * spectral_rolloff
+            # Higher/softer partials decay faster; relation tied to sqrt(initial height).
+            decay_rate = (
+                PIANO2_OVERTONE_DECAY_RATE_BASE
+                * (1.0 / np.sqrt(max(partial_amp, 1e-9)))
+                * freq_scale
+                * freq_decay_scale
+            )
+
+        stretched_ratio = harmonic_index * np.sqrt(1.0 + inharmonicity_b * (harmonic_index ** 2))
+        partial_freq = float(freq) * stretched_ratio
+        harmonic_jitter_cents = (
+            (PIANO2_BASE_JITTER_CENTS + PIANO2_HARMONIC_JITTER_CENTS * (harmonic_index - 1))
+            * PHASE_JITTER_STRENGTH
+        )
+        partial_freq *= 2.0 ** (float(rng.normal(0.0, harmonic_jitter_cents)) / 1200.0)
+        partial_env = np.exp(
+            -(
+                PIANO2_DECAY_LINEAR_MIX * decay_rate * t
+                + PIANO2_GAUSSIAN_DECAY_FACTOR * decay_rate * (t ** 2)
+            )
+        )
+
+        if harmonic_index <= 8:
+            # Light three-string unison chorus gives a less sterile piano body.
+            for detune_cents, detune_gain in zip(PIANO2_UNISON_CENTS, PIANO2_UNISON_GAINS):
+                unison_jitter_cents = float(rng.normal(0.0, PIANO2_UNISON_JITTER_CENTS * PHASE_JITTER_STRENGTH))
+                detune_ratio = 2.0 ** ((detune_cents + unison_jitter_cents) / 1200.0)
+                wave += (
+                    partial_amp
+                    * detune_gain
+                    * np.sin(2 * np.pi * partial_freq * detune_ratio * t)
+                    * partial_env
+                )
+        else:
+            wave += partial_amp * np.sin(2 * np.pi * partial_freq * t) * partial_env
+
+    peak = np.max(np.abs(wave))
+    if peak > 0:
+        wave /= peak
+
+    return np.clip(wave * magnitude, -1.0, 1.0)
+
 ###### REGISTRY ######
 
 INSTRUMENTS_BY_WAVE = {
     0: Square,
     1: Triangle,
     2: Sawtooth,
-    3: Piano,
+    3: Piano2,
     4: Bells,
 }
 
