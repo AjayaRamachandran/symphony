@@ -46,6 +46,7 @@
 }
 
 .chip {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -58,10 +59,35 @@
   margin-right: 7px;
   margin-bottom: 7px;
   cursor: pointer;
+  overflow: hidden;
 
   max-width: 100%;
   white-space: normal; /* allow wrapping if needed */
   word-break: break-all; /* wrap long words if necessary */
+}
+
+.chip-remove {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: none;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 6px 0 16px;
+  background: linear-gradient(to right, transparent 0, #434343 55%);
+  border: none;
+  color: var(--foreground);
+  cursor: pointer;
+  opacity: 0.85;
+}
+
+.chip:hover .chip-remove {
+  display: inline-flex;
+}
+
+.chip-remove:hover {
+  opacity: 1;
 }
 
 .search-result {

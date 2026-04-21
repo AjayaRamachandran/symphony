@@ -50,24 +50,58 @@ function SearchResults({
     //console.log(dirname);
   };
 
+  const isMissingFileError = (errorMessage) => {
+    if (!errorMessage) return false;
+    return (
+      /FileNotFoundError/i.test(errorMessage) ||
+      /No such file or directory/i.test(errorMessage) ||
+      /\bENOENT\b/i.test(errorMessage) ||
+      /\[Errno 2\]/.test(errorMessage)
+    );
+  };
+
+  const handleOpenFailure = async (filePath, errorMessage) => {
+    setShowFileNotExist(true);
+    const exists = await window.electronAPI.fileExists(filePath);
+    if (!exists || isMissingFileError(errorMessage)) {
+      starsDelete(filePath);
+    }
+  };
+
   const handleDoubleClick = async (filePath) => {
     const basename = path.basename(filePath);
     const dirname = path.dirname(filePath);
     const ext = path.extname(filePath);
+    const exists = await window.electronAPI.fileExists(filePath);
+    if (!exists) {
+      setShowFileNotExist(true);
+      starsDelete(filePath);
+      setSelectedFile(null);
+      return;
+    }
     // console.log(ext);
     if (ext === ".symphony") {
       try {
         setGlobalUpdateTimestamp(Date.now());
         const result = await window.electronAPI.doProcessCommand(
-          path.join(filePath.slice(0, -9)),
+          filePath,
           "open",
           {},
         );
-        console.log("Python script succeeded:", result.output);
+        if (result?.timeout) {
+          console.error("Python script timed out");
+          await handleOpenFailure(filePath);
+        } else if (result?.status === "error") {
+          const errorMessage =
+            result?.payload?.error_message || result?.message;
+          console.error("Python script failed:", errorMessage);
+          await handleOpenFailure(filePath, errorMessage);
+        } else {
+          console.log("Python script succeeded:", result.output);
+        }
       } catch (err) {
         console.error("Python script failed:", err.error || err);
-        setShowFileNotExist(true);
-        starsDelete(filePath);
+        await handleOpenFailure(filePath, err?.error || err?.message);
       }
     } else {
       try {
@@ -75,13 +109,11 @@ function SearchResults({
         const response = await window.electronAPI.openNativeApp(filePath);
         if (!response.success) {
           //console.error(response.error);
-          setShowFileNotExist(true);
-          starsDelete(filePath);
+          await handleOpenFailure(filePath, response.error);
         }
       } catch (err) {
         console.error(err);
-        setShowFileNotExist(true);
-        starsDelete(filePath);
+        await handleOpenFailure(filePath, err?.error || err?.message);
       }
     }
     setSelectedFile(null);
@@ -115,6 +147,18 @@ function SearchResults({
                   >
                     <Star size={12} fill="var(--foreground)" />
                     <span className="chip-name">{basename}</span>
+                    <span
+                      className="chip-remove"
+                      role="button"
+                      aria-label="Remove starred file"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        starsDelete(normalizedPath);
+                      }}
+                      onDoubleClick={(e) => e.stopPropagation()}
+                    >
+                      <X size={12} />
+                    </span>
                   </button>
                 </Tooltip>
               );
@@ -132,7 +176,7 @@ function SearchResults({
             <div className="results-label">Results for '{getSearchTerm()}'</div>
           </>
         )}
-        {getSearchResults().length > 0 && (
+
           <>
             <div className="results">
               {getSearchResults().length > 0 ? (
@@ -195,11 +239,11 @@ function SearchResults({
                   );
                 })
               ) : (
-                <>No Starred Files.</>
+                <>No Results Found.</>
               )}
             </div>
           </>
-        )}
+        
       </div>
       <GenericModal
         isOpen={showFileNotExist}

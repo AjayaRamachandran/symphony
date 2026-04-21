@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 
 import { X } from "lucide-react";
 
@@ -49,7 +50,7 @@ function GenericModal({
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className={`modal-overlay`} ref={overlayRef}>
       <div
         className={`modal-container${" " + custom}`}
@@ -63,7 +64,8 @@ function GenericModal({
         ) : null}
         <div className={`modal-content${" " + custom}`}>{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
