@@ -15,6 +15,19 @@ import sound.instruments as ins
 
 SAMPLE_RATE = 44100
 
+# Per-wave loudness compensation. Square and sawtooth carry far more harmonic
+# energy (and therefore higher RMS) than the smoother / sampled instruments at
+# the same peak amplitude, so they need to be attenuated to match perceived
+# loudness at a given user volume. Keys are the wave-type ids from
+# `instruments.INSTRUMENTS_BY_WAVE`.
+WAVE_LOUDNESS_SCALE = {
+    0: 0.45,  # Square     — loudest by RMS, most attenuation
+    1: 1.00,  # Triangle
+    2: 0.60,  # Sawtooth   — bright, second-loudest
+    3: 1.00,  # Piano3
+    4: 1.00,  # Bells
+}
+
 ###### METHODS / CLASSES ######
 
 def notesToFreq(notes):
@@ -46,6 +59,7 @@ def noteToMagnitude(note, waves):
         mag = (1.8 - 1.4 * (note / 72))
     else:
         mag = 6 * exp(-(1/20) * (note + 5))
+    mag *= WAVE_LOUDNESS_SCALE.get(waves, 1.0)
     return mag
 
 def toSound(array_1d: np.ndarray, returnType='Sound'):# -> pygame.mixer.Sound:
@@ -194,12 +208,23 @@ def createFullSound(noteMap, waveMap, playhead=0, tpm=360, volume=0.2, sample_ra
 
         wave[start_idx:start_idx + write_len] += part[:write_len]
 
-    # Normalize
-    max_val = np.max(np.abs(wave))
-    if max_val > 0:
-        wave /= max_val
+    wave *= volume
 
-    wave *= volume * 0.3
+    # Soft-knee limiter. Samples below `threshold` are left alone so quiet
+    # sections keep their natural loudness regardless of how loud busier
+    # sections get; samples above are smoothly compressed toward `ceiling`
+    # via tanh so stacked notes don't clip and don't crush the rest of the
+    # mix the way a global peak-normalize would.
+    threshold = 0.8
+    ceiling = 1.0
+    abs_wave = np.abs(wave)
+    over = abs_wave > threshold
+    if np.any(over):
+        headroom = ceiling - threshold
+        excess = abs_wave[over] - threshold
+        wave[over] = np.sign(wave[over]) * (threshold + headroom * np.tanh(excess / headroom))
+
+    np.clip(wave, -ceiling, ceiling, out=wave)
 
     # Apply playhead offset
     playhead_samples = int(playhead * seconds_per_tile * sample_rate)

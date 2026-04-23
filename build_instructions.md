@@ -1,12 +1,15 @@
 # Symphony Build Instructions
 
 ## Run Automatic Build
+
 The new dev build architecture has the following scripts can run:
+
 ```bash
 npm run package-app:windows
 # or
 npm run package-app:mac
 ```
+
 These will run the needed scripts to place the app into build-ready mode.
 If there is a build-time error, then follow the below instructions.
 
@@ -30,6 +33,7 @@ Use this `package.json` content before starting a build:
             "inner/dist/workingfile.symphony",
             "inner/dist/assets/*.png",
             "inner/dist/assets/*.ttf"
+            "inner/dist/assets/*.wav",
         ],
         "files": [
             "dist/",
@@ -40,6 +44,7 @@ Use this `package.json` content before starting a build:
             "inner/dist/main",
             "inner/dist/assets/*.png",
             "inner/dist/assets/*.ttf",
+            "inner/dist/assets/*.wav",
             "src/assets/*.json",
             "src/assets/*.png",
             "src/assets/*.svg",
@@ -79,20 +84,20 @@ Use this `package.json` content before starting a build:
 
 Run all commands from the project root.
 
-1) Activate the Python virtual environment:
+1. Activate the Python virtual environment:
 
 ```powershell
 venv\Scripts\Activate
 ```
 
-2) Build the inner executable:
+1. Build the inner executable:
 
 ```powershell
 python -m pip install -r requirements.txt
 python -m PyInstaller --clean --onefile --windowed --hidden-import music21 --distpath ./inner/dist ./inner/src/main.py
 ```
 
-3) Sync inner runtime assets:
+1. Sync inner runtime assets:
 
 ```powershell
 if (!(Test-Path .\inner\src\assets)) { throw "Missing .\inner\src\assets" }
@@ -100,7 +105,7 @@ if (Test-Path .\inner\dist\assets) { Remove-Item -Recurse -Force .\inner\dist\as
 Copy-Item -Recurse .\inner\src\assets .\inner\dist\assets
 ```
 
-4) Build React and Electron:
+1. Build React and Electron:
 
 ```powershell
 npm run build:react
@@ -113,19 +118,19 @@ The Windows installer output is produced by Electron Builder in the default outp
 
 Run all commands from the project root.
 
-1) Activate the Python virtual environment:
+1. Activate the Python virtual environment:
 
 ```bash
 source venv/bin/activate
 ```
 
-2) Build the inner executable:
+1. Build the inner executable:
 
 ```bash
 python3 -m PyInstaller --onefile --distpath ./inner/dist ./inner/src/main.py
 ```
 
-3) Sync inner runtime assets:
+1. Sync inner runtime assets:
 
 ```bash
 set -euo pipefail
@@ -134,7 +139,7 @@ if [ -d ./inner/dist/assets ]; then rm -rf ./inner/dist/assets; fi
 cp -R ./inner/src/assets ./inner/dist/assets
 ```
 
-4) Build React and Electron:
+1. Build React and Electron:
 
 ```bash
 npm run build:react

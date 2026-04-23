@@ -12,7 +12,8 @@
             "inner/dist/main",
             "inner/dist/workingfile.symphony",
             "inner/dist/assets/*.png",
-            "inner/dist/assets/*.ttf"
+            "inner/dist/assets/*.ttf",
+            "inner/dist/assets/*.wav"
         ],
         "files": [
             "dist/",
@@ -23,6 +24,7 @@
             "inner/dist/main",
             "inner/dist/assets/*.png",
             "inner/dist/assets/*.ttf",
+            "inner/dist/assets/*.wav",
             "src/assets/*.json",
             "src/assets/*.png",
             "src/assets/*.svg",

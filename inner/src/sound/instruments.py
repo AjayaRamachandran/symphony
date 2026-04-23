@@ -8,6 +8,7 @@ from pathlib import Path
 import re
 
 import numpy as np
+import soundfile as sf
 
 ###### CONSTANTS ######
 
@@ -82,6 +83,34 @@ PIANO2_DECAY_LINEAR_MIX = 0.08
 PIANO2_BASE_JITTER_CENTS = 0.35
 PIANO2_HARMONIC_JITTER_CENTS = 0.05
 PIANO2_UNISON_JITTER_CENTS = 0.12
+
+# Piano3 is a multi-sampled instrument. Each entry is a keyzone with a recorded
+# sample at a known root pitch; at synthesis time we pick the zone whose root
+# is closest to the requested note (within the configured range) and resample
+# the audio to pitch-shift it. This keeps formants reasonable for low/high
+# notes instead of stretching one C4 sample across the whole keyboard.
+#
+# Frequencies follow the equal-tempered grid in `notesToFreq` (C2 = 65.41 Hz).
+# 50/50 blend midpoints between adjacent keyzones. The lower boundary sits at
+# G2 (closer to the C2 sample) because pitching the C4 sample down sounds
+# noticeably better than pitching the C2 sample up — biasing the midpoint
+# toward C2 keeps the C2 sample reserved for the very lowest notes where the
+# C4 sample really starts to lose body.
+PIANO3_LOW_MID_BOUNDARY_FREQ = 98.00   # G2
+PIANO3_MID_HIGH_BOUNDARY_FREQ = 523.25  # C5
+_ASSETS_DIR = Path(__file__).resolve().parent.parent / "assets"
+PIANO3_KEYZONES = (
+    {"path": _ASSETS_DIR / "piano_C2.wav", "root_freq": 65.41,   "max_freq": PIANO3_LOW_MID_BOUNDARY_FREQ},
+    {"path": _ASSETS_DIR / "piano_C4.wav", "root_freq": 261.63,  "max_freq": PIANO3_MID_HIGH_BOUNDARY_FREQ},
+    {"path": _ASSETS_DIR / "piano_C6.wav", "root_freq": 1046.50, "max_freq": float("inf")},
+)
+# Width (in semitones) of the linear crossfade window centered on each keyzone
+# boundary. ±6 semitones gives an octave-wide (12-note) blend region so
+# adjacent zones fade into each other gradually instead of feeling like a
+# region of "stretched" tone surrounded by clean ones.
+PIANO3_CROSSFADE_SEMITONES = 6.0
+# Lazy cache: keyed by sample path string -> (samples, sample_rate).
+_PIANO3_SAMPLE_CACHE: dict[str, tuple[np.ndarray, int]] = {}
 
 ###### METHODS / CLASSES ######
 
@@ -256,13 +285,101 @@ def Piano2(t: np.ndarray, freq: float, magnitude: float) -> np.ndarray:
 
     return np.clip(wave * magnitude, -1.0, 1.0)
 
+### SAMPLE-BASED PIANO ###
+
+def _load_piano3_sample(path: Path) -> tuple[np.ndarray, int]:
+    key = str(path)
+    cached = _PIANO3_SAMPLE_CACHE.get(key)
+    if cached is not None:
+        return cached
+    data, sr = sf.read(key, dtype="float32", always_2d=False)
+    if data.ndim > 1:
+        data = data.mean(axis=1)
+    cached = (np.asarray(data, dtype=np.float64), int(sr))
+    _PIANO3_SAMPLE_CACHE[key] = cached
+    return cached
+
+
+def _select_piano3_zones(freq: float) -> list[tuple[dict, float]]:
+    """Return the keyzones that contribute to `freq` with their blend weights.
+
+    Outside the crossfade window of every boundary this returns a single zone
+    with weight 1.0. Within ±PIANO3_CROSSFADE_SEMITONES of a boundary this
+    returns the two adjacent zones with linearly-interpolated weights summing
+    to 1.0 — full lower zone at -N semitones, 50/50 at the boundary, full
+    upper zone at +N semitones.
+    """
+    for i in range(len(PIANO3_KEYZONES) - 1):
+        boundary = PIANO3_KEYZONES[i]["max_freq"]
+        semitones = 12.0 * float(np.log2(max(freq, 1e-9) / boundary))
+        if -PIANO3_CROSSFADE_SEMITONES <= semitones <= PIANO3_CROSSFADE_SEMITONES:
+            upper_weight = 0.5 + semitones / (2.0 * PIANO3_CROSSFADE_SEMITONES)
+            lower_weight = 1.0 - upper_weight
+            return [
+                (PIANO3_KEYZONES[i],     lower_weight),
+                (PIANO3_KEYZONES[i + 1], upper_weight),
+            ]
+
+    for zone in PIANO3_KEYZONES:
+        if freq < zone["max_freq"]:
+            return [(zone, 1.0)]
+    return [(PIANO3_KEYZONES[-1], 1.0)]
+
+
+def _resample_piano3_zone(zone: dict, freq: float, t: np.ndarray) -> np.ndarray:
+    src, src_sr = _load_piano3_sample(zone["path"])
+    src_len = src.shape[0]
+    if src_len == 0:
+        return np.zeros(t.size, dtype=np.float64)
+
+    if t.size > 1:
+        dt = float(t[1] - t[0])
+        out_sr = int(round(1.0 / dt)) if dt > 0 else src_sr
+    else:
+        out_sr = src_sr
+
+    # Coupled speed/pitch resampling: to raise the pitch by `ratio`, advance
+    # through the source `ratio` times faster per output sample.
+    pitch_ratio = max(float(freq), 1e-9) / float(zone["root_freq"])
+    step = pitch_ratio * (src_sr / max(out_sr, 1))
+
+    n_out = int(t.size)
+    indices = np.arange(n_out, dtype=np.float64) * step
+    idx_floor = np.floor(indices).astype(np.int64)
+    frac = indices - idx_floor
+
+    i0 = np.clip(idx_floor, 0, src_len - 1)
+    i1 = np.clip(idx_floor + 1, 0, src_len - 1)
+    wave = (1.0 - frac) * src[i0] + frac * src[i1]
+    # Silence anything past the end of the sample instead of holding the last value.
+    wave[idx_floor >= src_len - 1] = 0.0
+    return wave
+
+
+def Piano3(t: np.ndarray, freq: float, magnitude: float) -> np.ndarray:
+    if t.size == 0:
+        return np.zeros_like(t)
+
+    contributions = _select_piano3_zones(float(freq))
+    mixed = np.zeros(int(t.size), dtype=np.float64)
+    for zone, weight in contributions:
+        if weight <= 0.0:
+            continue
+        mixed += weight * _resample_piano3_zone(zone, freq, t)
+
+    peak = float(np.max(np.abs(mixed)))
+    if peak > 0:
+        mixed /= peak
+
+    return np.clip(mixed * magnitude, -1.0, 1.0)
+
 ###### REGISTRY ######
 
 INSTRUMENTS_BY_WAVE = {
     0: Square,
     1: Triangle,
     2: Sawtooth,
-    3: Piano2,
+    3: Piano3,
     4: Bells,
 }
 
