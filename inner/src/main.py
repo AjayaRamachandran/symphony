@@ -38,6 +38,7 @@ import utils.state_loading as sl
 import utils.file_io as fio
 import utils.platform_controller as plat
 import sound.sound_processing as sp
+import sound.instruments as ins
 import utils.project_state as pst
 
 console.log("Imported Internal Modules & Connected External Libraries "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
@@ -197,6 +198,7 @@ tempo = 360
 
 mainFont = f'{source_path}/assets/InterVariable.ttf'
 gui.init(source_path)
+ins.init(source_path)
 
 zoomDimensions = [
     (18, 24),

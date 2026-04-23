@@ -1,6 +1,10 @@
 # sound/instruments.py
 # module for handling the generation of sounds/instruments.
 
+###### INTERNAL MODULES ######
+
+from console_controls.console import *
+
 ###### IMPORT ######
 
 import json
@@ -98,12 +102,13 @@ PIANO2_UNISON_JITTER_CENTS = 0.12
 # C4 sample really starts to lose body.
 PIANO3_LOW_MID_BOUNDARY_FREQ = 98.00   # G2
 PIANO3_MID_HIGH_BOUNDARY_FREQ = 523.25  # C5
-_ASSETS_DIR = Path(__file__).resolve().parent.parent / "assets"
-PIANO3_KEYZONES = (
-    {"path": _ASSETS_DIR / "piano_C2.wav", "root_freq": 65.41,   "max_freq": PIANO3_LOW_MID_BOUNDARY_FREQ},
-    {"path": _ASSETS_DIR / "piano_C4.wav", "root_freq": 261.63,  "max_freq": PIANO3_MID_HIGH_BOUNDARY_FREQ},
-    {"path": _ASSETS_DIR / "piano_C6.wav", "root_freq": 1046.50, "max_freq": float("inf")},
-)
+# Asset directory and keyzones are configured by `init(source_path)`. They
+# start empty so a missing/forgotten init() call fails loudly with a clear
+# error from `_load_piano3_sample` instead of silently reading from the wrong
+# location (which breaks under PyInstaller / packaged builds where __file__
+# doesn't point at the real asset folder).
+ASSETS_DIR: Path | None = None
+PIANO3_KEYZONES: tuple[dict, ...] = ()
 # Width (in semitones) of the linear crossfade window centered on each keyzone
 # boundary. ±6 semitones gives an octave-wide (12-note) blend region so
 # adjacent zones fade into each other gradually instead of feeling like a
@@ -111,6 +116,25 @@ PIANO3_KEYZONES = (
 PIANO3_CROSSFADE_SEMITONES = 6.0
 # Lazy cache: keyed by sample path string -> (samples, sample_rate).
 _PIANO3_SAMPLE_CACHE: dict[str, tuple[np.ndarray, int]] = {}
+
+
+def init(source_path: str | Path) -> None:
+    """Configure where this module reads its asset files from.
+
+    Must be called once at startup (typically from `main.py`) before any
+    instrument that depends on assets — e.g. Piano3 — is invoked. `source_path`
+    matches the convention used by other modules' `init()` (e.g. `gui.init`):
+    it points at the project's source root, and we append `/assets` ourselves.
+    Safe to call again with a different path (cached samples are flushed).
+    """
+    global ASSETS_DIR, PIANO3_KEYZONES
+    ASSETS_DIR = Path(source_path) / "assets"
+    PIANO3_KEYZONES = (
+        {"path": ASSETS_DIR / "piano_C2.wav", "root_freq": 65.41,   "max_freq": PIANO3_LOW_MID_BOUNDARY_FREQ},
+        {"path": ASSETS_DIR / "piano_C4.wav", "root_freq": 261.63,  "max_freq": PIANO3_MID_HIGH_BOUNDARY_FREQ},
+        {"path": ASSETS_DIR / "piano_C6.wav", "root_freq": 1046.50, "max_freq": float("inf")},
+    )
+    _PIANO3_SAMPLE_CACHE.clear()
 
 ###### METHODS / CLASSES ######
 
@@ -309,6 +333,10 @@ def _select_piano3_zones(freq: float) -> list[tuple[dict, float]]:
     to 1.0 — full lower zone at -N semitones, 50/50 at the boundary, full
     upper zone at +N semitones.
     """
+    if not PIANO3_KEYZONES:
+        console.error(
+            "sound.instruments.init(source_path) must be called before Piano3 is used."
+        )
     for i in range(len(PIANO3_KEYZONES) - 1):
         boundary = PIANO3_KEYZONES[i]["max_freq"]
         semitones = 12.0 * float(np.log2(max(freq, 1e-9) / boundary))
