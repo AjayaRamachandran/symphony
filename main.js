@@ -447,8 +447,14 @@ app.whenReady().then(() => {
 
   // Directory Operations
   ipcMain.handle("dialog:openDirectory", async () => {
+    // macOS: without `createDirectory`, the open-folder sheet has no "New Folder"
+    // control (unlike Windows). Electron maps this to NSOpenPanel behavior.
+    const properties = ["openDirectory"];
+    if (process.platform === "darwin") {
+      properties.push("createDirectory");
+    }
     const result = await dialog.showOpenDialog(mainWindow, {
-      properties: ["openDirectory"],
+      properties,
     });
     return result.canceled || result.filePaths.length === 0
       ? null
