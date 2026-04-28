@@ -7,6 +7,9 @@
     "build": {
         "appId": "com.ajayarsymphony.app",
         "productName": "Symphony",
+        "directories": {
+            "output": "release"
+        },
         "asarUnpack": [
             "inner/dist/main.exe",
             "inner/dist/main",

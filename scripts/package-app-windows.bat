@@ -13,6 +13,12 @@ if not exist ".\inner\src\assets" (
   exit /b 1
 )
 
+echo [Symphony] Stopping any running Symphony / inner processes that could lock build outputs...
+taskkill /F /IM "Symphony.exe" >nul 2>nul
+taskkill /F /IM "main.exe" >nul 2>nul
+rem Give the OS a moment to release file handles (e.g. app.asar)
+ping -n 2 127.0.0.1 >nul
+
 echo [0/5] Ensuring Python virtual environment exists...
 if exist ".venv\Scripts\python.exe" (
   set "VENV_DIR=.venv"
