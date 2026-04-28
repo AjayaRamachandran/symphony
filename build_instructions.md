@@ -11,6 +11,16 @@ npm run package-app:mac
 ```
 
 These will run the needed scripts to place the app into build-ready mode.
+Each script will:
+
+1. Create a Python virtual environment at `./venv` if one is not already present (it
+   also accepts an existing `./.venv`).
+2. Activate the venv and `pip install -r requirements.txt`.
+3. Install the packages that frequently fail to install via `requirements.txt`:
+   `dill`, `music21`, `soundfile`, and `pretty_midi`.
+4. Build the inner Python executable with PyInstaller, sync inner assets, build the
+   React app, and run Electron Builder for the target platform.
+
 If there is a build-time error, then follow the below instructions.
 
 ## Run Manual Build
@@ -84,16 +94,28 @@ Use this `package.json` content before starting a build:
 
 Run all commands from the project root.
 
-1. Activate the Python virtual environment:
+1. Create (if needed) and activate the Python virtual environment:
 
 ```powershell
-venv\Scripts\Activate
+if (!(Test-Path .\venv\Scripts\python.exe)) { python -m venv venv }
+.\venv\Scripts\Activate.ps1
+```
+
+1. Install Python dependencies (including the packages that often fail to install
+   from `requirements.txt` alone):
+
+```powershell
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+python -m pip install dill
+python -m pip install music21
+python -m pip install soundfile
+python -m pip install pretty_midi
 ```
 
 1. Build the inner executable:
 
 ```powershell
-python -m pip install -r requirements.txt
 python -m PyInstaller --clean --onefile --windowed --hidden-import music21 --distpath ./inner/dist ./inner/src/main.py
 ```
 
@@ -118,16 +140,29 @@ The Windows installer output is produced by Electron Builder in the default outp
 
 Run all commands from the project root.
 
-1. Activate the Python virtual environment:
+1. Create (if needed) and activate the Python virtual environment:
 
 ```bash
+[ -d venv ] || python3 -m venv venv
 source venv/bin/activate
+```
+
+1. Install Python dependencies (including the packages that often fail to install
+   from `requirements.txt` alone):
+
+```bash
+python3 -m pip install --upgrade pip
+python3 -m pip install -r requirements.txt
+python3 -m pip install dill
+python3 -m pip install music21
+python3 -m pip install soundfile
+python3 -m pip install pretty_midi
 ```
 
 1. Build the inner executable:
 
 ```bash
-python3 -m PyInstaller --onefile --distpath ./inner/dist ./inner/src/main.py
+python3 -m PyInstaller --clean --onefile --hidden-import music21 --distpath ./inner/dist ./inner/src/main.py
 ```
 
 1. Sync inner runtime assets:

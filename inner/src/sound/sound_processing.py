@@ -26,6 +26,7 @@ WAVE_LOUDNESS_SCALE = {
     2: 0.60,  # Sawtooth   — bright, second-loudest
     3: 1.00,  # Piano3
     4: 1.00,  # Bells
+    5: 1.00,  # Voice
 }
 
 ###### METHODS / CLASSES ######

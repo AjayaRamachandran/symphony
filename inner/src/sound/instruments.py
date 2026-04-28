@@ -104,7 +104,7 @@ PIANO3_LOW_MID_BOUNDARY_FREQ = 98.00   # G2
 PIANO3_MID_HIGH_BOUNDARY_FREQ = 523.25  # C5
 # Asset directory and keyzones are configured by `init(source_path)`. They
 # start empty so a missing/forgotten init() call fails loudly with a clear
-# error from `_load_piano3_sample` instead of silently reading from the wrong
+# error from `_load_sample` instead of silently reading from the wrong
 # location (which breaks under PyInstaller / packaged builds where __file__
 # doesn't point at the real asset folder).
 ASSETS_DIR: Path | None = None
@@ -114,8 +114,34 @@ PIANO3_KEYZONES: tuple[dict, ...] = ()
 # adjacent zones fade into each other gradually instead of feeling like a
 # region of "stretched" tone surrounded by clean ones.
 PIANO3_CROSSFADE_SEMITONES = 6.0
-# Lazy cache: keyed by sample path string -> (samples, sample_rate).
-_PIANO3_SAMPLE_CACHE: dict[str, tuple[np.ndarray, int]] = {}
+# Lazy cache shared by all sample-based instruments: keyed by sample path
+# string -> (samples, sample_rate).
+_SAMPLE_CACHE: dict[str, tuple[np.ndarray, int]] = {}
+
+# --- Voice (looped, pitched vocal samples) ---
+# Multi-sampled like Piano3: each keyzone is a perfectly-loopable recording
+# at a known root pitch. At synthesis time we pick the zones bracketing the
+# requested note (with a linear crossfade across `VOICE_CROSSFADE_SEMITONES`
+# either side of every boundary) and resample each contributing zone to
+# pitch, looping via index wrap. The result is then shaped by a short
+# fade-in/fade-out so notes don't pop on attack or release.
+#
+# Boundaries sit at the geometric midpoint between adjacent roots (≈F#2,
+# F#3, F#4, F#5) — symmetric, since the zones are spaced an octave apart
+# and we don't (yet) have a strong reason to bias one direction over the
+# other for vocals the way the piano does for its bass sample.
+VOICE_C2_C3_BOUNDARY_FREQ = 92.50    # F#2
+VOICE_C3_C4_BOUNDARY_FREQ = 185.00   # F#3
+VOICE_C4_C5_BOUNDARY_FREQ = 369.99   # F#4
+VOICE_C5_C6_BOUNDARY_FREQ = 739.99   # F#5
+# ±6 semitones at each boundary gives the full octave between adjacent
+# zones a continuous linear blend (full lower zone at the lower root,
+# 50/50 at the F# midpoint, full upper zone at the upper root). Wider than
+# Piano3's window because Voice zones are an octave apart instead of two.
+VOICE_CROSSFADE_SEMITONES = 6.0
+VOICE_KEYZONES: tuple[dict, ...] = ()
+VOICE_INTRO_SECONDS = 0.1
+VOICE_OUTRO_SECONDS = 0.2
 
 
 def init(source_path: str | Path) -> None:
@@ -127,14 +153,21 @@ def init(source_path: str | Path) -> None:
     it points at the project's source root, and we append `/assets` ourselves.
     Safe to call again with a different path (cached samples are flushed).
     """
-    global ASSETS_DIR, PIANO3_KEYZONES
+    global ASSETS_DIR, PIANO3_KEYZONES, VOICE_KEYZONES
     ASSETS_DIR = Path(source_path) / "assets"
     PIANO3_KEYZONES = (
         {"path": ASSETS_DIR / "piano_C2.wav", "root_freq": 65.41,   "max_freq": PIANO3_LOW_MID_BOUNDARY_FREQ},
         {"path": ASSETS_DIR / "piano_C4.wav", "root_freq": 261.63,  "max_freq": PIANO3_MID_HIGH_BOUNDARY_FREQ},
         {"path": ASSETS_DIR / "piano_C6.wav", "root_freq": 1046.50, "max_freq": float("inf")},
     )
-    _PIANO3_SAMPLE_CACHE.clear()
+    VOICE_KEYZONES = (
+        {"path": ASSETS_DIR / "vocal_C2.wav", "root_freq": 65.41,   "max_freq": VOICE_C2_C3_BOUNDARY_FREQ},
+        {"path": ASSETS_DIR / "vocal_C3.wav", "root_freq": 130.81,  "max_freq": VOICE_C3_C4_BOUNDARY_FREQ},
+        {"path": ASSETS_DIR / "vocal_C4.wav", "root_freq": 261.63,  "max_freq": VOICE_C4_C5_BOUNDARY_FREQ},
+        {"path": ASSETS_DIR / "vocal_C5.wav", "root_freq": 523.25,  "max_freq": VOICE_C5_C6_BOUNDARY_FREQ},
+        {"path": ASSETS_DIR / "vocal_C6.wav", "root_freq": 1046.50, "max_freq": float("inf")},
+    )
+    _SAMPLE_CACHE.clear()
 
 ###### METHODS / CLASSES ######
 
@@ -311,51 +344,63 @@ def Piano2(t: np.ndarray, freq: float, magnitude: float) -> np.ndarray:
 
 ### SAMPLE-BASED PIANO ###
 
-def _load_piano3_sample(path: Path) -> tuple[np.ndarray, int]:
+def _load_sample(path: Path) -> tuple[np.ndarray, int]:
     key = str(path)
-    cached = _PIANO3_SAMPLE_CACHE.get(key)
+    cached = _SAMPLE_CACHE.get(key)
     if cached is not None:
         return cached
     data, sr = sf.read(key, dtype="float32", always_2d=False)
     if data.ndim > 1:
         data = data.mean(axis=1)
     cached = (np.asarray(data, dtype=np.float64), int(sr))
-    _PIANO3_SAMPLE_CACHE[key] = cached
+    _SAMPLE_CACHE[key] = cached
     return cached
 
 
-def _select_piano3_zones(freq: float) -> list[tuple[dict, float]]:
+def _select_zones(freq: float, keyzones: tuple[dict, ...], crossfade_semitones: float) -> list[tuple[dict, float]]:
     """Return the keyzones that contribute to `freq` with their blend weights.
 
     Outside the crossfade window of every boundary this returns a single zone
-    with weight 1.0. Within ±PIANO3_CROSSFADE_SEMITONES of a boundary this
-    returns the two adjacent zones with linearly-interpolated weights summing
-    to 1.0 — full lower zone at -N semitones, 50/50 at the boundary, full
-    upper zone at +N semitones.
+    with weight 1.0. Within ±crossfade_semitones of a boundary this returns
+    the two adjacent zones with linearly-interpolated weights summing to 1.0
+    — full lower zone at -N semitones, 50/50 at the boundary, full upper
+    zone at +N semitones.
     """
+    for i in range(len(keyzones) - 1):
+        boundary = keyzones[i]["max_freq"]
+        semitones = 12.0 * float(np.log2(max(freq, 1e-9) / boundary))
+        if -crossfade_semitones <= semitones <= crossfade_semitones:
+            upper_weight = 0.5 + semitones / (2.0 * crossfade_semitones)
+            lower_weight = 1.0 - upper_weight
+            return [
+                (keyzones[i],     lower_weight),
+                (keyzones[i + 1], upper_weight),
+            ]
+
+    for zone in keyzones:
+        if freq < zone["max_freq"]:
+            return [(zone, 1.0)]
+    return [(keyzones[-1], 1.0)]
+
+
+def _select_piano3_zones(freq: float) -> list[tuple[dict, float]]:
     if not PIANO3_KEYZONES:
         console.error(
             "sound.instruments.init(source_path) must be called before Piano3 is used."
         )
-    for i in range(len(PIANO3_KEYZONES) - 1):
-        boundary = PIANO3_KEYZONES[i]["max_freq"]
-        semitones = 12.0 * float(np.log2(max(freq, 1e-9) / boundary))
-        if -PIANO3_CROSSFADE_SEMITONES <= semitones <= PIANO3_CROSSFADE_SEMITONES:
-            upper_weight = 0.5 + semitones / (2.0 * PIANO3_CROSSFADE_SEMITONES)
-            lower_weight = 1.0 - upper_weight
-            return [
-                (PIANO3_KEYZONES[i],     lower_weight),
-                (PIANO3_KEYZONES[i + 1], upper_weight),
-            ]
+    return _select_zones(freq, PIANO3_KEYZONES, PIANO3_CROSSFADE_SEMITONES)
 
-    for zone in PIANO3_KEYZONES:
-        if freq < zone["max_freq"]:
-            return [(zone, 1.0)]
-    return [(PIANO3_KEYZONES[-1], 1.0)]
+
+def _select_voice_zones(freq: float) -> list[tuple[dict, float]]:
+    if not VOICE_KEYZONES:
+        console.error(
+            "sound.instruments.init(source_path) must be called before Voice is used."
+        )
+    return _select_zones(freq, VOICE_KEYZONES, VOICE_CROSSFADE_SEMITONES)
 
 
 def _resample_piano3_zone(zone: dict, freq: float, t: np.ndarray) -> np.ndarray:
-    src, src_sr = _load_piano3_sample(zone["path"])
+    src, src_sr = _load_sample(zone["path"])
     src_len = src.shape[0]
     if src_len == 0:
         return np.zeros(t.size, dtype=np.float64)
@@ -401,6 +446,79 @@ def Piano3(t: np.ndarray, freq: float, magnitude: float) -> np.ndarray:
 
     return np.clip(mixed * magnitude, -1.0, 1.0)
 
+### LOOPED VOICE SAMPLES ###
+
+def _resample_voice_zone_loop(zone: dict, freq: float, t: np.ndarray) -> np.ndarray:
+    src, src_sr = _load_sample(zone["path"])
+    src_len = src.shape[0]
+    if src_len == 0:
+        return np.zeros(t.size, dtype=np.float64)
+
+    if t.size > 1:
+        dt = float(t[1] - t[0])
+        out_sr = int(round(1.0 / dt)) if dt > 0 else src_sr
+    else:
+        out_sr = src_sr
+
+    # Coupled speed/pitch resampling, identical in spirit to Piano3.
+    pitch_ratio = max(float(freq), 1e-9) / float(zone["root_freq"])
+    step = pitch_ratio * (src_sr / max(out_sr, 1))
+
+    n_out = int(t.size)
+    # Wrap on the source side so the loop is seamless: each asset is a
+    # perfect loop, so sample[N] is, by construction, sample[0]. Linearly
+    # interpolating between idx_floor and (idx_floor+1) % src_len reuses
+    # that continuity instead of needing a crossfade window.
+    indices = np.arange(n_out, dtype=np.float64) * step
+    indices_mod = np.mod(indices, src_len)
+    idx_floor = np.floor(indices_mod).astype(np.int64)
+    frac = indices_mod - idx_floor
+
+    i0 = idx_floor
+    i1 = (idx_floor + 1) % src_len
+    wave = (1.0 - frac) * src[i0] + frac * src[i1]
+
+    # Normalize per-zone to the source peak (not the per-note peak) so each
+    # contributing zone arrives at unit loudness before the keyzone weights
+    # mix them; this keeps the attack/release envelope scaling consistent
+    # regardless of which zones (or how many) end up contributing.
+    src_peak = float(np.max(np.abs(src)))
+    if src_peak > 0:
+        wave /= src_peak
+
+    return wave
+
+
+def Voice(t: np.ndarray, freq: float, magnitude: float) -> np.ndarray:
+    if t.size == 0:
+        return np.zeros_like(t)
+
+    if t.size > 1:
+        dt = float(t[1] - t[0])
+        out_sr = int(round(1.0 / dt)) if dt > 0 else 44100
+    else:
+        out_sr = 44100
+
+    contributions = _select_voice_zones(float(freq))
+    n_out = int(t.size)
+    mixed = np.zeros(n_out, dtype=np.float64)
+    for zone, weight in contributions:
+        if weight <= 0.0:
+            continue
+        mixed += weight * _resample_voice_zone_loop(zone, freq, t)
+
+    intro_samples = min(int(VOICE_INTRO_SECONDS * out_sr), n_out)
+    outro_samples = min(int(VOICE_OUTRO_SECONDS * out_sr), n_out)
+
+    if intro_samples > 0:
+        intro_env = np.linspace(0.0, 1.0, intro_samples)
+        mixed[:intro_samples] *= intro_env
+    if outro_samples > 0:
+        outro_env = np.linspace(1.0, 0.0, outro_samples)
+        mixed[-outro_samples:] *= outro_env
+
+    return np.clip(mixed * magnitude, -1.0, 1.0)
+
 ###### REGISTRY ######
 
 INSTRUMENTS_BY_WAVE = {
@@ -408,7 +526,8 @@ INSTRUMENTS_BY_WAVE = {
     1: Triangle,
     2: Sawtooth,
     3: Piano3,
-    4: Bells,
+    # 4: Bells,
+    4: Voice,
 }
 
 def get_instrument(waves: int):

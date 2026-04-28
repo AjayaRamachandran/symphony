@@ -79,15 +79,16 @@ sawtoothWaveImage = pygame.image.load(f"{source_path}/assets/sawtooth.png")
 triangleWaveImage = pygame.image.load(f"{source_path}/assets/triangle.png")
 # guitarInstrumentImage = pygame.image.load(f"{source_path}/assets/guitar.png")
 pianoInstrumentImage = pygame.image.load(f"{source_path}/assets/piano.png")
-bellsImage = pygame.image.load(f"{source_path}/assets/bells.png")
-# maleVoiceWaveImage = pygame.image.load(f"{source_path}/assets/male-voice.png")
+# bellsImage = pygame.image.load(f"{source_path}/assets/bells.png")
+maleVoiceWaveImage = pygame.image.load(f"{source_path}/assets/male-voice.png")
 # brassWaveImage = pygame.image.load(f"{source_path}/assets/brass.png")
 instrumentImages = [
     squareWaveImage,
     triangleWaveImage,
     sawtoothWaveImage,
     pianoInstrumentImage,
-    bellsImage
+    # bellsImage,
+    maleVoiceWaveImage
 ]
 
 upChevronImage = pygame.image.load(f"{source_path}/assets/up.png")
@@ -181,7 +182,7 @@ colorsList = list[tuple[str, tuple[int, int, int]]](colors.items())
 justColors = [n[1] for n in colorsList]
 justColorNames = [n[0] for n in colorsList]
 
-instrumentTypes = ['square', 'triangle', 'sawtooth', 'piano', 'bells']
+instrumentTypes = ['square', 'triangle', 'sawtooth', 'piano', 'bells', 'voice']
 instrumentMap = {}
 for index, color in enumerate(colorsList):
     instrumentMap[color[0]] = 0
