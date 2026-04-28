@@ -62,11 +62,11 @@ function RecentlyViewed() {
     if (item.type === "symphony") {
       try {
         setGlobalUpdateTimestamp(Date.now());
-        const result = await window.electronAPI.doProcessCommand([
+        const result = await window.electronAPI.doProcessCommand(
+          path.join(item.fileLocation, item.name),
           "open",
-          item.name,
-          item.fileLocation,
-        ]);
+          {},
+        );
         console.log("Python script succeeded:", result.output);
       } catch (err) {
         console.error("Python script failed:", err.error || err);
