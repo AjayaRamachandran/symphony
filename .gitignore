@@ -1,6 +1,5 @@
 **/node_modules
 **/dist
-**/release
 **/build/main
 venv
 .env
