@@ -19,6 +19,11 @@ jobs:
       run: npm install
     - name: Package app for Mac
       run: npm run package-app:mac
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-mac
+        path: dist/
 
   build-windows:
     name: Build on Windows
@@ -34,3 +39,8 @@ jobs:
       run: npm install
     - name: Package app for Windows
       run: npm run package-app:windows
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-windows
+        path: dist/
