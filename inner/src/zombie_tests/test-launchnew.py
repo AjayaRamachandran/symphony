@@ -46,7 +46,7 @@ kill_command = {
 
 file_dump(kill_command)
 
-time.sleep(1)
+time.sleep(2)
 
 # initialize empty process command file
 with open(process_command_path, 'w') as pc_file:

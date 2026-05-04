@@ -1032,6 +1032,7 @@ while run:
             showButtonTooltips = settings['show_button_tooltips']
 
             WorldMessage.setDisabled(not showButtonTooltips)
+            console.log(ps)
 
             noteMap : dict[str: list] = ps["noteMap"]
             instrumentMap = ps["waveMap"]
@@ -1039,11 +1040,19 @@ while run:
             beatLength = ps['beatLength']
             beatsPerMeasure = ps['beatsPerMeasure']
             if "#" in key:
-                keyIndex = NOTES_SHARP.index(key)
                 accidentals = "sharps"
+                KeyDropdown.states = NOTES_SHARP
+                AccidentalsButton.setCurrentState(1)
+                PitchList.setNotes(NOTES_SHARP)
             elif "b" in key:
-                keyIndex = NOTES_FLAT.index(key)
                 accidentals = "flats"
+                KeyDropdown.states = NOTES_FLAT
+                AccidentalsButton.setCurrentState(0)
+                PitchList.setNotes(NOTES_FLAT)
+            try:
+                keyIndex = KeyDropdown.states.index(key)
+            except ValueError:
+                keyIndex = 0
             mode = ps["mode"]
             tempo = ps["tpm"]
             projectMeta = copy.deepcopy(ps["meta"])
