@@ -7,3 +7,10 @@ python -m venv venv; venv/Scripts/Activate.ps1; pip install -r requirements.txt;
 ```zsh
 python3 -m venv venv && source venv/bin/activate && pip3 install -r requirements.txt && pip3 install dill && pip3 install music21 && pip3 install soundfile && pip3 install pretty_midi
 ```
+
+# Freezing to Requirements without causing UTF problems
+```PowerShell
+pip freeze | Out-File -Encoding utf8 requirements.txt
+# or, better, no BOM:
+[System.IO.File]::WriteAllLines("requirements.txt", (pip freeze))
+```
