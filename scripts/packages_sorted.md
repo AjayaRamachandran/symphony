@@ -1,3 +1,5 @@
+## Python (venv site-packages)
+
 | Package | Size (MB) |
 |---|---|
 | music21 | 88.6 |
@@ -8,7 +10,7 @@
 | numpy.libs | 20.0 |
 | fontTools | 15.5 |
 | PIL | 15.2 |
-| pip | 13.7 |
+| pip | 10.4 |
 | pythonwin | 10.2 |
 | setuptools | 8.3 |
 | pretty_midi | 6.0 |
@@ -47,10 +49,10 @@
 | win32ctypes | 0.2 |
 | kiwisolver | 0.2 |
 | matplotlib-3.10.8.dist-info | 0.2 |
+| pip-26.1.1.dist-info | 0.1 |
 | pyinstaller-6.15.0.dist-info | 0.1 |
 | altgraph | 0.1 |
 | pillow-12.1.1.dist-info | 0.1 |
-| pip-24.0.dist-info | 0.1 |
 | pywin32-311.dist-info | 0.1 |
 | webcolors | 0.1 |
 | setuptools-75.6.0.dist-info | 0.1 |
@@ -85,4 +87,41 @@
 | six-1.17.0.dist-info | 0.0 |
 | pretty_midi-0.2.10.dist-info | 0.0 |
 
-**Total: 320.7 MB**
+**Total: 317.5 MB**
+
+## JavaScript (node_modules, top 30)
+
+| Package | Size (MB) |
+|---|---|
+| electron | 275.5 |
+| app-builder-bin | 206.8 |
+| lucide-react | 34.5 |
+| typescript | 22.5 |
+| @img | 19.0 |
+| 7zip-bin | 11.7 |
+| @esbuild | 9.5 |
+| bootstrap | 9.2 |
+| @babel | 7.9 |
+| .vite | 7.8 |
+| wallpaper | 6.3 |
+| @fortawesome | 5.3 |
+| rxjs | 4.3 |
+| react-dom | 4.3 |
+| app-builder-lib | 3.5 |
+| eslint | 3.2 |
+| vite | 3.1 |
+| @rollup | 3.1 |
+| @types | 2.9 |
+| es-abstract | 2.7 |
+| @remix-run | 2.6 |
+| moment | 2.6 |
+| tailwind | 2.6 |
+| rollup | 2.4 |
+| core-js | 2.2 |
+| node-gyp | 2.1 |
+| caniuse-lite | 2.0 |
+| @electron | 1.7 |
+| flaschenpost | 1.6 |
+| path-scurry | 1.6 |
+
+**Top 30 Total: 664.5 MB**

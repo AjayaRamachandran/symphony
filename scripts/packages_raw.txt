@@ -45,8 +45,8 @@ packaging-25.0.dist-info:    Bytes :     17963     17963         0         0    
 pefile-2023.2.7.dist-info:    Bytes :      3735      3735         0         0         0         0
 PIL:    Bytes :  15977810  15977810         0         0         0         0
 pillow-12.1.1.dist-info:    Bytes :    101395    101395         0         0         0         0
-pip:    Bytes :  14377088  14377088         0         0         0         0
-pip-24.0.dist-info:    Bytes :     94247     94247         0         0         0         0
+pip:    Bytes :  10928612  10928612         0         0         0         0
+pip-26.1.1.dist-info:    Bytes :    147228    147228         0         0         0         0
 pkg_resources:    Bytes :    479155    479155         0         0         0         0
 pretty_midi:    Bytes :   6245320   6245320         0         0         0         0
 pretty_midi-0.2.10.dist-info:    Bytes :      2453      2453         0         0         0         0
