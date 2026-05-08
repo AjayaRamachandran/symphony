@@ -6,9 +6,16 @@ import { X } from "lucide-react";
 import "./modals-styling/generic-modal.css";
 
 let blurOverlay = true;
-window.electronAPI.getUserSettings().then((data) => {
-  blurOverlay = data["fancy_graphics"];
-});
+let blurOverlayLoaded = false;
+
+function loadBlurOverlay() {
+  if (blurOverlayLoaded) return;
+  blurOverlayLoaded = true;
+  if (!window.electronAPI?.getUserSettings) return;
+  window.electronAPI.getUserSettings().then((data) => {
+    blurOverlay = data["fancy_graphics"];
+  });
+}
 
 function GenericModal({
   isOpen,
@@ -21,6 +28,7 @@ function GenericModal({
   const modalRef = useRef(null);
 
   useEffect(() => {
+    loadBlurOverlay();
     if (!isOpen) return;
     const overlay = overlayRef.current;
     const modal = modalRef.current;

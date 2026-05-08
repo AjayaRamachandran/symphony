@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Plus } from "lucide-react";
+import { Star } from "lucide-react";
 import path from "path-browserify";
 
 import fileIcon from "@/assets/file-icon.svg";
@@ -182,14 +182,7 @@ function File({ name }) {
             >
               {displayName}
               {isStarred && (
-                <i
-                  className="bi bi-star-fill"
-                  style={{
-                    margin: "0px 4px",
-                    fontSize: "10px",
-                    color: "#b8a463",
-                  }}
-                ></i>
+                <Star size={10} style={{ color: "#b8a463", margin: "0px 4px" }} fill="#b8a463" />
               )}
             </span>
             {viewType === "grid" ? null : viewType === "content" ? (

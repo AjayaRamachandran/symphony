@@ -1,5 +1,4 @@
-import React, { useEffect, useCallback, useState } from "react";
-import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import React, { useEffect, useCallback } from "react";
 import HomePage from "./pages/HomePage";
 import { useDirectory } from "@/contexts/DirectoryContext";
 import path from "path-browserify";

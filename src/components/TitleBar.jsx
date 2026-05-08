@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 
-import { Square, Copy } from "lucide-react";
+import { Square, Copy, Minus, X } from "lucide-react";
 import Icon from "@/assets/icon-dark.svg";
 import ProgramData from "@/assets/program-data.json";
 
@@ -97,12 +97,13 @@ function TitleBar() {
         {!isMac && (
           <div className="window-controls">
             <button
-              className="bi bi-dash-lg"
-              topbar-buttons="true"
+              className="topbar-button"
               onClick={() => window.electronAPI.minimize()}
-            ></button>
+            >
+              <Minus size={13} />
+            </button>
             <button
-              topbar-buttons="true"
+              className="topbar-button"
               onClick={() => window.electronAPI.maximize()}
             >
               {isMaximized ? (
@@ -112,10 +113,11 @@ function TitleBar() {
               )}
             </button>
             <button
-              className="bi bi-x-lg x-button"
-              topbar-buttons="true"
+              className="topbar-button x-button"
               onClick={() => window.electronAPI.close()}
-            ></button>
+            >
+              <X size={15} strokeWidth={1.7} />
+            </button>
           </div>
         )}
       </div>

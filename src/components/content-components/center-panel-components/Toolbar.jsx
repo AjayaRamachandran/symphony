@@ -273,10 +273,6 @@ function Toolbar() {
               >
                 {itemIsStarred && selectedFile ? (
                   <>
-                    {/* <i
-                      className="bi bi-star-fill"
-                      style={{ fontSize: "20px" }}
-                    ></i> */}
                     <Star size={iconSize} fill="var(--tinted-foreground)" />
                   </>
                 ) : (
