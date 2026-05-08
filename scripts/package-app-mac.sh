@@ -68,6 +68,10 @@ echo "[2/5] Building inner app with PyInstaller..."
 #   pretty_midi/instrument.py:11 has an eager `import pkg_resources`, and
 #   pkg_resources itself imports `jaraco.text` and `platformdirs` from
 #   setuptools/_vendor/ via a runtime sys.path hack. So we must keep both.
+#   Note: setuptools is pinned `<82` in requirements.txt because setuptools
+#   82.0.0 (Feb 2026) removed the `pkg_resources` module entirely. altgraph
+#   (a PyInstaller dep) and pretty_midi both `import pkg_resources` eagerly,
+#   so newer setuptools breaks the build before PyInstaller even starts.
 #   pkg_resources is also added as a hidden import below to make the
 #   dependency explicit for future readers. `wheel` looks like install-time
 #   tooling, but in setuptools >= 71 it is a vendored package exposed via

@@ -77,6 +77,10 @@ rem   NOTE: setuptools, pkg_resources, and wheel are intentionally NOT excluded.
 rem   pretty_midi/instrument.py:11 has an eager `import pkg_resources`, and
 rem   pkg_resources itself imports `jaraco.text` and `platformdirs` from
 rem   setuptools/_vendor/ via a runtime sys.path hack. So we must keep both.
+rem   Note: setuptools is pinned `<82` in requirements.txt because setuptools
+rem   82.0.0 (Feb 2026) removed the `pkg_resources` module entirely. altgraph
+rem   (a PyInstaller dep) and pretty_midi both `import pkg_resources` eagerly,
+rem   so newer setuptools breaks the build before PyInstaller even starts.
 rem   pkg_resources is also added as a hidden import below to make the
 rem   dependency explicit for future readers. `wheel` looks like install-time
 rem   tooling, but in setuptools >= 71 it is a vendored package exposed via

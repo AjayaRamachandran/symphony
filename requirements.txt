@@ -29,7 +29,7 @@ python-dateutil==2.9.0.post0
 pywin32==311; sys_platform == "win32"
 pywin32-ctypes==0.2.3; sys_platform == "win32"
 requests==2.32.5
-setuptools>=68.0.0
+setuptools>=68.0.0,<82
 six==1.17.0
 soundfile==0.13.1
 urllib3==2.5.0
