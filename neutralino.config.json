@@ -1,0 +1,71 @@
+{
+  "$schema": "https://raw.githubusercontent.com/neutralinojs/neutralinojs-cli/main/src/schemas/neutralino.config.schema.json",
+  "applicationId": "com.ajayarsymphony.app",
+  "applicationName": "Symphony",
+  "version": "1.1.0",
+  "defaultMode": "window",
+  "port": 0,
+  "url": "/",
+  "documentRoot": "/dist/",
+  "enableServer": true,
+  "enableNativeAPI": true,
+  "tokenSecurity": "one-time",
+  "logging": {
+    "enabled": true,
+    "writeToLogFile": true
+  },
+  "nativeAllowList": [
+    "app.*",
+    "os.*",
+    "filesystem.*",
+    "window.*",
+    "events.*",
+    "computer.*",
+    "debug.log"
+  ],
+  "globalVariables": {
+    "TEST_KEY": "TEST_VALUE"
+  },
+  "modes": {
+    "window": {
+      "title": "Symphony",
+      "width": 1300,
+      "height": 800,
+      "minWidth": 800,
+      "minHeight": 800,
+      "center": true,
+      "resizable": true,
+      "icon": "/src/assets/icon-dark-512.png",
+      "exitProcessOnClose": false,
+      "useSavedState": false,
+      "useLogicalPixels": true,
+      "enableInspector": true,
+      "injectGlobals": true,
+      "injectClientLibrary": false
+    }
+  },
+  "cli": {
+    "binaryName": "Symphony",
+    "resourcesPath": "/dist/",
+    "extensionsPath": "/extensions/",
+    "binaryVersion": "6.7.0",
+    "clientVersion": "6.7.0",
+    "frontendLibrary": {
+      "patchFile": "/index.html",
+      "devUrl": "http://localhost:5173",
+      "projectPath": "/",
+      "initCommand": "npm install",
+      "devCommand": "npm run vite",
+      "buildCommand": "npm run build:react"
+    },
+    "copyItems": [
+      "/inner/dist",
+      "/config.yaml"
+    ],
+    "distributionPath": "/dist-neu/",
+    "applicationIcon": "/src/assets/icon-dark-512.png",
+    "author": "Nimbial",
+    "description": "Symphony Project Manager",
+    "copyright": "Copyright (c) Nimbial 2026"
+  }
+}

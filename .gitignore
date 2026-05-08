@@ -1,6 +1,11 @@
 **/node_modules
 **/dist
+**/dist-neu
 **/build/main
+**/bin
+.tmp/
+.storage/
+neutralinojs.log
 venv
 .env
 .vscode/

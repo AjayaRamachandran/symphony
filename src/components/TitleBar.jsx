@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 import { Square, Copy } from "lucide-react";
+import * as Neutralino from "@neutralinojs/lib";
 import Icon from "@/assets/icon-dark.svg";
 import ProgramData from "@/assets/program-data.json";
 
@@ -10,12 +11,42 @@ function TitleBar() {
   const [isMaximized, setIsMaximized] = useState(false);
   const [isFocused, setIsFocused] = useState(true);
   const [isMac, setIsMac] = useState(true);
+  const titlebarRef = useRef(null);
+  const winControlsRef = useRef(null);
+  const macControlsRef = useRef(null);
 
   useEffect(() => {
-    // Listen for maximize/unmaximize from backend
     window.electronAPI.onWindowStateChange(setIsMaximized);
     setIsMac(window.electronAPI.platform === "darwin");
   }, []);
+
+  // Register the title bar as a draggable region. setDraggableRegion's
+  // `exclusions` accept DOM IDs or HTMLElement refs (NOT CSS selectors),
+  // so we pass the actual control wrappers — otherwise the drag handler
+  // swallows clicks on min/max/close.
+  useEffect(() => {
+    let cancelled = false;
+    let handle = null;
+    (async () => {
+      if (!titlebarRef.current) return;
+      const exclusions = [winControlsRef.current, macControlsRef.current].filter(
+        Boolean,
+      );
+      try {
+        handle = await Neutralino.window.setDraggableRegion(titlebarRef.current, {
+          exclusions,
+        });
+      } catch (err) {
+        if (!cancelled) console.debug("setDraggableRegion skipped:", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      if (handle && titlebarRef.current) {
+        Neutralino.window.unsetDraggableRegion(titlebarRef.current).catch(() => {});
+      }
+    };
+  }, [isMac]);
 
   useEffect(() => {
     const onFocus = () => setIsFocused(true);
@@ -32,9 +63,12 @@ function TitleBar() {
 
   return (
     <>
-      <div className={`titlebar ${isMac ? "mac" : ""}`}>
+      <div ref={titlebarRef} className={`titlebar ${isMac ? "mac" : ""}`}>
         {isMac && (
-          <div className={`mac-controls ${!isFocused ? "unfocused" : ""}`}>
+          <div
+            ref={macControlsRef}
+            className={`mac-controls ${!isFocused ? "unfocused" : ""}`}
+          >
             <div className="mac-buttons">
               <span
                 className="mac-btn close"
@@ -95,7 +129,7 @@ function TitleBar() {
         </div>
 
         {!isMac && (
-          <div className="window-controls">
+          <div ref={winControlsRef} className="window-controls">
             <button
               className="bi bi-dash-lg"
               topbar-buttons="true"

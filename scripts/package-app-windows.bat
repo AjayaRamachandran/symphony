@@ -15,11 +15,12 @@ if not exist ".\inner\src\assets" (
 
 echo [Symphony] Stopping any running Symphony / inner processes that could lock build outputs...
 taskkill /F /IM "Symphony.exe" >nul 2>nul
+taskkill /F /IM "Symphony-win_x64.exe" >nul 2>nul
 taskkill /F /IM "main.exe" >nul 2>nul
-rem Give the OS a moment to release file handles (e.g. app.asar)
+rem Give the OS a moment to release file handles
 ping -n 2 127.0.0.1 >nul
 
-echo [0/5] Ensuring Python virtual environment exists...
+echo [0/6] Ensuring Python virtual environment exists...
 if exist ".venv\Scripts\python.exe" (
   set "VENV_DIR=.venv"
 ) else if exist "venv\Scripts\python.exe" (
@@ -41,7 +42,7 @@ if errorlevel 1 goto :fail
 
 set "PY_CMD=%VENV_DIR%\Scripts\python.exe"
 
-echo [1/5] Installing Python dependencies...
+echo [1/6] Installing Python dependencies...
 %PY_CMD% -m pip install --upgrade pip
 if errorlevel 1 goto :fail
 %PY_CMD% -m pip install -r requirements.txt
@@ -56,7 +57,7 @@ if errorlevel 1 goto :fail
 %PY_CMD% -m pip install pretty_midi
 if errorlevel 1 goto :fail
 
-echo [2/5] Building inner app with PyInstaller...
+echo [2/6] Building inner app with PyInstaller...
 rem ----------------------------------------------------------------------------
 rem PyInstaller exclusions. Each exclude has a specific reason; do NOT add to
 rem this list without checking that the package is genuinely unreferenced at
@@ -124,7 +125,7 @@ rem ----------------------------------------------------------------------------
   --distpath ./inner/dist ./inner/src/main.py
 if errorlevel 1 goto :fail
 
-echo [3/5] Syncing inner assets...
+echo [3/6] Syncing inner assets...
 if exist ".\inner\dist\assets" (
   rmdir /s /q ".\inner\dist\assets"
   if errorlevel 1 goto :fail
@@ -132,15 +133,19 @@ if exist ".\inner\dist\assets" (
 xcopy ".\inner\src\assets" ".\inner\dist\assets\" /e /i /y
 if errorlevel 4 goto :fail
 
-echo [4/5] Building React app...
+echo [4/6] Building React app...
 call npm run build:react
 if errorlevel 1 goto :fail
 
-echo [5/5] Building Electron Windows package...
-call npm run build:electron -- --win
+echo [5/6] Updating Neutralino framework binaries...
+call npx --yes @neutralinojs/neu update
 if errorlevel 1 goto :fail
 
-echo [Done] Windows package build complete.
+echo [6/6] Building Neutralino Windows package...
+call npx --yes @neutralinojs/neu build --release
+if errorlevel 1 goto :fail
+
+echo [Done] Windows package build complete. Output under .\dist-neu\
 exit /b 0
 
 :fail

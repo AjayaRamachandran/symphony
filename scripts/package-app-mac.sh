@@ -9,7 +9,7 @@ if [[ ! -d "./inner/src/assets" ]]; then
   exit 1
 fi
 
-echo "[0/5] Ensuring Python virtual environment exists..."
+echo "[0/6] Ensuring Python virtual environment exists..."
 if [[ -d ".venv" ]]; then
   VENV_DIR=".venv"
 elif [[ -d "venv" ]]; then
@@ -38,7 +38,7 @@ else
   PY_CMD="python3"
 fi
 
-echo "[1/5] Installing Python dependencies..."
+echo "[1/6] Installing Python dependencies..."
 "$PY_CMD" -m pip install --upgrade pip
 "$PY_CMD" -m pip install -r requirements.txt
 echo "[Symphony] Installing packages that fail in requirements.txt..."
@@ -47,7 +47,7 @@ echo "[Symphony] Installing packages that fail in requirements.txt..."
 "$PY_CMD" -m pip install soundfile
 "$PY_CMD" -m pip install pretty_midi
 
-echo "[2/5] Building inner app with PyInstaller..."
+echo "[2/6] Building inner app with PyInstaller..."
 # -----------------------------------------------------------------------------
 # PyInstaller exclusions. Each exclude has a specific reason; do NOT add to
 # this list without checking that the package is genuinely unreferenced at
@@ -104,14 +104,17 @@ echo "[2/5] Building inner app with PyInstaller..."
   --exclude-module tkinter \
   --distpath ./inner/dist ./inner/src/main.py
 
-echo "[3/5] Syncing inner assets..."
+echo "[3/6] Syncing inner assets..."
 rm -rf ./inner/dist/assets
 cp -R ./inner/src/assets ./inner/dist/assets
 
-echo "[4/5] Building React app..."
+echo "[4/6] Building React app..."
 npm run build:react
 
-echo "[5/5] Building Electron macOS package..."
-npm run build:electron -- --mac
+echo "[5/6] Updating Neutralino framework binaries..."
+npx --yes @neutralinojs/neu update
 
-echo "[Done] macOS package build complete."
+echo "[6/6] Building Neutralino macOS package..."
+npx --yes @neutralinojs/neu build --release
+
+echo "[Done] macOS package build complete. Output under ./dist-neu/"
