@@ -48,7 +48,61 @@ echo "[Symphony] Installing packages that fail in requirements.txt..."
 "$PY_CMD" -m pip install pretty_midi
 
 echo "[2/5] Building inner app with PyInstaller..."
-"$PY_CMD" -m PyInstaller --clean --onefile --hidden-import music21 --distpath ./inner/dist ./inner/src/main.py
+# -----------------------------------------------------------------------------
+# PyInstaller exclusions. Each exclude has a specific reason; do NOT add to
+# this list without checking that the package is genuinely unreferenced at
+# runtime. See `scripts/packages_sorted.md` for size impact.
+#
+# matplotlib + private deps (contourpy/cycler/kiwisolver/fonttools/mpl_toolkits)
+#   transitive deps of music21/pretty_midi; Symphony never plots anything.
+#
+# chardet / joblib / jsonpickle
+#   referenced by music21 only inside lazy in-function imports
+#   (common/fileTools.py, common/parallel.py, freezeThaw.py). We never read
+#   text files via music21, never use music21 parallel utils, and never use
+#   music21's freeze/thaw (we serialize with dill directly).
+#
+# pip / _distutils_hack
+#   install-time tooling; never imported by Symphony at runtime.
+#   NOTE: setuptools, pkg_resources, and wheel are intentionally NOT excluded.
+#   pretty_midi/instrument.py:11 has an eager `import pkg_resources`, and
+#   pkg_resources itself imports `jaraco.text` and `platformdirs` from
+#   setuptools/_vendor/ via a runtime sys.path hack. So we must keep both.
+#   pkg_resources is also added as a hidden import below to make the
+#   dependency explicit for future readers. `wheel` looks like install-time
+#   tooling, but in setuptools >= 71 it is a vendored package exposed via
+#   setuptools/_vendor/wheel/. Excluding it makes PyInstaller's setuptools
+#   hook fail when it tries to alias `wheel` -> `setuptools._vendor.wheel`
+#   (ValueError: Target module "wheel" already imported as ExcludedModule).
+#   It is not its own package on disk anyway, so excluding saves no bytes.
+#
+# PyInstaller / _pyinstaller_hooks_contrib / altgraph
+#   build-time tooling; never imported at runtime. (Bundled runtime hooks
+#   are baked into the bootloader, not loaded from these packages.)
+#
+# tkinter
+#   the only tkinter user is console_controls/console_window.py, whose import
+#   in main.py is commented out. Re-include if that import is ever revived.
+# -----------------------------------------------------------------------------
+"$PY_CMD" -m PyInstaller --clean --onefile \
+  --hidden-import music21 \
+  --hidden-import pkg_resources \
+  --exclude-module matplotlib \
+  --exclude-module mpl_toolkits \
+  --exclude-module contourpy \
+  --exclude-module cycler \
+  --exclude-module kiwisolver \
+  --exclude-module fonttools \
+  --exclude-module chardet \
+  --exclude-module joblib \
+  --exclude-module jsonpickle \
+  --exclude-module pip \
+  --exclude-module _distutils_hack \
+  --exclude-module PyInstaller \
+  --exclude-module _pyinstaller_hooks_contrib \
+  --exclude-module altgraph \
+  --exclude-module tkinter \
+  --distpath ./inner/dist ./inner/src/main.py
 
 echo "[3/5] Syncing inner assets..."
 rm -rf ./inner/dist/assets

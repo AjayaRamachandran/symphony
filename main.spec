@@ -6,11 +6,11 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[],
-    hiddenimports=['music21'],
+    hiddenimports=['music21', 'pkg_resources'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=['matplotlib', 'mpl_toolkits', 'contourpy', 'cycler', 'kiwisolver', 'fonttools', 'chardet', 'joblib', 'jsonpickle', 'pip', '_distutils_hack', 'PyInstaller', '_pyinstaller_hooks_contrib', 'altgraph', 'pefile', 'pythonwin', 'adodbapi', 'isapi', 'win32com', 'win32comext', 'tkinter'],
     noarchive=False,
     optimize=0,
 )

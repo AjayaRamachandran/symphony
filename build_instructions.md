@@ -116,8 +116,68 @@ python -m pip install pretty_midi
 1. Build the inner executable:
 
 ```powershell
-python -m PyInstaller --clean --onefile --windowed --hidden-import music21 --distpath ./inner/dist ./inner/src/main.py
+python -m PyInstaller --clean --onefile --windowed `
+  --hidden-import music21 `
+  --hidden-import pkg_resources `
+  --exclude-module matplotlib `
+  --exclude-module mpl_toolkits `
+  --exclude-module contourpy `
+  --exclude-module cycler `
+  --exclude-module kiwisolver `
+  --exclude-module fonttools `
+  --exclude-module chardet `
+  --exclude-module joblib `
+  --exclude-module jsonpickle `
+  --exclude-module pip `
+  --exclude-module _distutils_hack `
+  --exclude-module PyInstaller `
+  --exclude-module _pyinstaller_hooks_contrib `
+  --exclude-module altgraph `
+  --exclude-module pefile `
+  --exclude-module pythonwin `
+  --exclude-module adodbapi `
+  --exclude-module isapi `
+  --exclude-module win32com `
+  --exclude-module win32comext `
+  --exclude-module tkinter `
+  --distpath ./inner/dist ./inner/src/main.py
 ```
+
+> The `--exclude-module` flags drop ~65 MB of dead weight that PyInstaller would
+> otherwise sweep into the bundle. The exclusion categories are:
+>
+> 1. **matplotlib + private deps** (`matplotlib`, `mpl_toolkits`, `contourpy`,
+>    `cycler`, `kiwisolver`, `fonttools`) — transitive deps of `music21` /
+>    `pretty_midi`; Symphony never plots anything.
+> 2. **music21 lazy deps** (`chardet`, `joblib`, `jsonpickle`) — referenced only
+>    inside lazy in-function imports for code paths we never trigger.
+> 3. **install-time tooling** (`pip`, `_distutils_hack`) — never imported at
+>    runtime. `wheel` deliberately stays in (see the note below).
+> 4. **build-time tooling** (`PyInstaller`, `_pyinstaller_hooks_contrib`,
+>    `altgraph`, `pefile`) — runtime hooks are baked into the bootloader, not
+>    loaded from these packages.
+> 5. **pywin32 extras** (`pythonwin`, `adodbapi`, `isapi`, `win32com`,
+>    `win32comext`) — Windows IDE / COM / IIS / database access; we only use
+>    `ctypes.windll`.
+> 6. **tkinter** — the only tkinter user is `console_controls/console_window.py`,
+>    whose import in `main.py` is commented out. Re-include if that import is
+>    ever revived.
+>
+> **NOTE:** `setuptools`, `pkg_resources`, and `wheel` are intentionally NOT
+> excluded. `pretty_midi/instrument.py:11` has an eager `import pkg_resources`,
+> and `pkg_resources` itself imports `jaraco.text` and `platformdirs` from
+> `setuptools/_vendor/` via a runtime `sys.path` hack. `pkg_resources` is also
+> listed as a `--hidden-import` to make the dependency explicit.
+>
+> `wheel` looks like install-time tooling, but with `setuptools >= 71` it is a
+> vendored package exposed via `setuptools/_vendor/wheel/`. Excluding it causes
+> PyInstaller's setuptools hook to fail when it tries to alias `wheel` →
+> `setuptools._vendor.wheel` (`ValueError: Target module "wheel" already
+> imported as ExcludedModule`). It is not its own package on disk anyway, so
+> the exclusion would not save any bytes.
+>
+> Keep this list in sync with `scripts/package-app-windows.bat`,
+> `scripts/package-app-mac.sh`, and `main.spec`.
 
 1. Sync inner runtime assets:
 
@@ -162,8 +222,31 @@ python3 -m pip install pretty_midi
 1. Build the inner executable:
 
 ```bash
-python3 -m PyInstaller --clean --onefile --hidden-import music21 --distpath ./inner/dist ./inner/src/main.py
+python3 -m PyInstaller --clean --onefile \
+  --hidden-import music21 \
+  --hidden-import pkg_resources \
+  --exclude-module matplotlib \
+  --exclude-module mpl_toolkits \
+  --exclude-module contourpy \
+  --exclude-module cycler \
+  --exclude-module kiwisolver \
+  --exclude-module fonttools \
+  --exclude-module chardet \
+  --exclude-module joblib \
+  --exclude-module jsonpickle \
+  --exclude-module pip \
+  --exclude-module _distutils_hack \
+  --exclude-module PyInstaller \
+  --exclude-module _pyinstaller_hooks_contrib \
+  --exclude-module altgraph \
+  --exclude-module tkinter \
+  --distpath ./inner/dist ./inner/src/main.py
 ```
+
+> See the Windows section above for the full reasoning behind each exclusion
+> group. (Windows-only packages — `pefile`, `pythonwin`, `adodbapi`, `isapi`,
+> `win32com`, `win32comext` — are omitted here since they aren't installed on
+> macOS in the first place.)
 
 1. Sync inner runtime assets:
 

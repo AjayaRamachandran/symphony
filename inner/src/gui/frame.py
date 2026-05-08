@@ -4,14 +4,12 @@
 
 import pygame
 from math import *
-from io import BytesIO
 
 ###### INTERNAL MODULES ######
 
 from console_controls.console import *
 import sound.sound_processing as sp
 import gui.element as gui
-import gui.vfx as vfx
 import events
 
 ###### INITIALIZE ######
@@ -77,7 +75,7 @@ class Panel():
         self.selfRender = function
         
     
-    def render(self, screen: pygame.Surface, blurRadius: int = None):
+    def render(self, screen: pygame.Surface):
         '''
         fields: screen (pygame.Surface) - surface to blit to\n
         outputs: nothing
@@ -110,10 +108,4 @@ class Panel():
             if rect.width > 0 and rect.height > 0:
                 sub = mySurface.subsurface(rect)
                 screen.blit(sub, (rect.x, rect.y))
-        
-        if blurRadius:
-            screen.blit(vfx.surfaceBlur(screen, blurRadius=blurRadius), (0, 0))
-
-        
-
 
