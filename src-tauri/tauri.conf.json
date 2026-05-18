@@ -1,0 +1,43 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Symphony",
+  "version": "1.1.0",
+  "identifier": "com.ajayarsymphony.app",
+  "build": {
+    "beforeDevCommand": "npm run vite",
+    "beforeBuildCommand": "npm run build:react",
+    "frontendDist": "../src-tauri/splash"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "splash",
+        "title": "Symphony",
+        "url": "index.html",
+        "width": 1024,
+        "height": 430,
+        "decorations": false,
+        "transparent": false,
+        "shadow": false,
+        "resizable": false,
+        "center": true,
+        "skipTaskbar": true,
+        "alwaysOnTop": true,
+        "focus": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/icon.ico",
+      "icons/icon.icns",
+      "icons/icon.png"
+    ],
+    "resources": []
+  }
+}

@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Symphony</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900&display=swap");
+      @import url("https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700&display=swap");
+
+      :root {
+        color-scheme: dark;
+        --background: #222222;
+        --tinted-background: #3c3c3c;
+        --alternate-background: #2a2a2a;
+        --foreground: #d9d9d9;
+        --muted-foreground: #898989;
+        --tinted-foreground: #bbbbbb;
+        --primary: #ea7b36;
+        --gray-50: #666666;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html,
+      body {
+        height: 100%;
+        width: 100%;
+        overflow: hidden;
+        color: var(--foreground);
+        font-family: Inter, sans-serif;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+
+      body {
+        background: var(--background);
+        position: relative;
+        -webkit-app-region: drag;
+      }
+
+      body::before,
+      body::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      body::before {
+        background-image: url("loader-banner.svg");
+        background-position: center;
+        background-size: cover;
+        opacity: 0.74;
+      }
+
+      body::after {
+        background:
+          linear-gradient(
+            90deg,
+            rgba(18, 18, 18, 0.94) 0%,
+            rgba(18, 18, 18, 0.78) 36%,
+            rgba(18, 18, 18, 0.24) 100%
+          ),
+          linear-gradient(180deg, rgba(34, 34, 34, 0) 0%, rgba(34, 34, 34, 0.24) 100%);
+      }
+
+      .frame {
+        height: 100%;
+        width: 100%;
+        padding: 42px 50px 26px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        overflow: hidden;
+        position: relative;
+        z-index: 1;
+      }
+
+      .top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 24px;
+        position: relative;
+        z-index: 1;
+      }
+
+      .brand {
+        color: var(--foreground);
+        font-family: "Instrument Sans", Inter, sans-serif;
+        font-size: 54px;
+        font-weight: 700;
+        letter-spacing: -1.2px;
+        line-height: 1;
+      }
+
+      .version {
+        color: var(--tinted-foreground);
+        font-family: "Instrument Sans", Inter, sans-serif;
+        font-size: 23px;
+        font-weight: 500;
+        line-height: 1;
+        margin-top: 14px;
+      }
+
+      .org-mark {
+        color: var(--tinted-foreground);
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.2px;
+      }
+
+      .org-mark::before {
+        content: "";
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--primary);
+      }
+
+      .bottom {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        position: relative;
+        z-index: 1;
+      }
+
+      .status {
+        color: var(--tinted-foreground);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-width: 420px;
+      }
+
+      .status-row {
+        display: flex;
+        align-items: baseline;
+        gap: 18px;
+      }
+
+      .status-label {
+        color: var(--foreground);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.7px;
+        text-transform: uppercase;
+      }
+
+      .status-detail {
+        color: var(--muted-foreground);
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.7px;
+        text-transform: uppercase;
+      }
+
+      .progress {
+        height: 3px;
+        width: 100%;
+        border-radius: 999px;
+        overflow: hidden;
+        background: var(--tinted-background);
+      }
+
+      .progress::before {
+        content: "";
+        display: block;
+        height: 100%;
+        width: 36%;
+        border-radius: inherit;
+        background: var(--primary);
+        animation: loading 1.5s ease-in-out infinite;
+      }
+
+      @keyframes loading {
+        0% {
+          transform: translateX(-100%);
+        }
+        100% {
+          transform: translateX(280%);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .progress::before {
+          animation: none;
+          transform: translateX(0);
+        }
+      }
+
+      .legal {
+        color: var(--gray-50);
+        font-size: 8.5px;
+        letter-spacing: 0.35px;
+        line-height: 1.5;
+        max-width: 560px;
+        text-transform: uppercase;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="frame">
+      <div class="top">
+        <div>
+          <div class="brand">Symphony</div>
+          <div class="version">1.1</div>
+        </div>
+        <div class="org-mark">
+          <span>Nimbial</span>
+        </div>
+      </div>
+      <div class="bottom">
+        <div class="status">
+          <div class="status-row">
+            <span id="status-text" class="status-label">Loading Symphony</span>
+            <span class="status-detail">Please wait</span>
+          </div>
+          <div class="progress" aria-hidden="true"></div>
+        </div>
+        <div class="legal">
+          &copy; 2026 Nimbial. All rights reserved. Symphony and related marks
+          are trademarks of Nimbial.
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

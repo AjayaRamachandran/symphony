@@ -47,17 +47,24 @@
         }
     },
     "scripts": {
-        "build:react": "vite build",
-        "build:electron": "electron-builder",
-        "build:icons": "node ./scripts/generate-icons.mjs",
+        "dev": "tauri dev",
+        "package-app": "node scripts/package-app.mjs",
         "package-app:windows": ".\\scripts\\package-app-windows.bat",
         "package-app:mac": "sh ./scripts/package-app-mac.sh",
+        "build:react": "vite build",
+        "build:backend": "pyinstaller --clean --noconfirm symphony-backend.spec",
+        "stage:backend": "node scripts/stage-backend-sidecar.mjs",
+        "build:icons": "node ./scripts/generate-icons.mjs",
+        "tauri": "tauri",
+        "tauri:build": "tauri build -c src-tauri/tauri.bundle.conf.json",
         "lint": "eslint",
         "preview": "vite preview",
-        "start": "vite",
+        "vite": "vite",
+        "py": "python main.py",
+        "dev:py": "concurrently -k \"vite\" \"python main.py\"",
         "electron": "electron ./main.js",
-        "dev": "concurrently -k \"vite\" \"electron ./main.js\"",
-        "vite": "vite"
+        "dev:electron": "concurrently -k \"vite\" \"electron ./main.js\"",
+        "build:electron": "electron-builder"
     },
     "dependencies": {
         "js-yaml": "^4.1.1",
@@ -82,6 +89,7 @@
         "globals": "^15.9.0",
         "png2icons": "^2.0.1",
         "sharp": "^0.34.5",
-        "vite": "^5.4.11"
+        "vite": "^5.4.11",
+        "@tauri-apps/cli": "^2.0.0"
     }
 }

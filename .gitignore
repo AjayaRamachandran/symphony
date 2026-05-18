@@ -6,3 +6,4 @@ venv
 .vscode/
 **/__pycache__/
 *.pyc
+src-tauri/target/

@@ -136,12 +136,20 @@ if exist ".\inner\dist\assets" (
 xcopy ".\inner\src\assets" ".\inner\dist\assets\" /e /i /y
 if errorlevel 4 goto :fail
 
-echo [4/5] Building React app...
+echo [4/7] Building React app...
 call npm run build:react
 if errorlevel 1 goto :fail
 
-echo [5/5] Building Electron Windows package...
-call npm run build:electron -- --win
+echo [5/7] Building Symphony backend executable with PyInstaller...
+%PY_CMD% -m PyInstaller --clean --noconfirm symphony-backend.spec
+if errorlevel 1 goto :fail
+
+echo [6/7] Staging backend as Tauri sidecar...
+call npm run stage:backend
+if errorlevel 1 goto :fail
+
+echo [7/7] Building Tauri Windows package...
+call npm run tauri:build
 if errorlevel 1 goto :fail
 
 echo [Done] Windows package build complete.

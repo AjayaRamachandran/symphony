@@ -1,4 +1,7 @@
 altgraph==0.17.4
+pywebview==5.4
+pyyaml==6.0.2
+platformdirs==4.3.6
 certifi==2026.2.25
 cffi==1.17.1
 chardet==6.0.0.post1

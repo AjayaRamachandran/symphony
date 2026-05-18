@@ -112,10 +112,16 @@ echo "[3/5] Syncing inner assets..."
 rm -rf ./inner/dist/assets
 cp -R ./inner/src/assets ./inner/dist/assets
 
-echo "[4/5] Building React app..."
+echo "[4/7] Building React app..."
 npm run build:react
 
-echo "[5/5] Building Electron macOS package..."
-npm run build:electron -- --mac
+echo "[5/7] Building Symphony backend executable with PyInstaller..."
+"$PY_CMD" -m PyInstaller --clean --noconfirm symphony-backend.spec
+
+echo "[6/7] Staging backend as Tauri sidecar..."
+npm run stage:backend
+
+echo "[7/7] Building Tauri macOS package..."
+npm run tauri:build
 
 echo "[Done] macOS package build complete."

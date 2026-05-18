@@ -32,9 +32,12 @@ function TitleBar() {
 
   return (
     <>
-      <div className={`titlebar ${isMac ? "mac" : ""}`}>
+      <div className={`titlebar pywebview-drag-region ${isMac ? "mac" : ""}`}>
         {isMac && (
-          <div className={`mac-controls ${!isFocused ? "unfocused" : ""}`}>
+          <div
+            className={`mac-controls ${!isFocused ? "unfocused" : ""}`}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
             <div className="mac-buttons">
               <span
                 className="mac-btn close"
@@ -95,7 +98,10 @@ function TitleBar() {
         </div>
 
         {!isMac && (
-          <div className="window-controls">
+          <div
+            className="window-controls"
+            onMouseDown={(e) => e.stopPropagation()}
+          >
             <button
               className="topbar-button"
               onClick={() => window.electronAPI.minimize()}

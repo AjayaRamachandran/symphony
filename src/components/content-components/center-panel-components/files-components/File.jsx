@@ -128,13 +128,19 @@ function File({ name }) {
           }}
           draggable
           onDragStart={(e) => {
-            e.preventDefault();
             const filePath = path
               .join(globalDirectory, displayName)
               .replace(/\\/g, "/");
             console.log("Dragging file:", filePath);
             setDraggingFilePath(filePath);
-            window.electronAPI.startFileDrag(filePath);
+            // Under Electron the preload handles the OS drag via
+            // webContents.startDrag, so we suppress the browser drag.
+            // Under pywebview we let the HTML5 drag proceed and attach a
+            // DownloadURL payload inside the shim.
+            if (!window.electronAPI.isPywebview) {
+              e.preventDefault();
+            }
+            window.electronAPI.startFileDrag(filePath, e);
           }}
           onClick={(e) => {
             e.stopPropagation();
