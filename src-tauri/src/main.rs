@@ -8,16 +8,28 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::io::{BufRead, BufReader};
-use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 use std::sync::Mutex;
 use std::thread;
 
 use tauri::Manager;
 
-const READY_MARKER: &str = "__SYMPHONY_READY__";
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
 
-struct BackendProcess(Mutex<Option<Child>>);
+const READY_MARKER: &str = "__SYMPHONY_READY__";
+#[cfg(windows)]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
+
+struct BackendProcess(#[allow(dead_code)] Mutex<Option<Child>>);
+
+#[cfg(windows)]
+fn hide_child_console(command: &mut Command) {
+    command.creation_flags(CREATE_NO_WINDOW);
+}
+
+#[cfg(not(windows))]
+fn hide_child_console(_command: &mut Command) {}
 
 fn main() {
     tauri::Builder::default()
@@ -75,12 +87,14 @@ fn main() {
 fn spawn_backend() -> std::io::Result<Child> {
     // Dev: run the python source directly from the repo root.
     let python = if cfg!(windows) { "python" } else { "python3" };
-    Command::new(python)
+    let mut command = Command::new(python);
+    hide_child_console(&mut command);
+    command
         .arg("-u")
         .arg("../main.py")
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
+        .stderr(Stdio::piped());
+    command.spawn()
 }
 
 #[cfg(not(debug_assertions))]
@@ -94,15 +108,15 @@ fn spawn_backend() -> std::io::Result<Child> {
     } else {
         "symphony-backend"
     };
-    let exe_dir: PathBuf = std::env::current_exe()?
+    let exe_dir = std::env::current_exe()?
         .parent()
         .map(|p| p.to_path_buf())
         .ok_or_else(|| {
             std::io::Error::new(std::io::ErrorKind::NotFound, "exe has no parent")
         })?;
 
-    Command::new(exe_dir.join(bin_name))
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
+    let mut command = Command::new(exe_dir.join(bin_name));
+    hide_child_console(&mut command);
+    command.stdout(Stdio::piped()).stderr(Stdio::piped());
+    command.spawn()
 }

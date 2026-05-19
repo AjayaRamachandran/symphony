@@ -37,28 +37,45 @@
         -webkit-user-select: none;
       }
 
+      html {
+        background: transparent;
+      }
+
       body {
-        background: var(--background);
+        background: transparent;
+        border-radius: 8px;
         position: relative;
+        overflow: hidden;
+        isolation: isolate;
         -webkit-app-region: drag;
       }
 
-      body::before,
-      body::after {
+      .shell {
+        background: var(--background);
+        border-radius: inherit;
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+        width: 100%;
+        -webkit-app-region: drag;
+      }
+
+      .shell::before,
+      .shell::after {
         content: "";
         position: absolute;
         inset: 0;
         pointer-events: none;
       }
 
-      body::before {
+      .shell::before {
         background-image: url("loader-banner.svg");
         background-position: center;
         background-size: cover;
         opacity: 0.74;
       }
 
-      body::after {
+      .shell::after {
         background:
           linear-gradient(
             90deg,
@@ -72,7 +89,7 @@
       .frame {
         height: 100%;
         width: 100%;
-        padding: 42px 50px 26px;
+        padding: 50px 46px;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
@@ -112,18 +129,16 @@
         color: var(--tinted-foreground);
         display: inline-flex;
         align-items: center;
-        gap: 8px;
         font-size: 12px;
         font-weight: 600;
         letter-spacing: 0.2px;
       }
 
-      .org-mark::before {
-        content: "";
-        width: 7px;
-        height: 7px;
-        border-radius: 50%;
-        background: var(--primary);
+      .org-mark img {
+        display: block;
+        height: 28px;
+        opacity: 0.82;
+        width: auto;
       }
 
       .bottom {
@@ -150,86 +165,49 @@
 
       .status-label {
         color: var(--foreground);
-        font-size: 11px;
+        font-size: 14px;
         font-weight: 600;
-        letter-spacing: 0.7px;
-        text-transform: uppercase;
+        letter-spacing: 0.1px;
       }
 
       .status-detail {
         color: var(--muted-foreground);
-        font-size: 10px;
-        font-weight: 600;
-        letter-spacing: 0.7px;
-        text-transform: uppercase;
-      }
-
-      .progress {
-        height: 3px;
-        width: 100%;
-        border-radius: 999px;
-        overflow: hidden;
-        background: var(--tinted-background);
-      }
-
-      .progress::before {
-        content: "";
-        display: block;
-        height: 100%;
-        width: 36%;
-        border-radius: inherit;
-        background: var(--primary);
-        animation: loading 1.5s ease-in-out infinite;
-      }
-
-      @keyframes loading {
-        0% {
-          transform: translateX(-100%);
-        }
-        100% {
-          transform: translateX(280%);
-        }
-      }
-
-      @media (prefers-reduced-motion: reduce) {
-        .progress::before {
-          animation: none;
-          transform: translateX(0);
-        }
+        font-size: 11px;
+        font-weight: 500;
+        letter-spacing: 0.1px;
       }
 
       .legal {
         color: var(--gray-50);
-        font-size: 8.5px;
+        font-size: 12px;
         letter-spacing: 0.35px;
         line-height: 1.5;
         max-width: 560px;
-        text-transform: uppercase;
       }
     </style>
   </head>
   <body>
-    <div class="frame">
-      <div class="top">
-        <div>
-          <div class="brand">Symphony</div>
-          <div class="version">1.1</div>
-        </div>
-        <div class="org-mark">
-          <span>Nimbial</span>
-        </div>
-      </div>
-      <div class="bottom">
-        <div class="status">
-          <div class="status-row">
-            <span id="status-text" class="status-label">Loading Symphony</span>
-            <span class="status-detail">Please wait</span>
+    <div class="shell">
+      <div class="frame">
+        <div class="top">
+          <div>
+            <div class="brand">Symphony</div>
+            <div class="version">1.1</div>
           </div>
-          <div class="progress" aria-hidden="true"></div>
+          <div class="org-mark" aria-label="Nimbial">
+            <img src="nimbial-logo-outline.svg" alt="" />
+          </div>
         </div>
-        <div class="legal">
-          &copy; 2026 Nimbial. All rights reserved. Symphony and related marks
-          are trademarks of Nimbial.
+        <div class="bottom">
+          <div class="status">
+            <div class="status-row">
+              <span id="status-text" class="status-label">Loading Symphony</span>
+            </div>
+          </div>
+          <div class="legal">
+            &copy; 2026 Nimbial. All rights reserved. Symphony and related marks
+            are trademarks of Nimbial.
+          </div>
         </div>
       </div>
     </div>

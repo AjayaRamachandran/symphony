@@ -4,9 +4,10 @@
 
 import { execSync } from "node:child_process";
 import { copyFileSync, mkdirSync, existsSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const projectRoot = resolve(new URL(".", import.meta.url).pathname, "..");
+const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const isWin = process.platform === "win32";
 
 function rustTargetTriple() {

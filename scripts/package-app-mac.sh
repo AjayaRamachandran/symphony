@@ -121,7 +121,7 @@ echo "[5/7] Building Symphony backend executable with PyInstaller..."
 echo "[6/7] Staging backend as Tauri sidecar..."
 npm run stage:backend
 
-echo "[7/7] Building Tauri macOS package..."
+echo "[7/7] Building Tauri macOS dmg installer..."
 npm run tauri:build
 
-echo "[Done] macOS package build complete."
+echo "[Done] macOS dmg installer build complete."

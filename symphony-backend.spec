@@ -18,6 +18,7 @@ webview_datas = collect_data_files("webview")
 datas = [
     ("config.yaml", "."),
     ("dist", "dist"),
+    ("inner/dist", "inner/dist"),
     ("src/assets", "src/assets"),
     *webview_datas,
 ]

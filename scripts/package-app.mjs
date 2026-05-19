@@ -3,9 +3,10 @@
 
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const root = resolve(new URL(".", import.meta.url).pathname, "..");
+const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 function run(cmd, args) {
   return new Promise((res, rej) => {

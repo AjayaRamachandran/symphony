@@ -25,11 +25,23 @@ jobs:
       run: npm install
     - name: Package app for Mac
       run: npm run package-app:mac
-    - name: Upload artifact
+    - name: Locate dmg installer
+      shell: bash
+      run: |
+        shopt -s nullglob
+        installers=(src-tauri/target/release/bundle/dmg/*.dmg)
+        if [ "${#installers[@]}" -ne 1 ]; then
+          echo "Expected exactly one dmg installer, found ${#installers[@]}." >&2
+          printf '%s\n' "${installers[@]}" >&2
+          exit 1
+        fi
+        echo "INSTALLER_PATH=${installers[0]}" >> "$GITHUB_ENV"
+    - name: Upload dmg installer
       uses: actions/upload-artifact@v4
       with:
-        name: app-mac
-        path: dist/
+        name: app-mac-dmg
+        path: ${{ env.INSTALLER_PATH }}
+        if-no-files-found: error
 
   build-windows:
     name: Build on Windows
@@ -49,8 +61,19 @@ jobs:
       run: npm install
     - name: Package app for Windows
       run: npm run package-app:windows
-    - name: Upload artifact
+    - name: Locate NSIS installer
+      shell: pwsh
+      run: |
+        $installers = @(Get-ChildItem -Path "src-tauri/target/release/bundle/nsis" -Filter "*-setup.exe" -File)
+        if ($installers.Count -ne 1) {
+          Write-Error "Expected exactly one NSIS setup.exe installer, found $($installers.Count)."
+          $installers | ForEach-Object { Write-Error $_.FullName }
+          exit 1
+        }
+        "INSTALLER_PATH=$($installers[0].FullName)" >> $env:GITHUB_ENV
+    - name: Upload NSIS installer
       uses: actions/upload-artifact@v4
       with:
-        name: app-windows
-        path: dist/
+        name: app-windows-nsis
+        path: ${{ env.INSTALLER_PATH }}
+        if-no-files-found: error

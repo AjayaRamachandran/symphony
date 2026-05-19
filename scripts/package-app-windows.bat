@@ -148,11 +148,11 @@ echo [6/7] Staging backend as Tauri sidecar...
 call npm run stage:backend
 if errorlevel 1 goto :fail
 
-echo [7/7] Building Tauri Windows package...
+echo [7/7] Building Tauri Windows NSIS installer...
 call npm run tauri:build
 if errorlevel 1 goto :fail
 
-echo [Done] Windows package build complete.
+echo [Done] Windows NSIS installer build complete.
 exit /b 0
 
 :fail

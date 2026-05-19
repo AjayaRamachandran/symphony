@@ -56,7 +56,7 @@
         "stage:backend": "node scripts/stage-backend-sidecar.mjs",
         "build:icons": "node ./scripts/generate-icons.mjs",
         "tauri": "tauri",
-        "tauri:build": "tauri build -c src-tauri/tauri.bundle.conf.json",
+        "tauri:build": "node scripts/tauri-build-installer.mjs",
         "lint": "eslint",
         "preview": "vite preview",
         "vite": "vite",
