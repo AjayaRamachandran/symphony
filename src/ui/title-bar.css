@@ -1,5 +1,6 @@
 .titlebar {
   -webkit-app-region: drag;
+  app-region: drag;
   height: 30px;
   display: flex;
   flex-direction: row;
@@ -19,7 +20,8 @@
 .window-controls {
   display: flex;
   height: 100%;
-  -webkit-app-region: no-drag; /* make sure the container isn't draggable */
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
 }
 
 .window-controls button {

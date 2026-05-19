@@ -9,11 +9,11 @@ import {
 } from "lucide-react";
 import path from "path-browserify";
 
-import Tooltip from "@/ui/Tooltip";
-import "./recently-viewed.css";
-import { useDirectory } from "@/contexts/DirectoryContext";
-import FileNotExist from "@/modals/FileNotExist";
-import GenericModal from "@/modals/GenericModal";
+import Tooltip from "@/ui/tooltip";
+import "@/components/components-styling/recently-viewed.css";
+import { useDirectory } from "@/contexts/directory-context";
+import FileNotExist from "@/modals/file-not-exist";
+import GenericModal from "@/modals/generic-modal";
 import symphonyFileTypeIcon from "@/assets/symphony-file-type-icon.svg";
 
 function RecentlyViewed() {
@@ -153,7 +153,13 @@ function RecentlyViewed() {
                           style={{
                             flexShrink: 0,
                             color: `var(--${
-                              ["wav", "flac", "mp3", "mid", "musicxml"].includes(item.type)
+                              [
+                                "wav",
+                                "flac",
+                                "mp3",
+                                "mid",
+                                "musicxml",
+                              ].includes(item.type)
                                 ? "secondary"
                                 : "gray-50"
                             })`,

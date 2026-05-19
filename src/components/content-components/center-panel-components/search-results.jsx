@@ -1,23 +1,15 @@
 import React, { useState, useEffect, useContext } from "react";
 import path from "path-browserify"; // Required for path operations in browser
-import {
-  Music,
-  ChartNoAxesGantt,
-  FolderClosed,
-  X,
-  KeyboardMusic,
-  Star,
-} from "lucide-react";
+import { Music, FolderClosed, X, KeyboardMusic, Star } from "lucide-react";
 
-import Field from "../../../ui/Field";
-import Tooltip from "@/ui/Tooltip";
-import "./search-results.css";
+import Tooltip from "@/ui/tooltip";
+import "@/components/components-styling/search-results.css";
 
-import FileNotExist from "@/modals/FileNotExist";
-import GenericModal from "@/modals/GenericModal";
+import FileNotExist from "@/modals/file-not-exist";
+import GenericModal from "@/modals/generic-modal";
 import symphonyFileTypeIcon from "@/assets/symphony-file-type-icon.svg";
 
-import { useDirectory } from "@/contexts/DirectoryContext";
+import { useDirectory } from "@/contexts/directory-context";
 
 function SearchResults({
   getSearchResults,
@@ -177,73 +169,72 @@ function SearchResults({
           </>
         )}
 
-          <>
-            <div className="results">
-              {getSearchResults().length > 0 ? (
-                Object.entries(getSearchResults()).map((data, index) => {
-                  const filePath = data[1].fullPath;
-                  const normalizedPath = filePath.replace(/\\/g, "/");
-                  const dirname = path.dirname(normalizedPath);
-                  const ext = path.extname(normalizedPath).slice(1);
-                  const fileTypes = {
-                    mp3: Music,
-                    wav: Music,
-                    mid: KeyboardMusic,
-                    "": FolderClosed,
-                  };
-                  const Icon = fileTypes[ext];
-                  return (
-                    <button
-                      key={index}
-                      className="search-result"
-                      onClick={() => handleClick(normalizedPath)}
-                      onDoubleClick={() => handleDoubleClick(normalizedPath)}
-                    >
-                      {ext === "symphony" ? (
-                        <img
-                          src={symphonyFileTypeIcon}
+        <>
+          <div className="results">
+            {getSearchResults().length > 0 ? (
+              Object.entries(getSearchResults()).map((data, index) => {
+                const filePath = data[1].fullPath;
+                const normalizedPath = filePath.replace(/\\/g, "/");
+                const dirname = path.dirname(normalizedPath);
+                const ext = path.extname(normalizedPath).slice(1);
+                const fileTypes = {
+                  mp3: Music,
+                  wav: Music,
+                  mid: KeyboardMusic,
+                  "": FolderClosed,
+                };
+                const Icon = fileTypes[ext];
+                return (
+                  <button
+                    key={index}
+                    className="search-result"
+                    onClick={() => handleClick(normalizedPath)}
+                    onDoubleClick={() => handleDoubleClick(normalizedPath)}
+                  >
+                    {ext === "symphony" ? (
+                      <img
+                        src={symphonyFileTypeIcon}
+                        style={{
+                          width: "14px",
+                          height: "14px",
+                          flexShrink: 0,
+                        }}
+                      />
+                    ) : (
+                      Icon && (
+                        <Icon
+                          size={14}
                           style={{
-                            width: "14px",
-                            height: "14px",
-                            flexShrink: 0,
+                            color: `var(--${
+                              ext === ""
+                                ? null
+                                : ext === "wav" || ext === "mp3"
+                                  ? "secondary"
+                                  : "gray-50"
+                            })`,
                           }}
                         />
-                      ) : (
-                        Icon && (
-                          <Icon
-                            size={14}
-                            style={{
-                              color: `var(--${
-                                ext === ""
-                                  ? null
-                                  : ext === "wav" || ext === "mp3"
-                                    ? "secondary"
-                                    : "gray-50"
-                              })`,
-                            }}
-                          />
-                        )
-                      )}
-                      <span className="chip-name">
-                        <span
-                          style={{
-                            fontWeight: "400",
-                            color: "var(--muted-foreground)",
-                          }}
-                        >
-                          {"..." + dirname.slice(-30) + "/"}
-                        </span>
-                        <span style={{ fontWeight: "700" }}>{data[1].el}</span>
+                      )
+                    )}
+                    <span className="chip-name">
+                      <span
+                        style={{
+                          fontWeight: "400",
+                          color: "var(--muted-foreground)",
+                        }}
+                      >
+                        {"..." + dirname.slice(-30) + "/"}
                       </span>
-                    </button>
-                  );
-                })
-              ) : (
-                <>No Results Found.</>
-              )}
-            </div>
-          </>
-        
+                      <span style={{ fontWeight: "700" }}>{data[1].el}</span>
+                    </span>
+                  </button>
+                );
+              })
+            ) : (
+              <>No Results Found.</>
+            )}
+          </div>
+        </>
       </div>
       <GenericModal
         isOpen={showFileNotExist}

@@ -1,7 +1,7 @@
 import React from "react";
 
-import TitleBar from "../components/TitleBar";
-import Content from "../components/Content";
+import TitleBar from "@/ui/title-bar";
+import Content from "@/components/content";
 
 function HomePage() {
   return (

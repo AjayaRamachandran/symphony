@@ -3,13 +3,13 @@ import React, { useState, useEffect } from "react";
 import { FolderClosed, KeyboardMusic, FileMusic, X } from "lucide-react";
 import path from "path-browserify";
 
-import Dropdown from "@/ui/Dropdown";
-import Field from "@/ui/Field";
-import { useDirectory } from "@/contexts/DirectoryContext";
-import { normalizePath } from "@/utils/normalizePath";
-import InitExportFolder from "@/modals/InitExportFolder";
-import GenericModal from "@/modals/GenericModal";
-import "./modals-styling/convert-modal.css";
+import Dropdown from "@/ui/dropdown";
+import Field from "@/ui/field";
+import { useDirectory } from "@/contexts/directory-context";
+import { normalizePath } from "@/utils/normalize-path";
+import InitExportFolder from "@/modals/init-export-folder";
+import GenericModal from "@/modals/generic-modal";
+import "@/modals/modals-styling/convert-modal.css";
 
 const formats = [
   { label: "MIDI", icon: KeyboardMusic },
@@ -243,7 +243,8 @@ function ConvertModal({ onClose, onComplete }) {
   const selectedMode =
     modeOptions.find((opt) => opt.value === keySignatureMode) || modeOptions[0];
   const selectedPreset =
-    presetOptions.find((opt) => opt.value === instrumentPreset) || presetOptions[0];
+    presetOptions.find((opt) => opt.value === instrumentPreset) ||
+    presetOptions[0];
 
   const isMusicXmlFlow = format === "MusicXML";
   const isCustomMusicXml = conversionMethod === "custom";
@@ -281,7 +282,9 @@ function ConvertModal({ onClose, onComplete }) {
 
         const directKey = String(fileInfo["Key"] ?? "").trim();
         const directMode = String(fileInfo["Mode"] ?? "").trim();
-        const keySignatureString = String(fileInfo["Key Signature"] ?? "").trim();
+        const keySignatureString = String(
+          fileInfo["Key Signature"] ?? "",
+        ).trim();
 
         let hydratedKey = directKey;
         let hydratedMode = directMode;
@@ -401,12 +404,18 @@ function ConvertModal({ onClose, onComplete }) {
       );
       console.log(result);
       if (result.status === "success") {
-        const normalizedOutputFilePath = normalizePath(result.payload.output_file_path);
+        const normalizedOutputFilePath = normalizePath(
+          result.payload.output_file_path,
+        );
         setGlobalDirectory(path.dirname(normalizedOutputFilePath));
         setSelectedFile(path.basename(normalizedOutputFilePath));
         console.log(`output file path: ${normalizedOutputFilePath}`);
-        console.log(`set global directory to ${path.dirname(normalizedOutputFilePath)}`);
-        console.log(`set selected file to ${path.basename(normalizedOutputFilePath)}`);
+        console.log(
+          `set global directory to ${path.dirname(normalizedOutputFilePath)}`,
+        );
+        console.log(
+          `set selected file to ${path.basename(normalizedOutputFilePath)}`,
+        );
       }
     } finally {
       document.body.style.cursor = "default";
@@ -428,11 +437,7 @@ function ConvertModal({ onClose, onComplete }) {
         <>
           {flowStep === "select" ? (
             <>
-              <div
-                className="modal-title"
-
-                style={{ marginBottom: "25px" }}
-              >
+              <div className="modal-title" style={{ marginBottom: "25px" }}>
                 Convert to...
               </div>
               <div className="modal-body">Symphony Name</div>
@@ -479,14 +484,13 @@ function ConvertModal({ onClose, onComplete }) {
             </>
           ) : (
             <div style={{ width: "470px" }}>
-              <div
-                className="modal-title"
-
-                style={{ marginBottom: "8px" }}
-              >
+              <div className="modal-title" style={{ marginBottom: "8px" }}>
                 Convert to MusicXML
               </div>
-              <div className="modal-subtext" style={{ marginBottom: "22px", width: "auto" }}>
+              <div
+                className="modal-subtext"
+                style={{ marginBottom: "22px", width: "auto" }}
+              >
                 Specify how your Symphony file gets converted to MusicXML.
               </div>
 
@@ -510,16 +514,27 @@ function ConvertModal({ onClose, onComplete }) {
                   </div>
                   <div>
                     <div className="modal-body">Key Signature</div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", width: "250px", gap: "8px" }}>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 2fr",
+                        width: "250px",
+                        gap: "8px",
+                      }}
+                    >
                       <Dropdown
                         options={keyOptions}
-                        onSelect={(selected) => setKeySignatureKey(selected.value)}
+                        onSelect={(selected) =>
+                          setKeySignatureKey(selected.value)
+                        }
                         value={selectedKey}
                         style={{ display: "flex", width: "100%" }}
                       />
                       <Dropdown
                         options={modeOptions}
-                        onSelect={(selected) => setKeySignatureMode(selected.value)}
+                        onSelect={(selected) =>
+                          setKeySignatureMode(selected.value)
+                        }
                         value={selectedMode}
                         style={{ display: "flex", width: "100%" }}
                       />
@@ -539,16 +554,28 @@ function ConvertModal({ onClose, onComplete }) {
                       <div className="musicxml-timesig-stack">
                         <Field
                           value={timeSigNumerator}
-                          onChange={(e) => setTimeSigNumerator(e.target.value || "")}
+                          onChange={(e) =>
+                            setTimeSigNumerator(e.target.value || "")
+                          }
                           singleLine={true}
-                          style={{ width: "72px", height: "40px", fontSize: "28px" }}
+                          style={{
+                            width: "72px",
+                            height: "40px",
+                            fontSize: "28px",
+                          }}
                           className="musicxml-time-sig-field field"
                         />
                         <Field
                           value={timeSigDenominator}
-                          onChange={(e) => setTimeSigDenominator(e.target.value || "")}
+                          onChange={(e) =>
+                            setTimeSigDenominator(e.target.value || "")
+                          }
                           singleLine={true}
-                          style={{ width: "72px", height: "40px", fontSize: "28px" }}
+                          style={{
+                            width: "72px",
+                            height: "40px",
+                            fontSize: "28px",
+                          }}
                           className="musicxml-time-sig-field field"
                         />
                       </div>
@@ -595,27 +622,33 @@ function ConvertModal({ onClose, onComplete }) {
             </div>
           )}
 
-          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "22px" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              marginTop: "22px",
+            }}
+          >
             <button
-              className={canSubmit ? "call-to-action-2" : "call-to-action-2 locked"}
+              className={
+                canSubmit ? "call-to-action-2" : "call-to-action-2 locked"
+              }
               onClick={
                 !canSubmit
                   ? null
                   : async () => {
-                    if (flowStep === "select" && isMusicXmlFlow) {
-                      setFlowStep("musicxml");
-                      return;
-                    }
+                      if (flowStep === "select" && isMusicXmlFlow) {
+                        setFlowStep("musicxml");
+                        return;
+                      }
 
-                    await finish();
-                    if (onComplete) onComplete();
-                    onClose();
-                  }
+                      await finish();
+                      if (onComplete) onComplete();
+                      onClose();
+                    }
               }
             >
-              {flowStep === "select" && isMusicXmlFlow
-                ? "Next"
-                : "Convert"}
+              {flowStep === "select" && isMusicXmlFlow ? "Next" : "Convert"}
             </button>
           </div>
 
@@ -655,7 +688,11 @@ function ConvertModal({ onClose, onComplete }) {
               {presetError ? (
                 <div
                   className="modal-subtext red"
-                  style={{ marginTop: "6px", marginBottom: "6px", width: "auto" }}
+                  style={{
+                    marginTop: "6px",
+                    marginBottom: "6px",
+                    width: "auto",
+                  }}
                 >
                   {presetError}
                 </div>
@@ -665,11 +702,15 @@ function ConvertModal({ onClose, onComplete }) {
                 {colorKeys.map((color) => {
                   const label = `Color Channel: ${color[0].toUpperCase()}${color.slice(1)}`;
                   const selectedClef =
-                    clefOptions.find((opt) => opt.value === newPresetMap[color]) ||
-                    clefOptions[0];
+                    clefOptions.find(
+                      (opt) => opt.value === newPresetMap[color],
+                    ) || clefOptions[0];
                   return (
                     <div key={color} style={{ marginBottom: "12px" }}>
-                      <div className="modal-body" style={{ marginBottom: "5px" }}>
+                      <div
+                        className="modal-body"
+                        style={{ marginBottom: "5px" }}
+                      >
                         {label}
                       </div>
                       <Dropdown
@@ -688,7 +729,11 @@ function ConvertModal({ onClose, onComplete }) {
               </div>
 
               <div
-                style={{ display: "flex", justifyContent: "flex-end", marginTop: "14px" }}
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  marginTop: "14px",
+                }}
               >
                 <button
                   className="call-to-action-2"

@@ -10,24 +10,19 @@ import {
   FolderOpen,
   Trash2,
   FileVolume,
-  LayoutGrid,
-  List,
-  Rows2,
   FileMusic,
 } from "lucide-react";
 import path from "path-browserify";
 
-import mscz from "@/assets/mscz-icon.svg";
+import Tooltip from "@/ui/tooltip";
+import GenericModal from "@/modals/generic-modal";
+import DeleteConfirmationModal from "@/modals/delete-confirmation-modal";
+import ShowInfoModal from "@/modals/show-info-modal";
+import ExportModal from "@/modals/export-modal";
+import ConvertModal from "@/modals/convert-modal";
 
-import Tooltip from "@/ui/Tooltip";
-import GenericModal from "@/modals/GenericModal";
-import DeleteConfirmationModal from "@/modals/DeleteConfirmationModal";
-import ShowInfoModal from "@/modals/ShowInfoModal";
-import ExportModal from "@/modals/ExportModal";
-import ConvertModal from "@/modals/ConvertModal";
-
-import "./toolbar.css";
-import { useDirectory } from "@/contexts/DirectoryContext";
+import "@/components/components-styling/toolbar.css";
+import { useDirectory } from "@/contexts/directory-context";
 
 function Toolbar() {
   const {
@@ -292,7 +287,14 @@ function Toolbar() {
                 <FolderOpen size={iconSize} />
               </button>
             </Tooltip>
-            <Tooltip text="Delete" altText={window.navigator.platform.includes("Mac") ? "Delete" : "Del/Bkspc"}>
+            <Tooltip
+              text="Delete"
+              altText={
+                window.navigator.platform.includes("Mac")
+                  ? "Delete"
+                  : "Del/Bkspc"
+              }
+            >
               <button
                 className={"icon-button" + (!selectedFile ? " grayed" : "")}
                 onClick={() => {

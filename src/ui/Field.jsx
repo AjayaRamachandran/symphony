@@ -1,8 +1,8 @@
 import React, { useRef, useState } from "react";
 import { Search } from "lucide-react";
-import { useDirectory } from "@/contexts/DirectoryContext";
+import { useDirectory } from "@/contexts/directory-context";
 
-import "./field.css";
+import "@/ui/field.css";
 
 const Field = ({
   value: controlledValue,
@@ -78,7 +78,11 @@ const Field = ({
     >
       <div className="field-input-wrapper">
         {!hasValue && placeholderNode ? (
-          <span className={`field-placeholder ${singleLine ? "single-line" : "multi-line"}`}>{placeholderNode}</span>
+          <span
+            className={`field-placeholder ${singleLine ? "single-line" : "multi-line"}`}
+          >
+            {placeholderNode}
+          </span>
         ) : null}
         {singleLine ? (
           <input type="text" {...controlProps} />

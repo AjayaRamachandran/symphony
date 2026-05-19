@@ -1,6 +1,6 @@
 import React from "react";
 
-import "./switch.css";
+import "@/ui/switch.css";
 
 function Switch({
   checked = false,

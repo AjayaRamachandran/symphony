@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 
 import { ArrowRight, LoaderCircle } from "lucide-react";
-import Field from "@/ui/Field";
-import Tooltip from "@/ui/Tooltip";
-import "./modals-styling/onboarding-modal.css";
+import Field from "@/ui/field";
+import Tooltip from "@/ui/tooltip";
+import "@/modals/modals-styling/onboarding-modal.css";
 
 import note from "@/assets/note-element.svg";
 
@@ -53,12 +53,12 @@ function OnboardingModal({ onComplete }) {
       </div>
       {page === 0 ? (
         <>
-          <div className="modal-big-body" >
-            What's your name?
-          </div>
+          <div className="modal-big-body">What's your name?</div>
           <div style={{ display: "flex", flexDirection: "row", gap: "10px" }}>
             <Field
-              placeholder={<span style={{ color: "#d9d9d977" }}>Enter Name Here</span>}
+              placeholder={
+                <span style={{ color: "#d9d9d977" }}>Enter Name Here</span>
+              }
               value={userName}
               className="field onboarding-field"
               style={{ height: "38px", fontSize: "16px", width: "300px" }}
@@ -68,7 +68,6 @@ function OnboardingModal({ onComplete }) {
             <Tooltip text={userName ? "Continue" : "Skip"}>
               <button
                 className={"onboarding-button"}
-
                 onClick={() => setPage(1)}
               >
                 <ArrowRight />

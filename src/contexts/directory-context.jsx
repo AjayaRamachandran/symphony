@@ -5,7 +5,7 @@ const DirectoryContext = createContext();
 export function DirectoryProvider({ children }) {
   const [globalDirectory, setGlobalDirectory] = useState(null);
   const [globalUpdateTimestamp, setGlobalUpdateTimestamp] = useState(
-    Date.now()
+    Date.now(),
   );
   const [selectedFile, setSelectedFile] = useState(null);
   const [viewType, setViewType] = useState("grid");

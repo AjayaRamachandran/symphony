@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { Info, LoaderCircle } from "lucide-react";
+import { LoaderCircle } from "lucide-react";
 
 function ShowInfoModal({ filePath }) {
   const [fileInfo, setFileInfo] = useState(null);

@@ -4,7 +4,7 @@ import { Square, Copy, Minus, X } from "lucide-react";
 import Icon from "@/assets/icon-dark.svg";
 import ProgramData from "@/assets/program-data.json";
 
-import "./titlebar.css";
+import "@/ui/title-bar.css";
 
 function TitleBar() {
   const [isMaximized, setIsMaximized] = useState(false);

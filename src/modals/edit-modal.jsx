@@ -1,16 +1,10 @@
 import React, { useState, useEffect } from "react";
-import {
-  ChartNoAxesGantt,
-  Music,
-  Save,
-  Trash2,
-  Check,
-} from "lucide-react";
+import { ChartNoAxesGantt, Music, Save, Trash2, Check } from "lucide-react";
 
-import Field from "@/ui/Field";
-import Dropdown from "@/ui/Dropdown";
-import SelectFile from "@/ui/SelectFile";
-import { useDirectory } from "@/contexts/DirectoryContext";
+import Field from "@/ui/field";
+import Dropdown from "@/ui/dropdown";
+import SelectFile from "@/ui/select-file";
+import { useDirectory } from "@/contexts/directory-context";
 
 const options = [
   { label: "Projects", icon: ChartNoAxesGantt },
@@ -128,10 +122,7 @@ function EditModal({
 
   return (
     <>
-      <div
-        className="modal-title"
-        style={{ marginBottom: "25px" }}
-      >
+      <div className="modal-title" style={{ marginBottom: "25px" }}>
         Edit Folder
       </div>
       <div className="modal-body">System File Location</div>
@@ -173,20 +164,20 @@ function EditModal({
           className={
             "call-to-action-2 green" +
             (params.dir !== sourceLocation ||
-              params.dest !== destination ||
-              params.name !== projectName
+            params.dest !== destination ||
+            params.name !== projectName
               ? ""
               : " locked")
           }
           style={{ marginLeft: 0 }}
           onClick={
             params.dir !== sourceLocation ||
-              params.dest !== destination ||
-              params.name !== projectName
+            params.dest !== destination ||
+            params.name !== projectName
               ? async () => {
-                onRemove();
-                await changeFields();
-              }
+                  onRemove();
+                  await changeFields();
+                }
               : undefined
           }
         >

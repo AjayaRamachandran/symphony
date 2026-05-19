@@ -2,10 +2,10 @@ import React, { useState, useEffect } from "react";
 import { ChartNoAxesGantt, Music, Save } from "lucide-react";
 import path from "path-browserify";
 
-import Field from "@/ui/Field";
-import Dropdown from "@/ui/Dropdown";
-import SelectFile from "@/ui/SelectFile";
-import { useDirectory } from "@/contexts/DirectoryContext";
+import Field from "@/ui/field";
+import Dropdown from "@/ui/dropdown";
+import SelectFile from "@/ui/select-file";
+import { useDirectory } from "@/contexts/directory-context";
 
 const options = [
   { label: "Projects", icon: ChartNoAxesGantt },
@@ -70,10 +70,7 @@ function NewFolder({ defaultDestProp = "", onClose, onConflict }) {
 
   return (
     <>
-      <div
-        className="modal-title"
-        style={{ marginBottom: "25px" }}
-      >
+      <div className="modal-title" style={{ marginBottom: "25px" }}>
         Add New Folder
       </div>
       <div className="modal-body">System File Location</div>
@@ -100,7 +97,6 @@ function NewFolder({ defaultDestProp = "", onClose, onConflict }) {
             ? "call-to-action-2 locked"
             : "call-to-action-2"
         }
-
         onClick={
           sourceLocation == "" || destination == "" || projectName == ""
             ? null

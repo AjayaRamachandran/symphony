@@ -1,6 +1,0 @@
-/* Prevent pixel shifting and overflow in center panel */
-.center-panel {
-  min-height: 0;
-  height: 100%;
-  box-sizing: border-box;
-}

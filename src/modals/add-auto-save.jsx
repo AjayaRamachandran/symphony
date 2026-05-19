@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import SelectFile from "@/ui/SelectFile";
+import SelectFile from "@/ui/select-file";
 
 function AddAutoSave({ onClose }) {
   const [sourceLocation, setSourceLocation] = useState("");

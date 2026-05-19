@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from "react";
 
-import Search from "./center-panel-components/SearchBar";
-import Toolbar from "./center-panel-components/Toolbar";
-import Files from "./center-panel-components/Files";
-
-import "./center-panel.css";
+import Search from "@/components/content-components/center-panel-components/search-bar";
+import Toolbar from "@/components/content-components/center-panel-components/toolbar";
+import Files from "@/components/content-components/center-panel-components/files";
 
 function CenterPanel() {
   return (

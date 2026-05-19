@@ -1,6 +1,6 @@
 import React, { useEffect, useCallback } from "react";
-import HomePage from "./pages/HomePage";
-import { useDirectory } from "@/contexts/DirectoryContext";
+import HomePage from "@/pages/home-page";
+import { useDirectory } from "@/contexts/directory-context";
 import path from "path-browserify";
 
 function App() {
@@ -40,7 +40,7 @@ function App() {
         const name = path.basename(baseName, ext);
         finalDest = path.join(
           globalDirectory,
-          `${name} (copy${counter > 1 ? " " + counter : ""})${ext}`
+          `${name} (copy${counter > 1 ? " " + counter : ""})${ext}`,
         );
         counter++;
       }
@@ -73,7 +73,7 @@ function App() {
         const name = path.basename(baseName, ext);
         finalDest = path.join(
           globalDirectory,
-          `${name} (copy${counter > 1 ? " " + counter : ""})${ext}`
+          `${name} (copy${counter > 1 ? " " + counter : ""})${ext}`,
         );
         counter++;
       }
@@ -90,15 +90,23 @@ function App() {
         target instanceof HTMLElement &&
         (target.isContentEditable ||
           ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName) ||
-          Boolean(target.closest('[contenteditable="true"], input, textarea, select, [role="textbox"]')));
+          Boolean(
+            target.closest(
+              '[contenteditable="true"], input, textarea, select, [role="textbox"]',
+            ),
+          ));
 
       if (e.key === "F12") {
         window.electronAPI.toggleDevTools();
       }
-      if (!isEditingText && isAccelKey && e.key.toLowerCase() === "c") handleCopy();
-      if (!isEditingText && isAccelKey && e.key.toLowerCase() === "x") handleCut();
-      if (!isEditingText && isAccelKey && e.key.toLowerCase() === "v") await handlePaste();
-      if (!isEditingText && isAccelKey && e.key.toLowerCase() === "d") await handleDuplicate();
+      if (!isEditingText && isAccelKey && e.key.toLowerCase() === "c")
+        handleCopy();
+      if (!isEditingText && isAccelKey && e.key.toLowerCase() === "x")
+        handleCut();
+      if (!isEditingText && isAccelKey && e.key.toLowerCase() === "v")
+        await handlePaste();
+      if (!isEditingText && isAccelKey && e.key.toLowerCase() === "d")
+        await handleDuplicate();
       if (!isEditingText && isAccelKey && e.key.toLowerCase() === "k") {
         e.preventDefault();
         window.dispatchEvent(new CustomEvent("symphony:focus-search"));

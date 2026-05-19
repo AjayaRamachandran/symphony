@@ -8,6 +8,7 @@ pywebview window and exposes a ``js_api`` whose method names are consumed by
 from __future__ import annotations
 
 import base64
+import importlib.util
 import json
 import os
 import shutil
@@ -25,6 +26,13 @@ from urllib.parse import urlparse
 import webview
 import yaml
 from platformdirs import user_data_dir
+
+# Load the Windows ctypes/WndProc manager (dotted filename requires importlib).
+_wc_spec = importlib.util.spec_from_file_location("win_c_man", Path(__file__).parent / "win_c.man.py")
+win_c = importlib.util.module_from_spec(_wc_spec)
+_wc_spec.loader.exec_module(win_c)  # type: ignore[union-attr]
+
+win_c.patch_webview_nonclient()
 
 
 APP_NAME = "Symphony"
@@ -55,7 +63,13 @@ DEFAULT_SETTINGS: dict[str, Any] = {
 VALID_FILE_EXTS = {".symphony", ".wav", ".mid", ".mp3", ".flac", ".musicxml"}
 
 
-def _load_config() -> dict:
+def loadConfig() -> dict:
+    '''
+    fields: none
+    outputs: dict
+
+    Loads the project configuration file, returning an empty dictionary if it cannot be read.
+    '''
     try:
         with open(APP_ROOT / "config.yaml", "r", encoding="utf-8") as f:
             return yaml.safe_load(f) or {}
@@ -64,7 +78,7 @@ def _load_config() -> dict:
         return {}
 
 
-CONFIG = _load_config()
+CONFIG = loadConfig()
 
 EXECUTABLE_NAME = "main.exe" if sys.platform == "win32" else "main"
 if IS_FROZEN:
@@ -88,49 +102,20 @@ _current_runner_thread: threading.Thread | None = None
 _runner_should_stop = threading.Event()
 
 
-def _win_work_area() -> tuple[int, int, int, int] | None:
-    """Return (x, y, width, height) of the primary monitor's work area
-    (screen minus taskbar) on Windows, or None elsewhere/on failure."""
-    if sys.platform != "win32":
-        return None
-    try:
-        import ctypes
-
-        class RECT(ctypes.Structure):
-            _fields_ = [
-                ("left", ctypes.c_long),
-                ("top", ctypes.c_long),
-                ("right", ctypes.c_long),
-                ("bottom", ctypes.c_long),
-            ]
-
-        try:
-            ctypes.windll.shcore.SetProcessDpiAwareness(1)
-        except Exception:  # noqa: BLE001
-            pass
-        rect = RECT()
-        SPI_GETWORKAREA = 0x0030
-        if not ctypes.windll.user32.SystemParametersInfoW(
-            SPI_GETWORKAREA, 0, ctypes.byref(rect), 0
-        ):
-            return None
-        return (
-            rect.left,
-            rect.top,
-            rect.right - rect.left,
-            rect.bottom - rect.top,
-        )
-    except Exception as exc:  # noqa: BLE001
-        print(f"_win_work_area failed: {exc}")
-        return None
-
-
 # ---------------------------------------------------------------------------
 # Disk helpers
 # ---------------------------------------------------------------------------
 
 
-def _read_json(path: Path, default: Any) -> Any:
+def readJson(path: Path, default: Any) -> Any:
+    '''
+    fields:
+        path (Path) - JSON file to read
+        default (Any) - value to return when reading fails
+    outputs: Any
+
+    Reads JSON from disk and falls back to the provided default on any failure.
+    '''
     try:
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
@@ -138,24 +123,48 @@ def _read_json(path: Path, default: Any) -> Any:
         return default
 
 
-def _write_json(path: Path, data: Any) -> None:
+def writeJson(path: Path, data: Any) -> None:
+    '''
+    fields:
+        path (Path) - JSON file to write
+        data (Any) - serializable data to save
+    outputs: nothing
+
+    Writes JSON data to disk with stable indentation.
+    '''
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
 
 
-def _ensure_file(src: Path, dest: Path, default_content: Any | None = None) -> None:
+def ensureFile(src: Path, dest: Path, default_content: Any | None = None) -> None:
+    '''
+    fields:
+        src (Path) - source file to copy from
+        dest (Path) - destination file to ensure exists
+        default_content (Any) - fallback JSON content to write if no source exists
+    outputs: nothing
+
+    Ensures a user-data file exists by copying a bundled file or writing default content.
+    '''
     if dest.exists():
         return
     try:
         if src.exists():
             shutil.copyfile(src, dest)
         elif default_content is not None:
-            _write_json(dest, default_content)
+            writeJson(dest, default_content)
     except Exception as exc:  # noqa: BLE001
         print(f"Failed to copy default file: {src} -> {dest}: {exc}")
 
 
-def _delete_file(file_path: str) -> dict:
+def deleteFile(file_path: str) -> dict:
+    '''
+    fields:
+        file_path (string) - file path to remove
+    outputs: dict
+
+    Deletes a file from disk and removes its sidecar metadata when applicable.
+    '''
     try:
         Path(file_path).unlink()
         if file_path.endswith(".symphony"):
@@ -167,10 +176,17 @@ def _delete_file(file_path: str) -> dict:
         return {"success": False, "error": str(exc)}
 
 
-def _add_recently_viewed(file_path: str) -> None:
+def addRecentlyViewed(file_path: str) -> None:
+    '''
+    fields:
+        file_path (string) - file path to add to the recent list
+    outputs: nothing
+
+    Adds a file to the recently viewed list, keeping the list unique and capped.
+    '''
     if not file_path:
         return
-    recent = _read_json(RECENTLY_VIEWED_PATH, [])
+    recent = readJson(RECENTLY_VIEWED_PATH, [])
     if not isinstance(recent, list):
         recent = []
     name = os.path.basename(file_path)
@@ -180,7 +196,7 @@ def _add_recently_viewed(file_path: str) -> None:
     recent.insert(0, entry)
     if len(recent) > 15:
         recent = recent[:15]
-    _write_json(RECENTLY_VIEWED_PATH, recent)
+    writeJson(RECENTLY_VIEWED_PATH, recent)
 
 
 # ---------------------------------------------------------------------------
@@ -188,7 +204,16 @@ def _add_recently_viewed(file_path: str) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _do_process_command(symphony_file_path: str, command: str, extra_args: dict | None = None) -> dict:
+def doProcessCommand(symphony_file_path: str, command: str, extra_args: dict | None = None) -> dict:
+    '''
+    fields:
+        symphony_file_path (string) - Symphony project file path to operate on
+        command (string) - editor command to issue
+        extra_args (dict) - additional command arguments
+    outputs: dict
+
+    Sends a file-based command to the inner editor and waits for the matching response.
+    '''
     extra_args = extra_args or {}
     cmd_id = str(uuid.uuid4())
     project_folder = os.path.dirname(symphony_file_path)
@@ -196,7 +221,7 @@ def _do_process_command(symphony_file_path: str, command: str, extra_args: dict 
 
     if command == "open" and symphony_file_path:
         try:
-            _add_recently_viewed(symphony_file_path)
+            addRecentlyViewed(symphony_file_path)
         except Exception as exc:  # noqa: BLE001
             print(f"Failed to add to recently viewed on open: {exc}")
 
@@ -212,7 +237,7 @@ def _do_process_command(symphony_file_path: str, command: str, extra_args: dict 
         },
     }
     print(payload)
-    _write_json(PROCESS_COMMAND_PATH, payload)
+    writeJson(PROCESS_COMMAND_PATH, payload)
 
     time.sleep(1.0)
 
@@ -222,7 +247,7 @@ def _do_process_command(symphony_file_path: str, command: str, extra_args: dict 
     while waited < max_wait_ms:
         try:
             if PROCESS_COMMAND_PATH.exists():
-                data = _read_json(PROCESS_COMMAND_PATH, None)
+                data = readJson(PROCESS_COMMAND_PATH, None)
                 if isinstance(data, dict) and data.get("id") == cmd_id and data.get("status"):
                     print(data)
                     return data
@@ -231,10 +256,16 @@ def _do_process_command(symphony_file_path: str, command: str, extra_args: dict 
         time.sleep(poll_interval_ms / 1000.0)
         waited += poll_interval_ms
 
-    return _read_json(PROCESS_COMMAND_PATH, {"timeout": True})
+    return readJson(PROCESS_COMMAND_PATH, {"timeout": True})
 
 
-def _spawn_editor() -> None:
+def spawnEditor() -> None:
+    '''
+    fields: none
+    outputs: nothing
+
+    Starts the inner editor process in a monitored runner thread.
+    '''
     is_python_script = str(EXECUTABLE_PATH).endswith(".py")
     script_path = str(EXECUTABLE_PATH.resolve())
     command_path = str(PROCESS_COMMAND_PATH.resolve())
@@ -259,6 +290,12 @@ def _spawn_editor() -> None:
         popen_kwargs["start_new_session"] = True
 
     def runner() -> None:
+        '''
+        fields: none
+        outputs: nothing
+
+        Runs and restarts the editor child process until the runner is stopped.
+        '''
         global _current_editor_child
         while not _runner_should_stop.is_set():
             try:
@@ -269,6 +306,14 @@ def _spawn_editor() -> None:
                 return
 
             def pump(stream, sink) -> None:
+                '''
+                fields:
+                    stream (file-like) - subprocess output stream to read
+                    sink (file-like) - output stream to write decoded lines into
+                outputs: nothing
+
+                Forwards subprocess output into the parent process stream.
+                '''
                 try:
                     for line in iter(stream.readline, b""):
                         sink.write(line.decode(errors="replace"))
@@ -296,22 +341,33 @@ def _spawn_editor() -> None:
     _current_runner_thread.start()
 
 
-def _editor_is_running() -> bool:
+def editorIsRunning() -> bool:
+    '''
+    fields: none
+    outputs: boolean
+
+    Returns whether the tracked editor child process is still running.
+    '''
     child = _current_editor_child
     if child is None:
         return False
     return child.poll() is None
 
 
-def _stop_editor() -> None:
-    """Signal any active runner to stop and terminate its child subprocess."""
+def stopEditor() -> None:
+    '''
+    fields: none
+    outputs: nothing
+
+    Signals any active runner to stop and terminates its child subprocess.
+    '''
     global _current_editor_child, _current_runner_thread
     _runner_should_stop.set()
     child = _current_editor_child
     if child and child.poll() is None:
         # Cooperative shutdown via the file-based handshake first.
         try:
-            _write_json(PROCESS_COMMAND_PATH, {"command": "kill"})
+            writeJson(PROCESS_COMMAND_PATH, {"command": "kill"})
         except Exception as exc:  # noqa: BLE001
             print(f"kill write failed: {exc}")
         try:
@@ -332,17 +388,23 @@ def _stop_editor() -> None:
     _current_runner_thread = None
 
 
-def _run_editor_program() -> dict:
+def runEditorProgram() -> dict:
+    '''
+    fields: none
+    outputs: dict
+
+    Starts the editor daemon if it is not already running.
+    '''
     with _editor_lock:
         try:
-            if _editor_is_running():
+            if editorIsRunning():
                 return {"success": True, "message": "Editor already running"}
-            _stop_editor()
+            stopEditor()
             try:
-                _write_json(PROCESS_COMMAND_PATH, {})
+                writeJson(PROCESS_COMMAND_PATH, {})
             except Exception:  # noqa: BLE001
                 pass
-            _spawn_editor()
+            spawnEditor()
             return {"success": True, "message": "Editor daemon started"}
         except Exception as exc:  # noqa: BLE001
             return {"success": False, "error": str(exc)}
@@ -361,7 +423,13 @@ class Api:
     """
 
     # ---- platform / window controls -------------------------------------
-    def get_platform(self) -> str:
+    def getPlatform(self) -> str:
+        '''
+        fields: none
+        outputs: string
+
+        Returns the current platform name using the legacy Electron platform values.
+        '''
         # mirror Node's process.platform values
         if sys.platform.startswith("win"):
             return "win32"
@@ -370,10 +438,22 @@ class Api:
         return "linux"
 
     def minimize(self) -> None:
+        '''
+        fields: none
+        outputs: nothing
+
+        Minimizes the application window.
+        '''
         if _main_window:
             _main_window.minimize()
 
     def maximize(self) -> None:
+        '''
+        fields: none
+        outputs: nothing
+
+        Toggles the application window between maximized and restored states.
+        '''
         global _is_maximized, _prev_geometry
         if not _main_window:
             return
@@ -387,9 +467,9 @@ class Api:
                     _main_window.move(x, y)
                     _main_window.resize(w, h)
                     _is_maximized = False
-                    _on_restored()
+                    onRestored()
                     return
-                work = _win_work_area()
+                work = win_c.get_work_area()
                 if not work:
                     _main_window.maximize()
                     return
@@ -406,7 +486,7 @@ class Api:
                 _main_window.move(wx, wy)
                 _main_window.resize(ww, wh)
                 _is_maximized = True
-                _on_maximized()
+                onMaximized()
                 return
             except Exception as exc:  # noqa: BLE001
                 print(f"maximize failed: {exc}")
@@ -421,16 +501,28 @@ class Api:
             _main_window.maximize()
 
     def close(self) -> None:
+        '''
+        fields: none
+        outputs: nothing
+
+        Stops the editor process and closes the application window.
+        '''
         # destroy() does not fire the ``closing`` event on pywebview, so the
         # editor-subprocess kill handshake never runs. Invoke it explicitly.
         try:
-            _on_closing()
+            onClosing()
         except Exception as exc:  # noqa: BLE001
-            print(f"_on_closing during close failed: {exc}")
+            print(f"onClosing during close failed: {exc}")
         if _main_window:
             _main_window.destroy()
 
-    def toggle_devtools(self) -> None:
+    def toggleDevtools(self) -> None:
+        '''
+        fields: none
+        outputs: nothing
+
+        Opens the webview inspector when it is available.
+        '''
         if not _main_window:
             return
         try:
@@ -439,13 +531,27 @@ class Api:
             pass
 
     # ---- generic file ops ------------------------------------------------
-    def open_external(self, url: str) -> None:
+    def openExternal(self, url: str) -> None:
+        '''
+        fields:
+            url (string) - URL to open
+        outputs: nothing
+
+        Opens an external URL using the operating system browser.
+        '''
         try:
             webbrowser.open(url)
         except Exception as exc:  # noqa: BLE001
-            print(f"open_external failed: {exc}")
+            print(f"openExternal failed: {exc}")
 
-    def open_file_location(self, file_path: str) -> bool:
+    def openFileLocation(self, file_path: str) -> bool:
+        '''
+        fields:
+            file_path (string) - file whose parent folder should be shown
+        outputs: boolean
+
+        Opens the native file manager to the folder containing a file.
+        '''
         folder = os.path.dirname(file_path)
         try:
             if sys.platform == "win32":
@@ -455,17 +561,38 @@ class Api:
             else:
                 subprocess.Popen(["xdg-open", folder])
         except Exception as exc:  # noqa: BLE001
-            print(f"open_file_location failed: {exc}")
+            print(f"openFileLocation failed: {exc}")
             return False
         return True
 
-    def file_exists(self, file_path: str) -> bool:
+    def fileExists(self, file_path: str) -> bool:
+        '''
+        fields:
+            file_path (string) - file path to check
+        outputs: boolean
+
+        Returns whether the supplied file path exists on disk.
+        '''
         return Path(file_path).exists()
 
-    def delete_file(self, file_path: str) -> dict:
-        return _delete_file(file_path)
+    def deleteFile(self, file_path: str) -> dict:
+        '''
+        fields:
+            file_path (string) - file path to delete
+        outputs: dict
 
-    def rename_file(self, payload: dict) -> dict:
+        Deletes a file through the shared disk helper.
+        '''
+        return deleteFile(file_path)
+
+    def renameFile(self, payload: dict) -> dict:
+        '''
+        fields:
+            payload (dict) - filePath and newName values for the rename
+        outputs: dict
+
+        Renames a file while avoiding name collisions and preserving sidecar metadata.
+        '''
         file_path = payload.get("filePath")
         new_name = payload.get("newName") or ""
         if not file_path:
@@ -499,18 +626,35 @@ class Api:
         except Exception as exc:  # noqa: BLE001
             return {"success": False, "error": str(exc)}
 
-    def copy_file(self, src: str, dest: str) -> str:
+    def copyFile(self, src: str, dest: str) -> str:
+        '''
+        fields:
+            src (string) - source file path
+            dest (string) - destination file path
+        outputs: string
+
+        Copies one file to another path.
+        '''
         shutil.copyfile(src, dest)
         return "success"
 
-    def move_file_raw(
+    def moveFileRaw(
         self,
         file_data_b64: str,
         file_name: str,
         destination_dir: str,
         original_file_path: str | None,
     ) -> dict:
-        """Receive a base64-encoded payload from the shim and write to disk."""
+        '''
+        fields:
+            file_data_b64 (string) - base64-encoded file contents
+            file_name (string) - destination file name
+            destination_dir (string) - directory to write the file into
+            original_file_path (string) - optional original file path to remove after moving
+        outputs: dict
+
+        Receives a base64-encoded payload from the shim and writes it to disk.
+        '''
         dest_path = os.path.join(destination_dir, file_name)
         try:
             buf = base64.b64decode(file_data_b64 or "")
@@ -532,7 +676,7 @@ class Api:
                 same_size = src_size == dest_size
                 print(f"[move-file-raw] sizeEqual={same_size}")
                 if same_size:
-                    res = _delete_file(original_file_path)
+                    res = deleteFile(original_file_path)
                     if not res.get("success"):
                         print(f"[move-file-raw] delete failed: {res.get('error')}")
                     deleted_original = bool(res.get("success"))
@@ -541,7 +685,13 @@ class Api:
             return {"success": False, "error": str(exc)}
 
     # ---- directory ops ---------------------------------------------------
-    def open_directory(self) -> str | None:
+    def openDirectory(self) -> str | None:
+        '''
+        fields: none
+        outputs: string | None
+
+        Opens a native folder picker and returns the selected directory path.
+        '''
         if not _main_window:
             return None
         result = _main_window.create_file_dialog(webview.FOLDER_DIALOG)
@@ -549,12 +699,19 @@ class Api:
             return None
         return result[0] if isinstance(result, (list, tuple)) else result
 
-    def save_directory(self, payload: dict) -> dict:
+    def saveDirectory(self, payload: dict) -> dict:
+        '''
+        fields:
+            payload (dict) - destination, projectName, and sourceLocation values
+        outputs: dict
+
+        Saves a project directory entry after checking for duplicates.
+        '''
         destination = payload.get("destination")
         project_name = payload.get("projectName")
         source_location = payload.get("sourceLocation")
         try:
-            directory = _read_json(DIRECTORY_PATH, {})
+            directory = readJson(DIRECTORY_PATH, {})
             if destination not in directory:
                 directory[destination] = []
             name_exists = any(project_name in entry for entry in directory[destination])
@@ -564,41 +721,62 @@ class Api:
             if name_exists or location_exists:
                 return {"success": False, "error": "Duplicate entry"}
             directory[destination].append({project_name: source_location})
-            _write_json(DIRECTORY_PATH, directory)
+            writeJson(DIRECTORY_PATH, directory)
             return {"success": True}
         except Exception as exc:  # noqa: BLE001
             return {"success": False, "error": str(exc)}
 
-    def get_directory(self) -> dict:
+    def getDirectory(self) -> dict:
+        '''
+        fields: none
+        outputs: dict
+
+        Returns the saved project directory structure, creating defaults if needed.
+        '''
         try:
             if not DIRECTORY_PATH.exists():
                 default = {"Projects": [], "Exports": [], "Symphony Auto-Save": []}
-                _write_json(DIRECTORY_PATH, default)
+                writeJson(DIRECTORY_PATH, default)
                 return default
-            return _read_json(DIRECTORY_PATH, {})
+            return readJson(DIRECTORY_PATH, {})
         except Exception as exc:  # noqa: BLE001
             return {"error": str(exc)}
 
-    def remove_directory(self, section: str, dir_name: str) -> dict:
+    def removeDirectory(self, section: str, dir_name: str) -> dict:
+        '''
+        fields:
+            section (string) - directory section to edit
+            dir_name (string) - directory display name to remove
+        outputs: dict
+
+        Removes a directory entry from a saved section.
+        '''
         try:
             if not DIRECTORY_PATH.exists():
                 return {"success": False, "error": "directory.json not found"}
-            directory = _read_json(DIRECTORY_PATH, {})
+            directory = readJson(DIRECTORY_PATH, {})
             if section not in directory:
                 return {"success": False, "error": "Section not found"}
             directory[section] = [
                 obj for obj in directory[section] if next(iter(obj.keys())) != dir_name
             ]
-            _write_json(DIRECTORY_PATH, directory)
+            writeJson(DIRECTORY_PATH, directory)
             return {"success": True}
         except Exception as exc:  # noqa: BLE001
             return {"success": False, "error": str(exc)}
 
-    def get_section_for_path(self, file_path: str) -> dict:
+    def getSectionForPath(self, file_path: str) -> dict:
+        '''
+        fields:
+            file_path (string) - folder path to search for
+        outputs: dict
+
+        Finds which directory section contains the supplied folder path.
+        '''
         try:
             if not DIRECTORY_PATH.exists():
                 return {"error": "Directory data not found."}
-            directory = _read_json(DIRECTORY_PATH, {})
+            directory = readJson(DIRECTORY_PATH, {})
             normalized = file_path.replace("\\", "/")
             for section, entries in directory.items():
                 for entry in entries:
@@ -609,14 +787,21 @@ class Api:
         except Exception as exc:  # noqa: BLE001
             return {"error": str(exc)}
 
-    def check_if_exists(self, data: dict) -> dict:
+    def checkIfExists(self, data: dict) -> dict:
+        '''
+        fields:
+            data (dict) - destination, projectName, and sourceLocation values to check
+        outputs: dict
+
+        Checks whether a directory entry already exists using the legacy response shape.
+        '''
         # Mirror the (buggy) Electron handler signature, which only reports a
         # boolean. Used by EditModal.checkIfExists.
         try:
             destination = data.get("destination")
             project_name = data.get("projectName")
             source_location = data.get("sourceLocation")
-            directory = _read_json(DIRECTORY_PATH, {})
+            directory = readJson(DIRECTORY_PATH, {})
             if destination not in directory:
                 return {"success": True}
             entries = directory[destination]
@@ -627,19 +812,33 @@ class Api:
             return {"success": False}
 
     # ---- recently viewed -------------------------------------------------
-    def get_recently_viewed(self) -> list:
+    def getRecentlyViewed(self) -> list:
+        '''
+        fields: none
+        outputs: list
+
+        Returns the recently viewed file entries, creating the store if needed.
+        '''
         try:
             if not RECENTLY_VIEWED_PATH.exists():
-                _write_json(RECENTLY_VIEWED_PATH, [])
-            return _read_json(RECENTLY_VIEWED_PATH, [])
+                writeJson(RECENTLY_VIEWED_PATH, [])
+            return readJson(RECENTLY_VIEWED_PATH, [])
         except Exception:  # noqa: BLE001
             return []
 
-    def recently_viewed_delete(self, file_name: str, file_location: str | None = None) -> dict:
+    def recentlyViewedDelete(self, file_name: str, file_location: str | None = None) -> dict:
+        '''
+        fields:
+            file_name (string) - recent item file name to remove
+            file_location (string) - optional folder path to disambiguate the entry
+        outputs: dict
+
+        Removes an entry from the recently viewed file list.
+        '''
         try:
             if not RECENTLY_VIEWED_PATH.exists():
                 return {"success": False, "error": "recently-viewed.json not found"}
-            recent = _read_json(RECENTLY_VIEWED_PATH, [])
+            recent = readJson(RECENTLY_VIEWED_PATH, [])
             original = len(recent)
             if file_location:
                 recent = [
@@ -650,77 +849,125 @@ class Api:
                 recent = [item for item in recent if item.get("name") != file_name]
             if len(recent) == original:
                 return {"success": False, "error": "Entry not found"}
-            _write_json(RECENTLY_VIEWED_PATH, recent)
+            writeJson(RECENTLY_VIEWED_PATH, recent)
             return {"success": True}
         except Exception as exc:  # noqa: BLE001
             return {"success": False, "error": str(exc)}
 
-    def clear_recently_viewed(self) -> dict:
+    def clearRecentlyViewed(self) -> dict:
+        '''
+        fields: none
+        outputs: dict
+
+        Clears all recently viewed file entries.
+        '''
         try:
-            _write_json(RECENTLY_VIEWED_PATH, [])
+            writeJson(RECENTLY_VIEWED_PATH, [])
             return {"success": True}
         except Exception as exc:  # noqa: BLE001
             return {"success": False, "error": str(exc)}
 
     # ---- stars -----------------------------------------------------------
-    def get_stars(self) -> list:
+    def getStars(self) -> list:
+        '''
+        fields: none
+        outputs: list
+
+        Returns the saved starred file paths, creating the store if needed.
+        '''
         try:
             if not STARRED_PATH.exists():
-                _write_json(STARRED_PATH, [])
-            return _read_json(STARRED_PATH, [])
+                writeJson(STARRED_PATH, [])
+            return readJson(STARRED_PATH, [])
         except Exception:  # noqa: BLE001
             return []
 
-    def add_star(self, file_path: str) -> list:
+    def addStar(self, file_path: str) -> list:
+        '''
+        fields:
+            file_path (string) - file path to star
+        outputs: list
+
+        Adds a file path to the starred list if it is not already present.
+        '''
         try:
             if not STARRED_PATH.exists():
-                _write_json(STARRED_PATH, [])
-            stars = _read_json(STARRED_PATH, [])
+                writeJson(STARRED_PATH, [])
+            stars = readJson(STARRED_PATH, [])
             normalized = file_path.replace("\\", "/")
             if not any(s.replace("\\", "/") == normalized for s in stars):
                 stars.append(file_path)
-                _write_json(STARRED_PATH, stars)
+                writeJson(STARRED_PATH, stars)
             return stars
         except Exception:  # noqa: BLE001
             return []
 
-    def remove_star(self, file_path: str) -> list:
+    def removeStar(self, file_path: str) -> list:
+        '''
+        fields:
+            file_path (string) - file path to unstar
+        outputs: list
+
+        Removes a file path from the starred list.
+        '''
         try:
             if not STARRED_PATH.exists():
-                _write_json(STARRED_PATH, [])
-            stars = _read_json(STARRED_PATH, [])
+                writeJson(STARRED_PATH, [])
+            stars = readJson(STARRED_PATH, [])
             normalized = file_path.replace("\\", "/")
             stars = [s for s in stars if s.replace("\\", "/") != normalized]
-            _write_json(STARRED_PATH, stars)
+            writeJson(STARRED_PATH, stars)
             return stars
         except Exception:  # noqa: BLE001
             return []
 
     # ---- user settings ---------------------------------------------------
-    def get_user_settings(self) -> dict:
+    def getUserSettings(self) -> dict:
+        '''
+        fields: none
+        outputs: dict
+
+        Returns user settings merged over defaults without mutating the settings file.
+        '''
         # Read-only: many components call this concurrently at mount time, and
-        # any write-back here races with update_user_settings() and clobbers
+        # any write-back here races with updateUserSettings() and clobbers
         # fields that were just set (e.g. user_name during onboarding).
         try:
             user_settings: dict[str, Any] = {}
             if USER_SETTINGS_PATH.exists():
-                user_settings = _read_json(USER_SETTINGS_PATH, {})
+                user_settings = readJson(USER_SETTINGS_PATH, {})
             user_settings.pop("close_project_manager_when_editing", None)
             return {**DEFAULT_SETTINGS, **user_settings}
         except Exception as exc:  # noqa: BLE001
             print(f"Error reading user settings: {exc}")
             return dict(DEFAULT_SETTINGS)
 
-    def update_user_settings(self, key: str, value: Any) -> dict:
+    def updateUserSettings(self, key: str, value: Any) -> dict:
+        '''
+        fields:
+            key (string) - settings key to update
+            value (Any) - settings value to store
+        outputs: dict
+
+        Updates a single user setting in the persisted settings file.
+        '''
         try:
-            settings = _read_json(USER_SETTINGS_PATH, {})
+            settings = readJson(USER_SETTINGS_PATH, {})
             settings[key] = value
-            _write_json(USER_SETTINGS_PATH, settings)
+            writeJson(USER_SETTINGS_PATH, settings)
             return {"success": True, "settings": settings}
         except Exception as exc:  # noqa: BLE001
             return {"success": False, "error": str(exc)}
 
-    def fetch_json(self, url: str, options: dict | None = None) -> dict:
+    def fetchJson(self, url: str, options: dict | None = None) -> dict:
+        '''
+        fields:
+            url (string) - HTTP or HTTPS URL to fetch
+            options (dict) - request method, headers, and optional body
+        outputs: dict
+
+        Fetches JSON over HTTP for the frontend while validating the protocol.
+        '''
         options = options or {}
         try:
             parsed = urlparse(url)
@@ -739,14 +986,28 @@ class Api:
             return {"success": False, "error": str(exc)}
 
     # ---- symphony files --------------------------------------------------
-    def get_symphony_files(self, directory_path: str) -> Any:
+    def getSymphonyFiles(self, directory_path: str) -> Any:
+        '''
+        fields:
+            directory_path (string) - directory to scan
+        outputs: Any
+
+        Returns Symphony-compatible files from a directory or a legacy error string.
+        '''
         try:
             files = os.listdir(directory_path)
             return [f for f in files if os.path.splitext(f)[1] in VALID_FILE_EXTS]
         except Exception:  # noqa: BLE001
             return "not a valid dir"
 
-    def open_native_app(self, file_path: str) -> dict:
+    def openNativeApp(self, file_path: str) -> dict:
+        '''
+        fields:
+            file_path (string) - file path to open
+        outputs: dict
+
+        Opens a file with the operating system default application and records it as recent.
+        '''
         try:
             if sys.platform == "win32":
                 os.startfile(file_path)  # type: ignore[attr-defined]
@@ -755,7 +1016,7 @@ class Api:
             else:
                 subprocess.Popen(["xdg-open", file_path])
             try:
-                _add_recently_viewed(file_path)
+                addRecentlyViewed(file_path)
             except Exception as exc:  # noqa: BLE001
                 return {"success": False, "error": str(exc)}
             return {"success": True}
@@ -763,27 +1024,55 @@ class Api:
             return {"success": False, "error": str(exc)}
 
     # ---- drag-out (best effort) -----------------------------------------
-    def start_file_drag(self, file_path: str) -> None:
+    def startFileDrag(self, file_path: str) -> None:
+        '''
+        fields:
+            file_path (string) - file path being dragged
+        outputs: nothing
+
+        Keeps the drag API surface aligned with the Electron preload while doing no native work.
+        '''
         # PyWebview has no native drag-source. The shim attempts a Chromium
         # HTML5 ``DownloadURL`` drag on the JS side; this Python call exists
         # only so the API surface matches Electron's preload.
         print(f"start_file_drag (no-op in pywebview): {file_path}")
 
     # ---- editor daemon ---------------------------------------------------
-    def run_editor_program(self) -> dict:
-        return _run_editor_program()
+    def runEditorProgram(self) -> dict:
+        '''
+        fields: none
+        outputs: dict
+
+        Starts the editor daemon through the shared runner helper.
+        '''
+        return runEditorProgram()
 
     # Alias to match the preload's (broken) channel name.
-    def open_editor_program(self) -> dict:
-        return _run_editor_program()
+    def openEditorProgram(self) -> dict:
+        '''
+        fields: none
+        outputs: dict
 
-    def do_process_command(
+        Starts the editor daemon using the legacy open-editor channel.
+        '''
+        return runEditorProgram()
+
+    def doProcessCommand(
         self,
         symphony_file_path: str,
         command: str,
         extra_args: dict | None = None,
     ) -> dict:
-        return _do_process_command(symphony_file_path, command, extra_args or {})
+        '''
+        fields:
+            symphony_file_path (string) - Symphony project file path to operate on
+            command (string) - editor command to issue
+            extra_args (dict) - additional command arguments
+        outputs: dict
+
+        Sends a command to the editor process through the process-command protocol.
+        '''
+        return doProcessCommand(symphony_file_path, command, extra_args or {})
 
 
 # ---------------------------------------------------------------------------
@@ -791,48 +1080,82 @@ class Api:
 # ---------------------------------------------------------------------------
 
 
-def _on_maximized() -> None:
+def onMaximized() -> None:
+    '''
+    fields: none
+    outputs: nothing
+
+    Emits a frontend event indicating the window is maximized.
+    '''
     if _main_window:
         _main_window.evaluate_js(
             "window.__symphony_emit_window_state && window.__symphony_emit_window_state(true)"
         )
 
 
-def _on_restored() -> None:
+def onRestored() -> None:
+    '''
+    fields: none
+    outputs: nothing
+
+    Emits a frontend event indicating the window has been restored.
+    '''
     if _main_window:
         _main_window.evaluate_js(
             "window.__symphony_emit_window_state && window.__symphony_emit_window_state(false)"
         )
 
 
-def _on_closing() -> bool:
+def onClosing() -> bool:
+    '''
+    fields: none
+    outputs: boolean
+
+    Handles window shutdown by stopping the editor process before close completes.
+    '''
     global _persist_editor
     _persist_editor = False
     print("--> Stopping editor subprocess..")
     try:
-        _stop_editor()
+        stopEditor()
     except Exception as exc:  # noqa: BLE001
-        print(f"_stop_editor failed: {exc}")
+        print(f"stopEditor failed: {exc}")
     return True
 
 
 READY_MARKER = "__SYMPHONY_READY__"
 
 
-def _on_loaded() -> None:
+def onLoaded() -> None:
+    '''
+    fields: none
+    outputs: nothing
+
+    Handles webview load completion and starts the editor process when needed.
+    '''
     # Signal the Tauri launcher (if any) that the pywebview window is up so it
     # can hide its splash. Safe to emit unconditionally; standalone runs just
     # see an extra log line.
     print(READY_MARKER, flush=True)
+    if sys.platform == "win32":
+        win_c.install_aero_and_resize(_main_window, lambda: Api().maximize())
     # The ``loaded`` event fires on every page load, including Ctrl+R reloads.
     # Only start the editor when nothing is already running; otherwise reloads
     # would stack up duplicate runner threads and subprocesses.
-    if _editor_is_running():
+    if editorIsRunning():
         return
-    threading.Thread(target=lambda: print(_run_editor_program()), daemon=True).start()
+    threading.Thread(target=lambda: print(runEditorProgram()), daemon=True).start()
 
 
-def _check_vite(retries: int = 20, delay: float = 0.5) -> bool:
+def checkVite(retries: int = 20, delay: float = 0.5) -> bool:
+    '''
+    fields:
+        retries (number) - number of attempts to check the dev server
+        delay (number) - seconds to wait between attempts
+    outputs: boolean
+
+    Returns whether the Vite dev server responds before the retry limit is reached.
+    '''
     for _ in range(retries):
         try:
             urlrequest.urlopen("http://localhost:5173", timeout=0.5)
@@ -842,10 +1165,16 @@ def _check_vite(retries: int = 20, delay: float = 0.5) -> bool:
     return False
 
 
-def _resolve_url() -> str:
+def resolveUrl() -> str:
+    '''
+    fields: none
+    outputs: string
+
+    Resolves the frontend URL or built index path the webview should load.
+    '''
     if IS_FROZEN:
         return str((APP_ROOT / "dist" / "index.html").resolve())
-    if os.environ.get("SYMPHONY_DEV", "1") != "0" and _check_vite():
+    if os.environ.get("SYMPHONY_DEV", "1") != "0" and checkVite():
         return "http://localhost:5173"
     dist_index = APP_ROOT / "dist" / "index.html"
     if dist_index.exists():
@@ -854,22 +1183,28 @@ def _resolve_url() -> str:
 
 
 def main() -> None:
+    '''
+    fields: none
+    outputs: nothing
+
+    Creates the pywebview window, attaches lifecycle hooks, and starts the app event loop.
+    '''
     global _main_window
 
     asset_dir = APP_ROOT / "src" / "assets"
-    _ensure_file(asset_dir / "user-settings.json", USER_SETTINGS_PATH, DEFAULT_SETTINGS)
-    _ensure_file(
+    ensureFile(asset_dir / "user-settings.json", USER_SETTINGS_PATH, DEFAULT_SETTINGS)
+    ensureFile(
         asset_dir / "directory.json",
         DIRECTORY_PATH,
         {"Projects": [], "Exports": [], "Symphony Auto-Save": []},
     )
-    _ensure_file(asset_dir / "starred.json", STARRED_PATH, [])
-    _ensure_file(asset_dir / "recently-viewed.json", RECENTLY_VIEWED_PATH, [])
+    ensureFile(asset_dir / "starred.json", STARRED_PATH, [])
+    ensureFile(asset_dir / "recently-viewed.json", RECENTLY_VIEWED_PATH, [])
 
     api = Api()
     _main_window = webview.create_window(
         "Symphony",
-        url=_resolve_url(),
+        url=resolveUrl(),
         js_api=api,
         width=1300,
         height=800,
@@ -877,12 +1212,39 @@ def main() -> None:
         frameless=True,
         easy_drag=False,
     )
-    _main_window.events.maximized += _on_maximized
-    _main_window.events.restored += _on_restored
-    _main_window.events.closing += _on_closing
-    _main_window.events.loaded += _on_loaded
+    _main_window.events.maximized += onMaximized
+    _main_window.events.restored += onRestored
+    _main_window.events.closing += onClosing
+    _main_window.events.loaded += onLoaded
 
-    webview.start(debug=not IS_FROZEN)
+    if sys.platform == "win32":
+        def winAeroDeferred():
+            '''
+            fields: none
+            outputs: nothing
+
+            Applies deferred Windows chrome fixes after pywebview finishes initializing.
+            '''
+            time.sleep(0.8)   # wait for WinForms to finish its own init
+            win_c.install_aero_and_resize(_main_window, lambda: Api().maximize())
+            # Activate resize grips by doing a 1-px nudge through pywebview's
+            # own resize path (WinForms UI thread).  This is the same code path
+            # maximize takes; our background-thread SetWindowPos alone is not
+            # enough because WinForms marshals the actual style commit to the UI
+            # thread and we need that commit to happen before grips are live.
+            time.sleep(0.05)
+            if _main_window:
+                try:
+                    w = int(_main_window.width)
+                    h = int(_main_window.height)
+                    _main_window.resize(w + 1, h)
+                    time.sleep(0.05)
+                    _main_window.resize(w, h)
+                except Exception as exc:
+                    print(f"startup grip nudge failed: {exc}")
+        webview.start(debug=not IS_FROZEN, func=winAeroDeferred)
+    else:
+        webview.start(debug=not IS_FROZEN)
 
 
 if __name__ == "__main__":

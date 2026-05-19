@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 
 import { ChevronDown, ChevronUp } from "lucide-react";
-import "./dropdown.css/";
+
+import "@/ui/dropdown.css";
 
 const Dropdown = ({
   options,

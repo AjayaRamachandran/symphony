@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 
-import Field from "@/ui/Field";
+import Field from "@/ui/field";
 
 const phrases = [
   "Ex: My Amazing Masterpiece",
@@ -24,11 +24,7 @@ function NewFileModal({ onClose }) {
 
   return (
     <>
-      <div
-        className="modal-title"
-      >
-        Create New Symphony
-      </div>
+      <div className="modal-title">Create New Symphony</div>
       <div className="modal-paragraph">
         Give your symphony a name. You can always change this later.
       </div>

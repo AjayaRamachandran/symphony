@@ -110,3 +110,87 @@
   margin-left: 2px;
   flex-shrink: 0;
 }
+
+.field-label {
+  font-size: 1.1em;
+  font-weight: 700;
+  margin-top: 27px;
+  margin-left: 2px;
+  margin-bottom: 5px;
+  color: var(--muted-foreground);
+}
+
+.field-skeleton {
+  border-radius: 5px;
+  margin: 10px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.01) 10%,
+    rgba(255, 255, 255, 0.05) 50%,
+    rgba(255, 255, 255, 0.01) 90%
+  );
+  background-size: 220% 100%;
+  animation: field-skeleton-shimmer 2.25s linear infinite;
+  transition: opacity 0.25s ease-in-out;
+}
+
+.field-skeleton.hidden {
+  opacity: 0;
+}
+
+.field-skeleton.visible {
+  opacity: 1;
+}
+
+@keyframes field-skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -20% 0;
+  }
+}
+
+.field-skeleton.small {
+  width: 50%;
+  height: 24px;
+}
+
+.field-skeleton.medium {
+  height: 24px;
+}
+
+.field-skeleton.large {
+  height: 48px;
+}
+
+.field-crossfade {
+  position: relative;
+}
+
+.field-crossfade .field-input-control,
+.field-crossfade .field-placeholder {
+  transition: opacity 0.2s ease-in-out;
+}
+
+.field-crossfade.loading .field-input-control,
+.field-crossfade.loading .field-placeholder {
+  opacity: 0;
+}
+
+.field-crossfade.loaded .field-input-control,
+.field-crossfade.loaded .field-placeholder {
+  opacity: 1;
+}
+
+.field-skeleton-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.field-crossfade.loading .field-skeleton-layer {
+  opacity: 1;
+}

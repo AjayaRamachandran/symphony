@@ -1,6 +1,7 @@
 import React, { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import "./tooltip.css";
+
+import "@/ui/tooltip.css";
 
 let nextTooltipInstanceId = 0;
 let suppressedTooltipInstanceId = null;

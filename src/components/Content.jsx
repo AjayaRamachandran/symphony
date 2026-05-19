@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from "react";
 
-import LeftPanel from "./content-components/LeftPanel";
-import CenterPanel from "./content-components/CenterPanel";
-import RightPanel from "./content-components/RightPanel";
+import LeftPanel from "@/components/content-components/left-panel";
+import CenterPanel from "@/components/content-components/center-panel";
+import RightPanel from "@/components/content-components/right-panel";
 
-import GenericModal from "@/modals/GenericModal";
-import OnboardingModal from "@/modals/OnboardingModal";
-import { useDirectory } from "@/contexts/DirectoryContext";
+import GenericModal from "@/modals/generic-modal";
+import OnboardingModal from "@/modals/onboarding-modal";
+import { useDirectory } from "@/contexts/directory-context";
 
-import "./content.css";
+import "@/universal-styling/content.css";
 
 function Content() {
   const [showOnboardingModal, setShowOnboardingModal] = useState(false);

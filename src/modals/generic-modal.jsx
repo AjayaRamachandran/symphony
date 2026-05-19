@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 
 import { X } from "lucide-react";
 
-import "./modals-styling/generic-modal.css";
+import "@/modals/modals-styling/generic-modal.css";
 
 let blurOverlay = true;
 let blurOverlayLoaded = false;

@@ -1,27 +1,25 @@
 import React, { useState, useEffect } from "react";
 
-
-function FileNotExist({ onComplete, fileName = () => "" }) {
+function GUIAlreadyRunning({ onComplete }) {
   return (
     <>
       <div
         className="modal-title"
         style={{ marginBottom: "15px" }}
       >
-        File Does Not Exist
+        Unable to Open File
       </div>
       <div className="modal-paragraph">
-        There was an error trying to open {fileName() || "the file"}. This file
-        may have been moved or deleted.
+        Another Symphony file is currently open. Close the active file to continue.
       </div>
       <button
         className={"call-to-action-2"}
         onClick={() => onComplete()}
       >
-        Okay
+        Got it
       </button>
     </>
   );
 }
 
-export default FileNotExist;
+export default GUIAlreadyRunning;

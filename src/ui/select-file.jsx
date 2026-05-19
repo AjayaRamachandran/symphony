@@ -1,7 +1,7 @@
 import React from "react";
 import { FolderOpen } from "lucide-react";
 
-import Tooltip from "@/ui/Tooltip";
+import Tooltip from "@/ui/tooltip";
 
 function SelectFile({
   selectedPath = "",
@@ -33,7 +33,9 @@ function SelectFile({
     return button;
   }
 
-  return <Tooltip text={`${selectedPath}  ⦁  Click to Change`}>{button}</Tooltip>;
+  return (
+    <Tooltip text={`${selectedPath}  ⦁  Click to Change`}>{button}</Tooltip>
+  );
 }
 
 export default SelectFile;

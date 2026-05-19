@@ -1,21 +1,15 @@
 import React, { useState, useEffect } from "react";
 
 import {
-  FolderOpen,
-  ChartNoAxesGantt,
-  Music,
-  Save,
   AudioLines,
   FolderClosed,
 } from "lucide-react";
 import path from "path-browserify";
 
-import Field from "@/ui/Field";
-import Dropdown from "@/ui/Dropdown";
-import Tooltip from "@/ui/Tooltip";
-import { useDirectory } from "@/contexts/DirectoryContext";
-import { normalizePath } from "@/utils/normalizePath";
-import InitExportFolder from "@/modals/InitExportFolder";
+import Dropdown from "@/ui/dropdown";
+import { useDirectory } from "@/contexts/directory-context";
+import { normalizePath } from "@/utils/normalize-path";
+import InitExportFolder from "@/modals/init-export-folder";
 
 const formats = [
   { label: "WAV", icon: AudioLines },

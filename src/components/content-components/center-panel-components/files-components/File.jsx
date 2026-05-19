@@ -10,11 +10,11 @@ import flacIcon from "@/assets/flac-icon.svg";
 import musicXMLIcon from "@/assets/musicxml-icon.svg";
 import midiIcon from "@/assets/midi-icon.svg";
 
-import { useDirectory } from "@/contexts/DirectoryContext";
+import { useDirectory } from "@/contexts/directory-context";
 
-import Tooltip from "@/ui/Tooltip";
-import GenericModal from "@/modals/GenericModal";
-import GUIAlreadyRunning from "@/modals/GUIAlreadyRunning";
+import Tooltip from "@/ui/tooltip";
+import GenericModal from "@/modals/generic-modal";
+import GUIAlreadyRunning from "@/modals/gui-already-running";
 
 const fileTypeMap = {
   ".symphony": {

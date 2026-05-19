@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { Settings } from "lucide-react";
-import Directory from "./left-panel-components/Directory";
-import RecentlyViewed from "./left-panel-components/RecentlyViewed";
+import Directory from "@/components/content-components/left-panel-components/directory";
+import RecentlyViewed from "@/components/content-components/left-panel-components/recently-viewed";
 
-import GenericModal from "@/modals/GenericModal";
-import UserSettings from "@/modals/UserSettings";
+import GenericModal from "@/modals/generic-modal";
+import UserSettings from "@/modals/user-settings";
 
-import "./left-panel.css";
-import Tooltip from "@/ui/Tooltip";
-import { useDirectory } from "@/contexts/DirectoryContext";
+import Tooltip from "@/ui/tooltip";
+import { useDirectory } from "@/contexts/directory-context";
 
 function LeftPanel() {
   const [showUserSettings, setShowUserSettings] = useState(false);
@@ -23,7 +22,10 @@ function LeftPanel() {
 
   return (
     <>
-      <div className="content-panel-container left" style={{ paddingTop: "15px" }}>
+      <div
+        className="content-panel-container left"
+        style={{ paddingTop: "15px" }}
+      >
         <div
           className="section-title"
           style={{
@@ -37,9 +39,7 @@ function LeftPanel() {
           {userFirstName ? userFirstName.split(" ")[0].slice(0, 15) + "'s" : ""}
         </div>
         <div className="title-row">
-          <div className={"big-title"} >
-            Home
-          </div>
+          <div className={"big-title"}>Home</div>
           <Tooltip text="User Settings">
             <button
               className="settings-button rotate"

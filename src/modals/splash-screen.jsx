@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
   Music,
-  ChartNoAxesGantt,
   FolderClosed,
   BookMarked,
   GitBranch,
@@ -10,15 +9,14 @@ import {
 } from "lucide-react";
 import path from "path-browserify";
 
-import Tooltip from "@/ui/Tooltip";
-import "@/components/content-components/left-panel-components/recently-viewed.css";
-import GenericModal from "@/modals/GenericModal";
-import FileNotExist from "@/modals/FileNotExist";
-import "./modals-styling/splash-screen.css";
+import "@/components/components-styling/recently-viewed.css";
+import GenericModal from "@/modals/generic-modal";
+import FileNotExist from "@/modals/file-not-exist";
+import "@/modals/modals-styling/splash-screen.css";
 
 import banner from "@/assets/banner.svg";
 import symphonyFileTypeIcon from "@/assets/symphony-file-type-icon.svg";
-import { useDirectory } from "@/contexts/DirectoryContext";
+import { useDirectory } from "@/contexts/directory-context";
 import ProgramData from "@/assets/program-data.json";
 
 function SplashScreen({ onComplete }) {
@@ -130,7 +128,7 @@ function SplashScreen({ onComplete }) {
               style={{
                 marginBottom: "5px",
                 fontWeight: "700",
-               }}
+              }}
             >
               Jump Back In
             </div>
@@ -147,21 +145,35 @@ function SplashScreen({ onComplete }) {
                       {item.type === "symphony" ? (
                         <img
                           src={symphonyFileTypeIcon}
-                          style={{ width: "16px", height: "16px", flexShrink: 0 }}
+                          style={{
+                            width: "16px",
+                            height: "16px",
+                            flexShrink: 0,
+                          }}
                         />
-                      ) :
+                      ) : (
                         Icon && (
                           <Icon
                             style={{
                               flexShrink: 0,
-                              color: item.type === "symphony" ? "var(--primary)" :
-                                ["mp3", "wav", "flac", "mid", "musicxml"].includes(item.type) ? "var(--secondary)" :
-                                  "var(--muted-foreground)"
+                              color:
+                                item.type === "symphony"
+                                  ? "var(--primary)"
+                                  : [
+                                        "mp3",
+                                        "wav",
+                                        "flac",
+                                        "mid",
+                                        "musicxml",
+                                      ].includes(item.type)
+                                    ? "var(--secondary)"
+                                    : "var(--muted-foreground)",
                             }}
                             size={16}
                             strokeWidth={1.5}
                           />
-                        )}
+                        )
+                      )}
                       <div
                         className="truncated-text"
                         style={{ marginLeft: "6px" }}
@@ -200,9 +212,7 @@ function SplashScreen({ onComplete }) {
           </button>
           <button
             className="quick-launch-medium"
-            onClick={() =>
-              openExternal(`${ProgramData.website}/download`)
-            }
+            onClick={() => openExternal(`${ProgramData.website}/download`)}
           >
             <GitBranch style={{ flexShrink: 0 }} size={16} strokeWidth={1.5} />
             <div className="truncated-text" style={{ marginLeft: "6px" }}>
@@ -239,11 +249,7 @@ function SplashScreen({ onComplete }) {
           >
             <i>Don't show this screen on startup</i>
           </button>
-          <button
-            className="call-to-action-2"
-
-            onClick={() => onComplete()}
-          >
+          <button className="call-to-action-2" onClick={() => onComplete()}>
             Close
           </button>
         </div>

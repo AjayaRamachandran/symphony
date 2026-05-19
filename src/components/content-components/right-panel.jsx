@@ -3,11 +3,10 @@ import React, { useState, useEffect, useRef } from "react";
 import { PencilRuler } from "lucide-react";
 import path from "path-browserify";
 
-import Field from "../../ui/Field";
-import Tooltip from "@/ui/Tooltip";
+import Field from "@/ui/field";
+import Tooltip from "@/ui/tooltip";
 
-import "./right-panel.css";
-import { useDirectory } from "@/contexts/DirectoryContext";
+import { useDirectory } from "@/contexts/directory-context";
 
 function RightPanel() {
   const [hovered, setHovered] = useState(false);
@@ -38,7 +37,12 @@ function RightPanel() {
   }, [selectedFile]);
 
   const normalizeMetadata = (meta) => {
-    if (!meta || typeof meta !== "object" || Array.isArray(meta) || meta.error) {
+    if (
+      !meta ||
+      typeof meta !== "object" ||
+      Array.isArray(meta) ||
+      meta.error
+    ) {
       return {};
     }
     return meta;
@@ -75,7 +79,8 @@ function RightPanel() {
 
       let isStale = false;
       if (isSymphony) {
-        window.electronAPI.doProcessCommand(filePath, "retrieve")
+        window.electronAPI
+          .doProcessCommand(filePath, "retrieve")
           .then((result) => {
             if (isStale) return;
             const normalized = metadataFromRetrieveResult(result);
@@ -113,11 +118,9 @@ function RightPanel() {
     const payload = toProcessCommandMetadata(metadataRef.current);
     metadataDirtyRef.current = false;
     try {
-      await window.electronAPI.doProcessCommand(
-        filePath,
-        "update_metadata",
-        { metadata: payload },
-      );
+      await window.electronAPI.doProcessCommand(filePath, "update_metadata", {
+        metadata: payload,
+      });
     } catch (err) {
       // Keep unsaved state if command fails so future edits can retry.
       metadataDirtyRef.current = true;
@@ -161,7 +164,8 @@ function RightPanel() {
     console.log(globalDirectory);
     console.log(newName);
 
-    window.electronAPI.renameFile(path.join(globalDirectory, selectedFile), newName)
+    window.electronAPI
+      .renameFile(path.join(globalDirectory, selectedFile), newName)
       .then((result) => {
         if (result.success) {
           setSelectedFile(newName + ".symphony");
@@ -210,7 +214,14 @@ function RightPanel() {
     <div className="content-panel-container right">
       <>
         <div>
-          <div className="med-title" >
+          <div
+            style={{
+              fontSize: "2em",
+              fontWeight: 600,
+              marginTop: "7px",
+              fontFamily: "Instrument Sans, sans-serif",
+            }}
+          >
             Details
           </div>
           {selectedFile && selectedFile.slice(-9) === ".symphony" ? (
@@ -226,7 +237,7 @@ function RightPanel() {
 
               <div className="field-label">Description</div>
               <div
-                className={`metadata-field-crossfade ${isMetadataLoading ? "loading" : "loaded"}`}
+                className={`field-crossfade ${isMetadataLoading ? "loading" : "loaded"}`}
               >
                 <Field
                   value={metadata.Description || ""}
@@ -236,14 +247,14 @@ function RightPanel() {
                   }
                   onBlur={commitMetadata}
                 />
-                <div className="metadata-field-skeleton-layer" aria-hidden="true">
+                <div className="field-skeleton-layer" aria-hidden="true">
                   <div className="field-skeleton large" />
                 </div>
               </div>
 
               <div className="field-label">Composer / Arr.</div>
               <div
-                className={`metadata-field-crossfade ${isMetadataLoading ? "loading" : "loaded"}`}
+                className={`field-crossfade ${isMetadataLoading ? "loading" : "loaded"}`}
               >
                 <Field
                   placeholder={userFirstName}
@@ -254,14 +265,14 @@ function RightPanel() {
                   }
                   onBlur={commitMetadata}
                 />
-                <div className="metadata-field-skeleton-layer" aria-hidden="true">
+                <div className="field-skeleton-layer" aria-hidden="true">
                   <div className="field-skeleton small" />
                 </div>
               </div>
 
               <div className="field-label">Collaborators</div>
               <div
-                className={`metadata-field-crossfade ${isMetadataLoading ? "loading" : "loaded"}`}
+                className={`field-crossfade ${isMetadataLoading ? "loading" : "loaded"}`}
               >
                 <Field
                   value={metadata.Collaborators || ""}
@@ -271,7 +282,7 @@ function RightPanel() {
                   }
                   onBlur={commitMetadata}
                 />
-                <div className="metadata-field-skeleton-layer" aria-hidden="true">
+                <div className="field-skeleton-layer" aria-hidden="true">
                   <div className="field-skeleton medium" />
                 </div>
               </div>
@@ -300,7 +311,14 @@ function RightPanel() {
             </>
           ) : (
             <>
-              <div className="faded">
+              <div
+                style={{
+                  fontSize: "14px",
+                  fontWeight: 500,
+                  marginTop: "15px",
+                  color: "var(--gray-50)",
+                }}
+              >
                 Select a Symphony to view its details.
               </div>
             </>
@@ -322,7 +340,6 @@ function RightPanel() {
                 ? ""
                 : " inactive")
             }
-
             style={{ transition: "filter 0.2s, border 0.4s, background 0.4s" }}
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}

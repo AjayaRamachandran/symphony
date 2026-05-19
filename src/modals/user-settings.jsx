@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 
 import { TriangleAlert, Settings } from "lucide-react";
 
-import Field from "@/ui/Field";
-import Switch from "@/ui/Switch";
+import Field from "@/ui/field";
+import Switch from "@/ui/switch";
 
 function UserSettings({ onComplete }) {
   const [focused, setFocused] = useState(false);
@@ -43,10 +43,7 @@ function UserSettings({ onComplete }) {
 
   return (
     <>
-      <div
-        className="modal-title"
-        style={{ marginBottom: "15px" }}
-      >
+      <div className="modal-title" style={{ marginBottom: "15px" }}>
         <Settings size={20} />
         User Settings
       </div>
@@ -71,9 +68,7 @@ function UserSettings({ onComplete }) {
         }}
       >
         <div className="setting-row">
-          <div className="modal-body2">
-            Change My Name
-          </div>
+          <div className="modal-body2">Change My Name</div>
         </div>
         <div
           className="modal-subtext wide"
@@ -103,16 +98,15 @@ function UserSettings({ onComplete }) {
         </div>
 
         <div className="setting-row" style={{ marginTop: "30px" }}>
-          <div className="modal-body2">
-            Show Button Tooltips in Editor
-          </div>
+          <div className="modal-body2">Show Button Tooltips in Editor</div>
           <Switch
             checked={settings.show_button_tooltips}
             onChange={() => handleToggle("show_button_tooltips")}
           />
         </div>
         <div className="modal-subtext wide">
-          Show tooltips for each button in the Editor toolbar when hovering over them.
+          Show tooltips for each button in the Editor toolbar when hovering over
+          them.
         </div>
 
         {/*<div className="setting-row">
@@ -130,9 +124,7 @@ function UserSettings({ onComplete }) {
         </div>*/}
 
         <div className="setting-row">
-          <div className="modal-body2">
-            Show Splash Screen on Startup
-          </div>
+          <div className="modal-body2">Show Splash Screen on Startup</div>
           <Switch
             checked={settings.show_splash_screen}
             onChange={() => handleToggle("show_splash_screen")}
@@ -144,9 +136,7 @@ function UserSettings({ onComplete }) {
         </div>
 
         <div className="setting-row" style={{ marginTop: "30px" }}>
-          <div className="modal-body2">
-            Use Fancy Graphics
-          </div>
+          <div className="modal-body2">Use Fancy Graphics</div>
           <Switch
             checked={settings.fancy_graphics}
             onChange={() => handleToggle("fancy_graphics")}
@@ -226,10 +216,7 @@ function UserSettings({ onComplete }) {
         )}
       </div>
 
-      <button
-        className="call-to-action-2"
-        onClick={() => onComplete()}
-      >
+      <button className="call-to-action-2" onClick={() => onComplete()}>
         Save & Exit
       </button>
     </>

@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Search } from "lucide-react";
 
-import { useDirectory } from "@/contexts/DirectoryContext";
+import { useDirectory } from "@/contexts/directory-context";
 
-import "./files.css";
-import NewFile from "./files-components/NewFile";
-import File from "./files-components/File";
+import "@/components/components-styling/files.css";
+import NewFile from "@/components/content-components/center-panel-components/files-components/new-file";
+import File from "@/components/content-components/center-panel-components/files-components/file";
 
-import InvalidDrop from "@/modals/InvalidDrop";
-import GenericModal from "@/modals/GenericModal";
+import InvalidDrop from "@/modals/invalid-drop";
+import GenericModal from "@/modals/generic-modal";
 
 function Files() {
   const {
@@ -21,7 +20,7 @@ function Files() {
     setGlobalStars,
     globalStars,
     draggingFilePath,
-    setDraggingFilePath
+    setDraggingFilePath,
   } = useDirectory();
 
   const [symphonyFiles, setSymphonyFiles] = useState([]);
@@ -79,7 +78,7 @@ function Files() {
             arrayBuffer,
             file.name,
             globalDirectory,
-            draggingFilePath || file.path
+            draggingFilePath || file.path,
           );
           setGlobalUpdateTimestamp(Date.now());
         } catch (err) {

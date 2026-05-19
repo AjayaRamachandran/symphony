@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { Plus } from "lucide-react";
 import path from "path-browserify";
 
-import { useDirectory } from "@/contexts/DirectoryContext";
+import { useDirectory } from "@/contexts/directory-context";
 import fileIconAdd from "@/assets/file-icon-add.svg";
-import Tooltip from "@/ui/Tooltip";
+import Tooltip from "@/ui/tooltip";
 
-import GenericModal from "@/modals/GenericModal";
-import NewFileModal from "@/modals/NewFileModal";
+import GenericModal from "@/modals/generic-modal";
+import NewFileModal from "@/modals/new-file-modal";
 
 function NewFile() {
   const {
@@ -43,18 +42,25 @@ function NewFile() {
     setShowNewFile(false);
     setGlobalUpdateTimestamp(Date.now());
     if (result.status === "success") {
-      const normalizedPath = result.payload.project_file_path.replace(/\\/g, "/");
-      setSelectedFile(path.basename(normalizedPath));
-      await window.electronAPI.doProcessCommand(
-        normalizedPath,
-        "open",
+      const normalizedPath = result.payload.project_file_path.replace(
+        /\\/g,
+        "/",
       );
+      setSelectedFile(path.basename(normalizedPath));
+      await window.electronAPI.doProcessCommand(normalizedPath, "open");
     }
   };
 
   return (
     <>
-      <Tooltip text="Create New" altText={navigator.platform && navigator.platform.startsWith("Mac") ? "⌘ + N" : "Ctrl + N"}>
+      <Tooltip
+        text="Create New"
+        altText={
+          navigator.platform && navigator.platform.startsWith("Mac")
+            ? "⌘ + N"
+            : "Ctrl + N"
+        }
+      >
         <button
           id="new-file-button"
           className={
