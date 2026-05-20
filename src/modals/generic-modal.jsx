@@ -45,8 +45,8 @@ function GenericModal({
       modal.style.transform = "scale(0.9)";
       setTimeout(() => {
         if (blurOverlay) {
-          overlay.style.backdropFilter = "blur(3px)";
-          overlay.style.background = "rgba(0,0,0,0.35)";
+          overlay.style.backdropFilter = "blur(0.8px)";
+          overlay.style.background = "rgba(0,0,0,0.5)";
         } else {
           overlay.style.background = "rgba(0,0,0,0.5)";
         }

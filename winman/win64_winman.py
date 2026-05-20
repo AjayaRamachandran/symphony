@@ -1,4 +1,4 @@
-# win_c_man.py
+# winman/win64_winman.py
 # Windows ctypes, WndProc, and Aero handlers for the frameless Symphony window.
 
 from __future__ import annotations
@@ -6,7 +6,7 @@ import sys
 
 TITLE_BAR_H = 30   # must match title-bar.css: .titlebar { height: 30px }
 BUTTON_W    = 108  # 3 × 36 px window-controls buttons
-RESIZE_HANDLE_W = 18  # invisible resize handle width in screen pixels
+RESIZE_HANDLE_W = 6   # invisible resize handle width in screen pixels
 WINDOW_BORDER_COLOR = 0x00404040  # COLORREF for a neutral gray DWM border
 
 _win_hook_refs: list = []       # prevent GC of ctypes WndProc callbacks
@@ -1099,6 +1099,14 @@ def install_aero_and_resize(main_window, on_maximize) -> None:
     _u32.MonitorFromWindow.restype = wt.HANDLE
     _u32.MonitorFromWindow.argtypes = [wt.HWND, wt.DWORD]
     _u32.GetMonitorInfoW.restype = ctypes.c_bool
+    _u32.IsZoomed.restype = ctypes.c_bool
+    _u32.IsZoomed.argtypes = [wt.HWND]
+    _u32.GetSystemMetrics.restype = ctypes.c_int
+    _u32.GetSystemMetrics.argtypes = [ctypes.c_int]
+
+    SM_CXFRAME = 32
+    SM_CYFRAME = 33
+    SM_CXPADDEDBORDER = 92
 
     class MINMAXINFO(ctypes.Structure):
         _fields_ = [
@@ -1115,6 +1123,12 @@ def install_aero_and_resize(main_window, on_maximize) -> None:
             ("rcMonitor", wt.RECT),
             ("rcWork", wt.RECT),
             ("dwFlags", wt.DWORD),
+        ]
+
+    class NCCALCSIZE_PARAMS(ctypes.Structure):
+        _fields_ = [
+            ("rgrc", wt.RECT * 3),
+            ("lppos", ctypes.c_void_p),
         ]
 
     _u32.GetMonitorInfoW.argtypes = [wt.HANDLE, ctypes.POINTER(MONITORINFO)]
@@ -1191,6 +1205,40 @@ def install_aero_and_resize(main_window, on_maximize) -> None:
                         return 0
 
             if msg == WM_NCCALCSIZE and wp:
+                # Borderless-maximized fix: when WS_THICKFRAME is set and we
+                # collapse the non-client area, Windows still positions the
+                # maximized window so the (invisible) frame extends past the
+                # work area by SM_CXFRAME + SM_CXPADDEDBORDER on each side.
+                # The client then includes those off-screen pixels and edge
+                # content gets clipped. Snap the client rect to the monitor's
+                # work area so nothing is lost.
+                if _u32.IsZoomed(h):
+                    try:
+                        params = ctypes.cast(
+                            lp, ctypes.POINTER(NCCALCSIZE_PARAMS)
+                        ).contents
+                        monitor = _u32.MonitorFromWindow(
+                            h, MONITOR_DEFAULTTONEAREST
+                        )
+                        if monitor:
+                            info = MONITORINFO()
+                            info.cbSize = ctypes.sizeof(MONITORINFO)
+                            if _u32.GetMonitorInfoW(monitor, ctypes.byref(info)):
+                                params.rgrc[0].left   = info.rcWork.left
+                                params.rgrc[0].top    = info.rcWork.top
+                                params.rgrc[0].right  = info.rcWork.right
+                                params.rgrc[0].bottom = info.rcWork.bottom
+                            else:
+                                frame_x = _u32.GetSystemMetrics(SM_CXFRAME) + \
+                                          _u32.GetSystemMetrics(SM_CXPADDEDBORDER)
+                                frame_y = _u32.GetSystemMetrics(SM_CYFRAME) + \
+                                          _u32.GetSystemMetrics(SM_CXPADDEDBORDER)
+                                params.rgrc[0].left   += frame_x
+                                params.rgrc[0].right  -= frame_x
+                                params.rgrc[0].top    += frame_y
+                                params.rgrc[0].bottom -= frame_y
+                    except Exception as exc:
+                        print(f"WM_NCCALCSIZE maximized inset failed: {exc}")
                 return 0
 
             if msg == WM_NCHITTEST:

@@ -1,8 +1,8 @@
-# mac_w_man.py
-# macOS PyObjC peer of win_c_man.py.
+# winman/macos_winman.py
+# macOS PyObjC peer of winman/win64_winman.py.
 #
-# Exposes the same function names as win_c_man so main.py can pick a backend
-# at import time and keep its `win_c.<fn>(...)` call sites unchanged. Every
+# Exposes the same function names as winman.win64_winman so main.py can pick a backend
+# at import time and keep its `winman.<fn>(...)` call sites unchanged. Every
 # function early-returns on non-darwin platforms so accidental imports are
 # harmless.
 
@@ -31,7 +31,7 @@ def get_work_area() -> tuple[int, int, int, int] | None:
         primary = screens[0]
         primary_h = float(primary.frame().size.height)
         vf = primary.visibleFrame()
-        # Cocoa origin is bottom-left; flip to top-left to match win_c_man.
+        # Cocoa origin is bottom-left; flip to top-left to match winman.win64_winman.
         x = int(vf.origin.x)
         y = int(primary_h - vf.origin.y - vf.size.height)
         return (x, y, int(vf.size.width), int(vf.size.height))
@@ -100,7 +100,7 @@ def start_file_drag(file_path: str) -> bool:
 def start_resize(main_window, edge: str) -> bool:
     """Cocoa has no public API to enter the system resize loop.
 
-    Returning False causes the JS shim (src/electron-api-shim.js) to fall
+    Returning False causes the JS shim (preload.js) to fall
     through to the manual begin/update/end path, which is the supported
     mac codepath.
     """
@@ -224,7 +224,7 @@ def toggle_native_maximize(main_window) -> bool | None:
 def install_aero_and_resize(main_window, on_maximize) -> None:
     """Apply the minimum NSWindow tuning a frameless pywebview window needs.
 
-    Mac analog of the WndProc/DWM setup in win_c_man:
+    Mac analog of the WndProc/DWM setup in winman.win64_winman:
       Style     Adds NSWindowStyleMaskResizable so AppKit still recognizes
                 edge resize cursors even on a borderless window.
       Min size  setContentMinSize_ mirrors win32 WM_GETMINMAXINFO clamping.

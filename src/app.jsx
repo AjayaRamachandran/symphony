@@ -122,7 +122,7 @@ function App() {
   }, [handleCopy, handleCut, handlePaste, handleDuplicate]);
 
   // Native OS file drop: when the host (Win32 IDropTarget / future macOS
-  // dragging destination) catches an external drop, electron-api-shim
+  // dragging destination) catches an external drop, preload.js
   // dispatches a ``symphony:native-drop`` CustomEvent with screen-pixel
   // coordinates. Translate to client coords, resolve the nearest drop zone
   // by ``data-drop-folder``, and copy via Api.copyPathsInto so large files

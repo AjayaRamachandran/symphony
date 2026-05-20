@@ -1,11 +1,11 @@
 # native_drag_mac.py
 # macOS-side equivalents of the Windows drag-source / drop-target helpers in
-# win_c_man.py. The pywebview Cocoa backend exposes the WKWebView via
+# winman/win64_winman.py. The pywebview Cocoa backend exposes the WKWebView via
 # ``window.native``; we reach the underlying view and use AppKit drag APIs
 # directly. All AppKit calls must run on the main thread, so helpers below
 # marshal through NSOperationQueue.mainQueue when invoked from a worker thread.
 #
-# Surface mirrors win_c_man:
+# Surface mirrors winman.win64_winman:
 #   startFileDrag(file_paths) -> bool
 #   registerDropTarget(window, on_paths) -> bool
 #

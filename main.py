@@ -2,7 +2,7 @@
 
 # Replaces the Electron main process (main.js). Renders the Vite frontend in a
 # pywebview window and exposes a ``js_api`` whose method names are consumed by
-# ``src/electron-api-shim.js`` to provide ``window.electronAPI``.
+# ``preload.js`` to provide ``window.electronAPI``.
 
 
 from __future__ import annotations
@@ -27,18 +27,18 @@ import yaml
 from platformdirs import user_data_dir
 
 if sys.platform == "win32":
-    import win_c_man as win_c
+    from winman import win64_winman as winman
 elif sys.platform == "darwin":
-    import mac_w_man as win_c
+    from winman import macos_winman as winman
 else:
     class _NullWinC:
         """Linux fallback. Every attribute resolves to a no-op callable so
-        main.py keeps its `win_c.<fn>(...)` call surface platform-agnostic."""
+        main.py keeps its `winman.<fn>(...)` call surface platform-agnostic."""
 
         def __getattr__(self, _name):
             return lambda *_a, **_kw: None
 
-    win_c = _NullWinC()
+    winman = _NullWinC()
 
 if sys.platform == "darwin":
     try:
@@ -62,7 +62,7 @@ def nativeStartDrag(file_paths) -> bool:
     '''
     if sys.platform == "win32":
         try:
-            return bool(win_c.post_native_drag(_main_window, file_paths))
+            return bool(winman.post_native_drag(_main_window, file_paths))
         except Exception as exc:  # noqa: BLE001
             print(f"nativeStartDrag (win32) failed: {exc}")
             return False
@@ -86,7 +86,7 @@ def nativeRegisterDrop(window, on_paths) -> bool:
     '''
     if sys.platform == "win32":
         try:
-            return bool(win_c.register_drop_target(window, on_paths))
+            return bool(winman.register_drop_target(window, on_paths))
         except Exception as exc:  # noqa: BLE001
             print(f"nativeRegisterDrop (win32) failed: {exc}")
             return False
@@ -99,7 +99,7 @@ def nativeRegisterDrop(window, on_paths) -> bool:
     return False
 
 
-win_c.patch_webview_nonclient()
+winman.patch_webview_nonclient()
 
 
 APP_NAME = "Symphony"
@@ -521,7 +521,7 @@ def runEditorProgram() -> dict:
 class Api:
     """All methods here are callable from JS as ``window.pywebview.api.<name>``.
 
-    The shim in ``src/electron-api-shim.js`` re-exports each one under the
+    The shim in ``preload.js`` re-exports each one under the
     legacy ``window.electronAPI`` name used by the existing React code.
     """
 
@@ -566,7 +566,7 @@ class Api:
         # screen's visibleFrame (menu bar + dock excluded).
         if sys.platform in ("win32", "darwin"):
             try:
-                maximized = win_c.toggle_native_maximize(_main_window)
+                maximized = winman.toggle_native_maximize(_main_window)
                 if maximized is None:
                     _main_window.maximize()
                     return
@@ -626,7 +626,7 @@ class Api:
 
         Starts the native Windows resize loop for frameless WebView windows.
         '''
-        return bool(win_c.start_resize(_main_window, edge))
+        return bool(winman.start_resize(_main_window, edge))
 
     def beginManualWindowResize(self, edge: str, screen_x: int, screen_y: int) -> bool:
         '''
@@ -638,7 +638,7 @@ class Api:
 
         Captures initial geometry for JS-driven resize handles.
         '''
-        return bool(win_c.begin_manual_resize(_main_window, edge, screen_x, screen_y))
+        return bool(winman.begin_manual_resize(_main_window, edge, screen_x, screen_y))
 
     def updateManualWindowResize(self, screen_x: int, screen_y: int) -> bool:
         '''
@@ -649,7 +649,7 @@ class Api:
 
         Applies a JS-driven resize update.
         '''
-        return bool(win_c.update_manual_resize(_main_window, screen_x, screen_y))
+        return bool(winman.update_manual_resize(_main_window, screen_x, screen_y))
 
     def endManualWindowResize(self) -> None:
         '''
@@ -658,7 +658,7 @@ class Api:
 
         Clears JS-driven resize state.
         '''
-        win_c.end_manual_resize()
+        winman.end_manual_resize()
 
     # ---- generic file ops ------------------------------------------------
     def openExternal(self, url: str) -> None:
@@ -1342,7 +1342,7 @@ def onLoaded() -> None:
     # see an extra log line.
     print(READY_MARKER, flush=True)
     if sys.platform in ("win32", "darwin"):
-        win_c.install_aero_and_resize(_main_window, lambda: Api().maximize())
+        winman.install_aero_and_resize(_main_window, lambda: Api().maximize())
     try:
         nativeRegisterDrop(_main_window, emitNativeDrop)
     except Exception as exc:  # noqa: BLE001
@@ -1437,7 +1437,7 @@ def main() -> None:
             '''
             if sys.platform == "win32":
                 time.sleep(0.8)   # wait for WinForms to finish its own init
-            win_c.install_aero_and_resize(_main_window, lambda: Api().maximize())
+            winman.install_aero_and_resize(_main_window, lambda: Api().maximize())
             # Activate resize grips by doing a 1-px nudge through pywebview's
             # own resize path (WinForms UI thread).  This is the same code path
             # maximize takes; our background-thread SetWindowPos alone is not
