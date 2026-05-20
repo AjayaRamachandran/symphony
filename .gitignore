@@ -1,6 +1,8 @@
 **/node_modules
 **/dist
 **/build/main
+build/symphony-backend/
+
 venv
 .env
 .vscode/

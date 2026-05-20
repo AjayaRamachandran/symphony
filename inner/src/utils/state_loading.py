@@ -32,7 +32,7 @@ DEFAULT_WAVE_MAP = {
 }
 
 DEFAULT_META_FIELD = {
-    "version" : "1.1",
+    "version" : "1.1.5",
     "file_data" : {
         "description" : "",
         "composer" : "",
