@@ -1,9 +1,9 @@
-"""Symphony pywebview backend.
+# /main.py
 
-Replaces the Electron main process (main.js). Renders the Vite frontend in a
-pywebview window and exposes a ``js_api`` whose method names are consumed by
-``src/electron-api-shim.js`` to provide ``window.electronAPI``.
-"""
+# Replaces the Electron main process (main.js). Renders the Vite frontend in a
+# pywebview window and exposes a ``js_api`` whose method names are consumed by
+# ``src/electron-api-shim.js`` to provide ``window.electronAPI``.
+
 
 from __future__ import annotations
 
@@ -26,7 +26,78 @@ import webview
 import yaml
 from platformdirs import user_data_dir
 
-import win_c_man as win_c
+if sys.platform == "win32":
+    import win_c_man as win_c
+elif sys.platform == "darwin":
+    import mac_w_man as win_c
+else:
+    class _NullWinC:
+        """Linux fallback. Every attribute resolves to a no-op callable so
+        main.py keeps its `win_c.<fn>(...)` call surface platform-agnostic."""
+
+        def __getattr__(self, _name):
+            return lambda *_a, **_kw: None
+
+    win_c = _NullWinC()
+
+if sys.platform == "darwin":
+    try:
+        import native_drag_mac as native_drag  # type: ignore[import]
+    except Exception as exc:  # noqa: BLE001
+        print(f"native_drag_mac unavailable: {exc}")
+        native_drag = None  # type: ignore[assignment]
+else:
+    native_drag = None  # type: ignore[assignment]
+
+
+def nativeStartDrag(file_paths) -> bool:
+    '''
+    fields:
+        file_paths (string | list) - one or more absolute file paths to drag
+    outputs: boolean
+
+    Dispatches a native OS file drag through the active platform backend.
+    Posts to the UI thread on Windows so DoDragDrop runs on the same thread
+    that owns the WebView's mouse capture (matches tauri-plugin-drag).
+    '''
+    if sys.platform == "win32":
+        try:
+            return bool(win_c.post_native_drag(_main_window, file_paths))
+        except Exception as exc:  # noqa: BLE001
+            print(f"nativeStartDrag (win32) failed: {exc}")
+            return False
+    if sys.platform == "darwin" and native_drag is not None:
+        try:
+            return bool(native_drag.startFileDrag(file_paths))
+        except Exception as exc:  # noqa: BLE001
+            print(f"nativeStartDrag (darwin) failed: {exc}")
+            return False
+    return False
+
+
+def nativeRegisterDrop(window, on_paths) -> bool:
+    '''
+    fields:
+        window (Window) - host pywebview window to attach drop handling to
+        on_paths (callable) - callback invoked with (paths, screenX, screenY)
+    outputs: boolean
+
+    Registers an OS-native drop target on the window for the active platform.
+    '''
+    if sys.platform == "win32":
+        try:
+            return bool(win_c.register_drop_target(window, on_paths))
+        except Exception as exc:  # noqa: BLE001
+            print(f"nativeRegisterDrop (win32) failed: {exc}")
+            return False
+    if sys.platform == "darwin" and native_drag is not None:
+        try:
+            return bool(native_drag.registerDropTarget(window, on_paths))
+        except Exception as exc:  # noqa: BLE001
+            print(f"nativeRegisterDrop (darwin) failed: {exc}")
+            return False
+    return False
+
 
 win_c.patch_webview_nonclient()
 
@@ -41,7 +112,8 @@ DIRECTORY_PATH = USER_DATA_PATH / "directory.json"
 RECENTLY_VIEWED_PATH = USER_DATA_PATH / "recently-viewed.json"
 STARRED_PATH = USER_DATA_PATH / "starred.json"
 USER_SETTINGS_PATH = USER_DATA_PATH / "user-settings.json"
-PROCESS_COMMAND_PATH = USER_DATA_PATH / "process-command.json"
+PROCESS_COMMAND_URL = "http://127.0.0.1:7279/process-command"
+PROCESS_COMMAND_HEALTH_URL = "http://127.0.0.1:7279/health"
 
 DEFAULT_SETTINGS: dict[str, Any] = {
     "needs_onboarding": True,
@@ -213,12 +285,12 @@ def doProcessCommand(symphony_file_path: str, command: str, extra_args: dict | N
         extra_args (dict) - additional command arguments
     outputs: dict
 
-    Sends a file-based command to the inner editor and waits for the matching response.
+    Sends a command to the inner editor over the localhost process-command server.
     '''
     extra_args = extra_args or {}
-    cmd_id = str(uuid.uuid4())
-    project_folder = os.path.dirname(symphony_file_path)
-    project_name = os.path.splitext(os.path.basename(symphony_file_path))[0]
+    cmdId = str(uuid.uuid4())
+    projectFolder = os.path.dirname(symphony_file_path)
+    projectName = os.path.splitext(os.path.basename(symphony_file_path))[0]
 
     if command == "open" and symphony_file_path:
         try:
@@ -228,36 +300,67 @@ def doProcessCommand(symphony_file_path: str, command: str, extra_args: dict | N
 
     payload = {
         "command": command,
-        "id": cmd_id,
-        "pc_file_path": str(PROCESS_COMMAND_PATH),
+        "id": cmdId,
         "args": {
-            "project_file_name": project_name,
-            "project_folder_path": project_folder,
+            "project_file_name": projectName,
+            "project_folder_path": projectFolder,
             "symphony_data_path": str(USER_DATA_PATH),
             **extra_args,
         },
     }
     print(payload)
-    writeJson(PROCESS_COMMAND_PATH, payload)
+    response = postProcessCommandPayload(payload)
+    print(response)
+    return response
 
-    time.sleep(1.0)
 
-    max_wait_ms = 15000
-    poll_interval_ms = 100
-    waited = 0
-    while waited < max_wait_ms:
+def postProcessCommandPayload(payload: dict, timeout: float = 15.0) -> dict:
+    '''
+    fields:
+        payload (dict) - process command payload to send
+        timeout (float) - HTTP request timeout in seconds
+    outputs: dict
+
+    Posts a process command payload to the editor daemon and returns its JSON response.
+    '''
+    try:
+        body = json.dumps(payload).encode("utf-8")
+        request = urlrequest.Request(
+            PROCESS_COMMAND_URL,
+            data=body,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urlrequest.urlopen(request, timeout=timeout) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except Exception as exc:  # noqa: BLE001
+        return {
+            "status": "error",
+            "id": payload.get("id"),
+            "message": "ProcessCommandConnectionError",
+            "payload": {"error_message": str(exc)},
+        }
+
+
+def waitForProcessCommandServer(timeout: float = 5.0) -> bool:
+    '''
+    fields:
+        timeout (float) - max time to wait in seconds
+    outputs: bool
+
+    Waits for the editor daemon's process command server to accept requests.
+    '''
+    startedAt = time.time()
+    while time.time() - startedAt < timeout:
         try:
-            if PROCESS_COMMAND_PATH.exists():
-                data = readJson(PROCESS_COMMAND_PATH, None)
-                if isinstance(data, dict) and data.get("id") == cmd_id and data.get("status"):
-                    print(data)
-                    return data
+            with urlrequest.urlopen(PROCESS_COMMAND_HEALTH_URL, timeout=0.5) as response:
+                data = json.loads(response.read().decode("utf-8"))
+                if data.get("status") == "success":
+                    return True
         except Exception:  # noqa: BLE001
-            pass
-        time.sleep(poll_interval_ms / 1000.0)
-        waited += poll_interval_ms
+            time.sleep(0.1)
 
-    return readJson(PROCESS_COMMAND_PATH, {"timeout": True})
+    return False
 
 
 def spawnEditor() -> None:
@@ -269,14 +372,13 @@ def spawnEditor() -> None:
     '''
     is_python_script = str(EXECUTABLE_PATH).endswith(".py")
     script_path = str(EXECUTABLE_PATH.resolve())
-    command_path = str(PROCESS_COMMAND_PATH.resolve())
     source_path = str(INNER_DIST_PATH.resolve())
 
     if is_python_script:
         cmd_name = "pythonw" if sys.platform == "win32" else "python3"
-        args = [cmd_name, "-u", script_path, source_path, command_path]
+        args = [cmd_name, "-u", script_path, source_path]
     else:
-        args = [script_path, source_path, command_path]
+        args = [script_path, source_path]
 
     popen_kwargs: dict[str, Any] = {
         "stdout": subprocess.PIPE,
@@ -366,11 +468,11 @@ def stopEditor() -> None:
     _runner_should_stop.set()
     child = _current_editor_child
     if child and child.poll() is None:
-        # Cooperative shutdown via the file-based handshake first.
+        # Cooperative shutdown through the localhost command server first.
         try:
-            writeJson(PROCESS_COMMAND_PATH, {"command": "kill"})
+            postProcessCommandPayload({"command": "kill", "id": str(uuid.uuid4()), "args": {}}, timeout=2.0)
         except Exception as exc:  # noqa: BLE001
-            print(f"kill write failed: {exc}")
+            print(f"kill request failed: {exc}")
         try:
             child.wait(timeout=2)
         except Exception:  # noqa: BLE001
@@ -401,12 +503,12 @@ def runEditorProgram() -> dict:
             if editorIsRunning():
                 return {"success": True, "message": "Editor already running"}
             stopEditor()
-            try:
-                writeJson(PROCESS_COMMAND_PATH, {})
-            except Exception:  # noqa: BLE001
-                pass
             spawnEditor()
-            return {"success": True, "message": "Editor daemon started"}
+            serverReady = waitForProcessCommandServer()
+            return {
+                "success": serverReady,
+                "message": "Editor daemon started" if serverReady else "Editor daemon started, but command server did not become ready",
+            }
         except Exception as exc:  # noqa: BLE001
             return {"success": False, "error": str(exc)}
 
@@ -459,8 +561,10 @@ class Api:
         if not _main_window:
             return
         # The Windows WndProc constrains native maximize to the monitor work
-        # area, so ShowWindow can keep the standard Aero animation.
-        if sys.platform == "win32":
+        # area, so ShowWindow can keep the standard Aero animation. On mac the
+        # same call routes through NSWindow.zoom_, which already respects the
+        # screen's visibleFrame (menu bar + dock excluded).
+        if sys.platform in ("win32", "darwin"):
             try:
                 maximized = win_c.toggle_native_maximize(_main_window)
                 if maximized is None:
@@ -475,7 +579,7 @@ class Api:
             except Exception as exc:  # noqa: BLE001
                 print(f"maximize failed: {exc}")
                 return
-        # Non-Windows fallback
+        # Linux / unknown-platform fallback
         try:
             if getattr(_main_window, "maximized", False):
                 _main_window.restore()
@@ -522,9 +626,7 @@ class Api:
 
         Starts the native Windows resize loop for frameless WebView windows.
         '''
-        if sys.platform != "win32":
-            return False
-        return win_c.start_resize(_main_window, edge)
+        return bool(win_c.start_resize(_main_window, edge))
 
     def beginManualWindowResize(self, edge: str, screen_x: int, screen_y: int) -> bool:
         '''
@@ -536,9 +638,7 @@ class Api:
 
         Captures initial geometry for JS-driven resize handles.
         '''
-        if sys.platform != "win32":
-            return False
-        return win_c.begin_manual_resize(_main_window, edge, screen_x, screen_y)
+        return bool(win_c.begin_manual_resize(_main_window, edge, screen_x, screen_y))
 
     def updateManualWindowResize(self, screen_x: int, screen_y: int) -> bool:
         '''
@@ -549,9 +649,7 @@ class Api:
 
         Applies a JS-driven resize update.
         '''
-        if sys.platform != "win32":
-            return False
-        return win_c.update_manual_resize(_main_window, screen_x, screen_y)
+        return bool(win_c.update_manual_resize(_main_window, screen_x, screen_y))
 
     def endManualWindowResize(self) -> None:
         '''
@@ -1055,19 +1153,77 @@ class Api:
         except Exception as exc:  # noqa: BLE001
             return {"success": False, "error": str(exc)}
 
-    # ---- drag-out (best effort) -----------------------------------------
-    def startFileDrag(self, file_path: str) -> None:
+    # ---- drag-out --------------------------------------------------------
+    def startFileDrag(self, file_path: str) -> dict:
         '''
         fields:
-            file_path (string) - file path being dragged
-        outputs: nothing
+            file_path (string) - absolute file path to drag out to the OS
+        outputs: dict
 
-        Keeps the drag API surface aligned with the Electron preload while doing no native work.
+        Schedules a native OS shell drag for the given path on the WebView's
+        UI thread (via PostMessageW + a custom WndProc handler on Windows;
+        via dispatch-to-main on macOS). Returns immediately; the modal drag
+        runs on the UI thread so it shares mouse capture with the WebView's
+        in-flight HTML5 drag instead of fighting it.
         '''
-        # PyWebview has no native drag-source. The shim attempts a Chromium
-        # HTML5 ``DownloadURL`` drag on the JS side; this Python call exists
-        # only so the API surface matches Electron's preload.
-        print(f"start_file_drag (no-op in pywebview): {file_path}")
+        print(f"[symphony-drag] Api.startFileDrag invoked: {file_path}")
+        if not file_path:
+            return {"started": False, "reason": "missing-path"}
+        try:
+            ok = nativeStartDrag(file_path)
+            print(f"[symphony-drag] nativeStartDrag posted ok={ok}")
+            return {"started": bool(ok)}
+        except Exception as exc:  # noqa: BLE001
+            print(f"[symphony-drag] startFileDrag failed: {exc}")
+            return {"started": False, "error": str(exc)}
+
+    def copyPathsInto(self, paths: list[str], destination_dir: str) -> dict:
+        '''
+        fields:
+            paths (list) - absolute source file paths to copy into the folder
+            destination_dir (string) - destination folder path
+        outputs: dict
+
+        Copies a set of files into a destination folder using shutil.copy2 so
+        large drops do not need to round-trip through base64. Filters paths by
+        the supported extension set used by the rest of the app.
+        '''
+        print(f"[symphony-drag] Api.copyPathsInto destination={destination_dir} paths={paths}")
+        if not destination_dir:
+            return {"success": False, "error": "missing-destination"}
+        if not isinstance(paths, list):
+            return {"success": False, "error": "paths-not-list"}
+        try:
+            os.makedirs(destination_dir, exist_ok=True)
+        except Exception as exc:  # noqa: BLE001
+            return {"success": False, "error": str(exc)}
+
+        copied: list[str] = []
+        skipped: list[dict] = []
+        for source in paths:
+            try:
+                if not source:
+                    continue
+                if not os.path.isfile(source):
+                    skipped.append({"path": source, "reason": "not-a-file"})
+                    continue
+                ext = os.path.splitext(source)[1].lower()
+                if ext not in VALID_FILE_EXTS:
+                    skipped.append({"path": source, "reason": "unsupported-extension"})
+                    continue
+                dest_path = os.path.join(destination_dir, os.path.basename(source))
+                if os.path.abspath(source) == os.path.abspath(dest_path):
+                    skipped.append({"path": source, "reason": "same-location"})
+                    continue
+                shutil.copy2(source, dest_path)
+                copied.append(dest_path)
+            except Exception as exc:  # noqa: BLE001
+                skipped.append({"path": source, "reason": str(exc)})
+        return {
+            "success": len(copied) > 0 or len(skipped) == 0,
+            "copied": copied,
+            "skipped": skipped,
+        }
 
     # ---- editor daemon ---------------------------------------------------
     def runEditorProgram(self) -> dict:
@@ -1076,16 +1232,6 @@ class Api:
         outputs: dict
 
         Starts the editor daemon through the shared runner helper.
-        '''
-        return runEditorProgram()
-
-    # Alias to match the preload's (broken) channel name.
-    def openEditorProgram(self) -> dict:
-        '''
-        fields: none
-        outputs: dict
-
-        Starts the editor daemon using the legacy open-editor channel.
         '''
         return runEditorProgram()
 
@@ -1158,6 +1304,32 @@ def onClosing() -> bool:
 READY_MARKER = "__SYMPHONY_READY__"
 
 
+def emitNativeDrop(paths: list[str], screen_x: int, screen_y: int) -> None:
+    '''
+    fields:
+        paths (list) - absolute file paths read from the OS drop
+        screen_x (number) - drop screen X coordinate
+        screen_y (number) - drop screen Y coordinate
+    outputs: nothing
+
+    Forwards a native OS file drop into the WebView as a custom JS payload.
+    '''
+    print(f"[symphony-drag] emitNativeDrop paths={paths} at ({screen_x},{screen_y})")
+    if not _main_window or not paths:
+        return
+    payload = json.dumps({
+        "paths": list(paths),
+        "screenX": int(screen_x),
+        "screenY": int(screen_y),
+    })
+    try:
+        _main_window.evaluate_js(
+            f"window.__symphonyNativeDrop && window.__symphonyNativeDrop({payload})"
+        )
+    except Exception as exc:  # noqa: BLE001
+        print(f"[symphony-drag] emitNativeDrop evaluate_js failed: {exc}")
+
+
 def onLoaded() -> None:
     '''
     fields: none
@@ -1169,8 +1341,12 @@ def onLoaded() -> None:
     # can hide its splash. Safe to emit unconditionally; standalone runs just
     # see an extra log line.
     print(READY_MARKER, flush=True)
-    if sys.platform == "win32":
+    if sys.platform in ("win32", "darwin"):
         win_c.install_aero_and_resize(_main_window, lambda: Api().maximize())
+    try:
+        nativeRegisterDrop(_main_window, emitNativeDrop)
+    except Exception as exc:  # noqa: BLE001
+        print(f"nativeRegisterDrop failed: {exc}")
     # The ``loaded`` event fires on every page load, including Ctrl+R reloads.
     # Only start the editor when nothing is already running; otherwise reloads
     # would stack up duplicate runner threads and subprocesses.
@@ -1249,21 +1425,27 @@ def main() -> None:
     _main_window.events.closing += onClosing
     _main_window.events.loaded += onLoaded
 
-    if sys.platform == "win32":
+    if sys.platform in ("win32", "darwin"):
         def winAeroDeferred():
             '''
             fields: none
             outputs: nothing
 
-            Applies deferred Windows chrome fixes after pywebview finishes initializing.
+            Applies deferred chrome fixes after pywebview finishes initializing.
+            On Windows this also performs a 1-px nudge to wake up resize grips;
+            mac just runs the install (idempotent with the onLoaded call).
             '''
-            time.sleep(0.8)   # wait for WinForms to finish its own init
+            if sys.platform == "win32":
+                time.sleep(0.8)   # wait for WinForms to finish its own init
             win_c.install_aero_and_resize(_main_window, lambda: Api().maximize())
             # Activate resize grips by doing a 1-px nudge through pywebview's
             # own resize path (WinForms UI thread).  This is the same code path
             # maximize takes; our background-thread SetWindowPos alone is not
             # enough because WinForms marshals the actual style commit to the UI
             # thread and we need that commit to happen before grips are live.
+            # The nudge is a Win-only ritual; AppKit does not need it.
+            if sys.platform != "win32":
+                return
             time.sleep(0.05)
             if _main_window:
                 try:

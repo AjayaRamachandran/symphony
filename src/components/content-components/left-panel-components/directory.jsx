@@ -13,6 +13,11 @@ import SplashScreen from "@/modals/splash-screen";
 import NewVersionAvailable from "@/modals/new-version-available";
 
 import { useDirectory } from "@/contexts/directory-context";
+import {
+  isSupportedDropExtension,
+  getFileName,
+  moveInAppFileToDirectory,
+} from "@/utils/move-in-app-file";
 
 import "@/components/components-styling/directory.css";
 import ProgramData from "@/assets/program-data.json";
@@ -137,18 +142,56 @@ function Directory() {
     }
   };
 
-  const onDrop = (e, dir) => {
+  const onDrop = async (e, dir) => {
     e.preventDefault();
     dragCounter.current = 0;
     setDragOverDir(null);
 
+    const fileCount = e.dataTransfer?.files?.length ?? 0;
+    console.log("[symphony-drag] Directory.onDrop", {
+      dir,
+      hoverDir,
+      draggingFilePath,
+      fileCount,
+      types: e.dataTransfer ? Array.from(e.dataTransfer.types) : null,
+      lastNativeDrop: window.__symphonyLastNativeDrop || 0,
+    });
+
+    // A native OS drop on Windows is forwarded through ``symphony:native-drop``
+    // separately. Skip this HTML5 path briefly so the same gesture is not
+    // handled twice.
+    const lastNative = window.__symphonyLastNativeDrop || 0;
+    if (Date.now() - lastNative < 400) {
+      console.log("[symphony-drag] Directory.onDrop: debounced post-native");
+      callSetGlobalDirectory(dir);
+      return;
+    }
+
+    // In-app drag: there are no real File objects in dataTransfer, just the
+    // source path we captured at dragstart. Move via path-based ops so the
+    // file actually relocates instead of getting rejected as an invalid drop.
+    if (draggingFilePath) {
+      const fileName = getFileName(draggingFilePath);
+      if (!isSupportedDropExtension(fileName)) {
+        setShowInvalidModal(true);
+      } else {
+        const result = await moveInAppFileToDirectory(
+          draggingFilePath,
+          hoverDir,
+        );
+        if (result.status === "invalid") {
+          setShowInvalidModal(true);
+        }
+        setDraggingFilePath(null);
+        setGlobalUpdateTimestamp(Date.now());
+      }
+      callSetGlobalDirectory(dir);
+      return;
+    }
+
     const files = Array.from(e.dataTransfer.files);
-    const symphonyFiles = files.filter(
-      (file) =>
-        file.name.endsWith(".symphony") ||
-        file.name.endsWith(".wav") ||
-        file.name.endsWith(".mid") ||
-        file.name.endsWith(".mp3"),
+    const symphonyFiles = files.filter((file) =>
+      isSupportedDropExtension(file.name),
     );
 
     if (symphonyFiles.length === 0) {
@@ -163,14 +206,13 @@ function Directory() {
           arrayBuffer,
           file.name,
           hoverDir,
-          draggingFilePath || file.path,
+          file.path,
         );
         setGlobalUpdateTimestamp(Date.now());
       } catch (err) {
         console.error("Error processing dropped file:", err);
       }
     });
-    // Perform the click action for this directory
     callSetGlobalDirectory(dir);
   };
 
@@ -221,6 +263,7 @@ function Directory() {
                   <button
                     key={elementPairIndex}
                     className="directory-folder"
+                    data-drop-folder={elementPair[1].replace(/\\/g, "/")}
                     style={{
                       filter: isSelected ? "brightness(1.2)" : "",
                       outline: isDragOver ? "1px dashed #4A90E2" : "none",

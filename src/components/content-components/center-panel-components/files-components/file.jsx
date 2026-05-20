@@ -131,16 +131,22 @@ function File({ name }) {
             const filePath = path
               .join(globalDirectory, displayName)
               .replace(/\\/g, "/");
-            console.log("Dragging file:", filePath);
+            console.log("[symphony-drag] File.onDragStart", {
+              filePath,
+              effectAllowed: e.dataTransfer?.effectAllowed,
+              types: e.dataTransfer ? Array.from(e.dataTransfer.types) : null,
+            });
             setDraggingFilePath(filePath);
-            // Under Electron the preload handles the OS drag via
-            // webContents.startDrag, so we suppress the browser drag.
-            // Under pywebview we let the HTML5 drag proceed and attach a
-            // DownloadURL payload inside the shim.
             if (!window.electronAPI.isPywebview) {
               e.preventDefault();
             }
             window.electronAPI.startFileDrag(filePath, e);
+          }}
+          onDragEnd={(e) => {
+            console.log("[symphony-drag] File.onDragEnd", {
+              dropEffect: e.dataTransfer?.dropEffect,
+            });
+            setDraggingFilePath(null);
           }}
           onClick={(e) => {
             e.stopPropagation();

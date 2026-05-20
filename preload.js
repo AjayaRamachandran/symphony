@@ -47,6 +47,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openNativeApp: (filePath) => ipcRenderer.invoke('open-native-app', filePath),
 
   // Editor Program
-  openEditorProgram: () => ipcRenderer.invoke('open-editor-program'),
+  runEditorProgram: () => ipcRenderer.invoke('run-editor-program'),
   doProcessCommand: (symphonyFilePath, command, extraArgs) => ipcRenderer.invoke('do-process-command', symphonyFilePath, command, extraArgs),
 });

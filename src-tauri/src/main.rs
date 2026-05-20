@@ -243,11 +243,12 @@ fn spawn_backend() -> std::io::Result<Child> {
     // Dev: run the python source directly from the repo root. The launcher's
     // working directory while ``tauri dev`` runs is ``src-tauri/`` so
     // ``../main.py`` resolves to the project root.
-    let python = if cfg!(windows) { "python" } else { "python3" };
+    let python = resolve_dev_python();
     let script = "../main.py";
     log_line(format!(
         "[launcher] dev mode: spawning {} -u {}",
-        python, script
+        python.display(),
+        script
     ));
     let mut command = Command::new(python);
     hide_child_console(&mut command);
@@ -257,6 +258,28 @@ fn spawn_backend() -> std::io::Result<Child> {
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
     command.spawn()
+}
+
+#[cfg(debug_assertions)]
+fn resolve_dev_python() -> PathBuf {
+    if let Some(path) = std::env::var_os("SYMPHONY_PYTHON") {
+        return PathBuf::from(path);
+    }
+
+    let candidates = if cfg!(windows) {
+        ["../venv/Scripts/python.exe", "../.venv/Scripts/python.exe"]
+    } else {
+        ["../venv/bin/python", "../.venv/bin/python"]
+    };
+
+    for candidate in candidates {
+        let path = PathBuf::from(candidate);
+        if path.exists() {
+            return path;
+        }
+    }
+
+    PathBuf::from(if cfg!(windows) { "python" } else { "python3" })
 }
 
 #[cfg(not(debug_assertions))]

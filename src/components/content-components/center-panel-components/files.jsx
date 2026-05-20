@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useCallback } from "react";
 
 import { useDirectory } from "@/contexts/directory-context";
+import {
+  isSupportedDropExtension,
+  getFileName,
+  moveInAppFileToDirectory,
+} from "@/utils/move-in-app-file";
 
 import "@/components/components-styling/files.css";
 import NewFile from "@/components/content-components/center-panel-components/files-components/new-file";
@@ -36,6 +41,13 @@ function Files() {
   }, []);
 
   useEffect(() => {
+    const handleInvalidDrop = () => setShowInvalidModal(true);
+    window.addEventListener("symphony:invalid-drop", handleInvalidDrop);
+    return () =>
+      window.removeEventListener("symphony:invalid-drop", handleInvalidDrop);
+  }, []);
+
+  useEffect(() => {
     if (!globalDirectory) {
       setSymphonyFiles("not a valid dir");
       setCurrentSectionType("");
@@ -58,13 +70,50 @@ function Files() {
   }, [globalDirectory, globalUpdateTimestamp]);
 
   const handleDrop = useCallback(
-    (e) => {
+    async (e) => {
       e.preventDefault();
       setIsDragging(false);
 
+      const fileCount = e.dataTransfer?.files?.length ?? 0;
+      console.log("[symphony-drag] Files.handleDrop", {
+        draggingFilePath,
+        globalDirectory,
+        fileCount,
+        types: e.dataTransfer ? Array.from(e.dataTransfer.types) : null,
+        lastNativeDrop: window.__symphonyLastNativeDrop || 0,
+      });
+
+      // A native OS drop on Windows fires through the host IDropTarget and
+      // dispatches ``symphony:native-drop`` separately. Skip the HTML5 path
+      // briefly so the same gesture is not handled twice.
+      const lastNative = window.__symphonyLastNativeDrop || 0;
+      if (Date.now() - lastNative < 400) {
+        console.log("[symphony-drag] Files.handleDrop: debounced post-native");
+        return;
+      }
+
+      // In-app drag has no real File entries; resolve by source path instead.
+      if (draggingFilePath) {
+        const fileName = getFileName(draggingFilePath);
+        if (!isSupportedDropExtension(fileName)) {
+          setShowInvalidModal(true);
+        } else {
+          const result = await moveInAppFileToDirectory(
+            draggingFilePath,
+            globalDirectory,
+          );
+          if (result.status === "invalid") {
+            setShowInvalidModal(true);
+          }
+          setDraggingFilePath(null);
+          setGlobalUpdateTimestamp(Date.now());
+        }
+        return;
+      }
+
       const files = Array.from(e.dataTransfer.files);
-      const droppedFiles = files.filter(
-        (file) => file.name.endsWith(".symphony") || file.name.endsWith(".wav"),
+      const droppedFiles = files.filter((file) =>
+        isSupportedDropExtension(file.name),
       );
 
       if (droppedFiles.length === 0) {
@@ -78,7 +127,7 @@ function Files() {
             arrayBuffer,
             file.name,
             globalDirectory,
-            draggingFilePath || file.path,
+            file.path,
           );
           setGlobalUpdateTimestamp(Date.now());
         } catch (err) {
@@ -86,7 +135,12 @@ function Files() {
         }
       });
     },
-    [globalDirectory, setGlobalUpdateTimestamp],
+    [
+      globalDirectory,
+      draggingFilePath,
+      setDraggingFilePath,
+      setGlobalUpdateTimestamp,
+    ],
   );
 
   const handleDragOver = (e) => {
@@ -105,6 +159,7 @@ function Files() {
       {symphonyFiles === "no files" ? null : (
         <div
           className="files scrollable dark-bg"
+          data-drop-folder={globalDirectory || ""}
           onClick={(e) => {
             e.stopPropagation();
             setSelectedFile(null);

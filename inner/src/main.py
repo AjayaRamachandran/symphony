@@ -54,7 +54,6 @@ SAMPLE_RATE = 44100
 
 console.log(f"sysargs: {sys.argv}")
 source_path = sys.argv[1]
-process_command_file = sys.argv[2]
 
 sessionID = time.strftime('%Y-%m-%d %H%M%S')
 
@@ -990,6 +989,8 @@ NoteGrid.onMouseUnClick(handleUnClick)
 console.log("Initialized NoteGrid Functionality "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
 lastTime = time.time()
 console.message("Startup complete in " + str(round(time.time() - START_TIME, 5)) + ' seconds.')
+pcrw.startProcessCommandServer()
+console.message("Process command server listening on localhost:7279.")
 
 ###### MAINLOOP ######
 
@@ -1001,15 +1002,7 @@ last_update = time.time()
 
 while run:
     while not gui_running:
-        time.sleep(0.3)
-
-        if platform == 'mac':
-            try:
-                pygame.event.pump()
-            except:
-                pass
-        
-        pc_data = pcrw.operateProcessCommand(process_command_file)
+        pc_data = pcrw.waitForOpenCommand()
 
         if pc_data != None:
             gui_running = True
@@ -1110,8 +1103,6 @@ while run:
             events.pump()
 
             saveFrame += 60 * (1 / fps)
-            if round(saveFrame % 20) == 19:
-                pc_data = pcrw.operateProcessCommand(process_command_file)
             if saveFrame > 1200: # Saves every 20 seconds
                 saveFrame = 0
                 working_file_path
@@ -1311,7 +1302,7 @@ while run:
         except:
             pass
     
-    pcrw.gui_is_open = False
+    pcrw.setGuiIsOpen(False)
 
 # full pygame quit only when daemon is completely done
 try:

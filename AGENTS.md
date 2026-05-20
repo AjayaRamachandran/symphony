@@ -23,3 +23,8 @@ This project has a restrained, intentional UI language. When making changes, pre
 - Prefer theme variables over hard-coded colors. Add a new variable only when the color represents a reusable semantic role.
 - Use icons and microcopy to make actions discoverable, then rely on `Tooltip` for compact secondary context.
 - Keep modal, panel, and toolbar interactions consistent with existing disclosure patterns.
+- Prefer camelCase for new Python names and avoid `_private_by_convention` naming unless an external framework requires a specific method name.
+
+**Do not run build scripts automatically.** If building or rebuilding is required, explicitly instruct the user to run the relevant build commands, as these scripts can be time-consuming.
+
+**Do not run the dev build automatically either, unless specifically checking log outputs.** This is because this is a blocking, persistent behavior that the user would rather do. If the message is simply "test this out to see if it's better after changes", then there's no need for the agent to run the dev build. Instruct the user to do so instead. 

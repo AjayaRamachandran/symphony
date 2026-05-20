@@ -2,6 +2,7 @@ import React, { useEffect, useCallback } from "react";
 import HomePage from "@/pages/home-page";
 import { useDirectory } from "@/contexts/directory-context";
 import path from "path-browserify";
+import { isSupportedDropExtension } from "@/utils/move-in-app-file";
 
 function App() {
   const {
@@ -119,6 +120,78 @@ function App() {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [handleCopy, handleCut, handlePaste, handleDuplicate]);
+
+  // Native OS file drop: when the host (Win32 IDropTarget / future macOS
+  // dragging destination) catches an external drop, electron-api-shim
+  // dispatches a ``symphony:native-drop`` CustomEvent with screen-pixel
+  // coordinates. Translate to client coords, resolve the nearest drop zone
+  // by ``data-drop-folder``, and copy via Api.copyPathsInto so large files
+  // never round-trip through base64.
+  useEffect(() => {
+    const handleNativeDrop = async (event) => {
+      const detail = event?.detail || {};
+      const { paths, screenX = 0, screenY = 0 } = detail;
+      console.log("[symphony-drag] App.handleNativeDrop", detail);
+      if (!Array.isArray(paths) || paths.length === 0) return;
+
+      const supported = paths.filter((p) =>
+        isSupportedDropExtension(p.split(/[\\/]/).pop() || ""),
+      );
+      if (supported.length === 0) {
+        console.log("[symphony-drag] native drop has no supported extensions");
+        window.dispatchEvent(new CustomEvent("symphony:invalid-drop"));
+        return;
+      }
+
+      const dpr = window.devicePixelRatio || 1;
+      const clientX = screenX / dpr - window.screenX;
+      const clientY = screenY / dpr - window.screenY;
+      let destination = null;
+      try {
+        const elements = document.elementsFromPoint(clientX, clientY) || [];
+        for (const el of elements) {
+          const folder = el?.closest?.("[data-drop-folder]");
+          const value = folder?.getAttribute?.("data-drop-folder");
+          if (value) {
+            destination = value;
+            break;
+          }
+        }
+      } catch (err) {
+        console.warn(
+          "[symphony-drag] native-drop elementsFromPoint failed:",
+          err,
+        );
+      }
+      if (!destination && globalDirectory) {
+        destination = globalDirectory;
+      }
+      console.log("[symphony-drag] resolved destination", {
+        destination,
+        clientX,
+        clientY,
+        dpr,
+      });
+      if (!destination) {
+        window.dispatchEvent(new CustomEvent("symphony:invalid-drop"));
+        return;
+      }
+
+      try {
+        const result = await window.electronAPI.copyPathsInto(
+          supported,
+          destination,
+        );
+        console.log("[symphony-drag] copyPathsInto result", result);
+        setGlobalUpdateTimestamp(Date.now());
+      } catch (err) {
+        console.error("[symphony-drag] copyPathsInto failed:", err);
+      }
+    };
+    window.addEventListener("symphony:native-drop", handleNativeDrop);
+    return () =>
+      window.removeEventListener("symphony:native-drop", handleNativeDrop);
+  }, [globalDirectory, setGlobalUpdateTimestamp]);
 
   // Attach operator functions to window for Toolbar access
   window.symphonyOps = {

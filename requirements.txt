@@ -31,6 +31,9 @@ pyparsing==3.3.2
 python-dateutil==2.9.0.post0
 pywin32==311; sys_platform == "win32"
 pywin32-ctypes==0.2.3; sys_platform == "win32"
+pyobjc-core>=10.0; sys_platform == "darwin"
+pyobjc-framework-Cocoa>=10.0; sys_platform == "darwin"
+pyobjc-framework-WebKit>=10.0; sys_platform == "darwin"
 requests==2.32.5
 setuptools>=68.0.0,<82
 six==1.17.0

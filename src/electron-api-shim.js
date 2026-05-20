@@ -90,6 +90,26 @@ function detectPlatform() {
   return "linux";
 }
 
+// ---- native OS file drop dispatcher ---------------------------------------
+// Called from Python (main.py emitNativeDrop) when the host HWND or NSWindow
+// receives an external file drop. Re-broadcasts as a CustomEvent so any drop
+// zone in the React tree can subscribe with a single ``window.addEventListener``
+// instead of polling the bridge. The timestamp helps HTML5 ``drop`` handlers
+// debounce themselves so a single OS gesture is not handled twice.
+window.__symphonyLastNativeDrop = 0;
+window.__symphonyNativeDrop = (payload) => {
+  try {
+    const detail = payload && typeof payload === "object" ? payload : {};
+    console.log("[symphony-drag] native drop received", detail);
+    window.__symphonyLastNativeDrop = Date.now();
+    window.dispatchEvent(
+      new CustomEvent("symphony:native-drop", { detail }),
+    );
+  } catch (err) {
+    console.error("[symphony-drag] __symphonyNativeDrop dispatch failed:", err);
+  }
+};
+
 // ---- window-state event fanout --------------------------------------------
 const windowStateListeners = new Set();
 window.__symphony_emit_window_state = (isMaximized) => {
@@ -150,12 +170,14 @@ if (typeof window !== "undefined") {
   }
 }
 
-// ---- frameless Windows resize handles -------------------------------------
-// WebView2 owns the child HWND under the cursor, so top-level WM_NCHITTEST does
-// not reliably see edge mouse-downs. These transparent DOM handles start the
-// native Win32 size loop explicitly.
+// ---- frameless resize handles ---------------------------------------------
+// WebView2 (win) and WKWebView (mac) both own the child view under the cursor,
+// so top-level hit-testing does not reliably see edge mouse-downs. These
+// transparent DOM handles drive the manual resize path on Python's side, which
+// dispatches to win_c_man on Windows and mac_w_man on macOS.
 function setupResizeHandles() {
-  if (detectPlatform() !== "win32") return;
+  const platform = detectPlatform();
+  if (platform !== "win32" && platform !== "darwin") return;
   if (document.getElementById("symphony-resize-handles")) return;
 
   const root = document.createElement("div");
@@ -348,27 +370,37 @@ const electronAPI = {
 
   // File ops
   startFileDrag: (filePath, event) => {
-    // PyWebview can't drive a native OS drag from JS. Best-effort: attach the
-    // HTML5 ``DownloadURL`` data so Chromium-based webviews (incl. WebView2)
-    // can drop the file onto Explorer/Finder. The caller must NOT have already
-    // called event.preventDefault().
+    // Populate the HTML5 drag payload as a fallback for in-WebView drop
+    // targets (file grid, sidebar folders). The Python side runs the real
+    // native shell drag on the WebView's UI thread (Win32 PostMessageW +
+    // WndProc DoDragDrop, or dispatch-to-main on macOS) so OS targets like
+    // Explorer / Finder / Discord receive a real CF_HDROP / file URL.
+    console.log("[symphony-drag] shim.startFileDrag", {
+      filePath,
+      hasEvent: Boolean(event),
+      hasDataTransfer: Boolean(event && event.dataTransfer),
+    });
     try {
       if (event && event.dataTransfer && filePath) {
         const name = filePath.split(/[\\/]/).pop();
-        const fileUrl = "file:///" + filePath.replace(/\\/g, "/").replace(/^\/+/, "");
+        const fileUrl =
+          "file:///" + filePath.replace(/\\/g, "/").replace(/^\/+/, "");
         event.dataTransfer.effectAllowed = "copyMove";
         event.dataTransfer.setData(
           "DownloadURL",
-          `application/octet-stream:${name}:${fileUrl}`
+          `application/octet-stream:${name}:${fileUrl}`,
         );
         event.dataTransfer.setData("text/uri-list", fileUrl);
         event.dataTransfer.setData("text/plain", filePath);
       }
     } catch (err) {
-      console.warn("startFileDrag DownloadURL setup failed:", err);
+      console.warn("[symphony-drag] DownloadURL setup failed:", err);
     }
-    // Fire-and-forget; Python side is a no-op but keeps API parity.
-    call("startFileDrag", filePath).catch(() => {});
+    if (filePath) {
+      call("startFileDrag", filePath).catch((err) =>
+        console.warn("[symphony-drag] native drag failed:", err),
+      );
+    }
   },
   openExternal: (url) => call("openExternal", url),
   openFileLocation: (filePath) => call("openFileLocation", filePath),
@@ -385,6 +417,8 @@ const electronAPI = {
       destinationDir,
       originalFilePath || null
     ),
+  copyPathsInto: (paths, destinationDir) =>
+    call("copyPathsInto", Array.isArray(paths) ? paths : [paths], destinationDir),
 
   // Directory ops
   openDirectory: () => call("openDirectory"),
@@ -414,7 +448,7 @@ const electronAPI = {
   // Symphony files / editor
   getSymphonyFiles: (directoryPath) => call("getSymphonyFiles", directoryPath),
   openNativeApp: (filePath) => call("openNativeApp", filePath),
-  openEditorProgram: () => call("openEditorProgram"),
+  runEditorProgram: () => call("runEditorProgram"),
   doProcessCommand: (symphonyFilePath, command, extraArgs) =>
     call("doProcessCommand", symphonyFilePath, command, extraArgs || {}),
 };
