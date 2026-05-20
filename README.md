@@ -5,12 +5,12 @@
 </p>
 
 <p align="center">
-<img src="https://img.shields.io/badge/React-blue?logo=React">
-<img src="https://img.shields.io/badge/Node-darkgreen?logo=Node.js">
-<img src="https://img.shields.io/badge/Python-navy?logo=Python">
-<img src="https://img.shields.io/badge/Electron-gray?logo=Electron">  ˙ ˙ ˙  
-<img src="https://img.shields.io/badge/Vercel-black?logo=Vercel">
-<img src="https://img.shields.io/badge/Lucide-darkred?logo=Lucide">
+  <img src="https://img.shields.io/badge/Rust-sienna?logo=rust" />
+  <img src="https://img.shields.io/badge/Tauri-cadetblue?logo=tauri" />
+  <img src="https://img.shields.io/badge/React-teal?logo=react" />
+  <img src="https://img.shields.io/badge/Vite-indigo?logo=vite" />
+  <img src="https://img.shields.io/badge/Python-navy?logo=Python">  
+  <img src="https://img.shields.io/badge/Lucide-darkred?logo=Lucide">
 </p>
 
 <img src="https://www.dropbox.com/scl/fi/sj3qb5zu4x82k8s6785rn/Symphony-SS.png?rlkey=lxpta4hjcdhybl4400nrql20o&st=wpe8nxt3&raw=1" style="border-radius: 5px;">
