@@ -11,6 +11,9 @@
 //    registered ``onWindowStateChange`` listeners.
 
 const READY_TIMEOUT_MS = 10000;
+const RESIZE_HANDLE_WIDTH = 10;
+const TITLE_BAR_HEIGHT = 30;
+const WINDOW_BUTTONS_WIDTH = 108;
 
 // pywebview initializes ``window.pywebview.api`` as an empty {} early, then
 // populates the function members and fires ``pywebviewready``. Resolving on
@@ -147,6 +150,163 @@ if (typeof window !== "undefined") {
   }
 }
 
+// ---- frameless Windows resize handles -------------------------------------
+// WebView2 owns the child HWND under the cursor, so top-level WM_NCHITTEST does
+// not reliably see edge mouse-downs. These transparent DOM handles start the
+// native Win32 size loop explicitly.
+function setupResizeHandles() {
+  if (detectPlatform() !== "win32") return;
+  if (document.getElementById("symphony-resize-handles")) return;
+
+  const root = document.createElement("div");
+  root.id = "symphony-resize-handles";
+  root.setAttribute("aria-hidden", "true");
+
+  const base = {
+    position: "fixed",
+    zIndex: "2147483647",
+    background: "transparent",
+    pointerEvents: "auto",
+    userSelect: "none",
+  };
+
+  const handles = [
+    {
+      edge: "top",
+      cursor: "ns-resize",
+      style: {
+        top: "0",
+        left: `${RESIZE_HANDLE_WIDTH}px`,
+        right: `${WINDOW_BUTTONS_WIDTH}px`,
+        height: `${RESIZE_HANDLE_WIDTH}px`,
+      },
+    },
+    {
+      edge: "bottom",
+      cursor: "ns-resize",
+      style: {
+        left: `${RESIZE_HANDLE_WIDTH}px`,
+        right: `${RESIZE_HANDLE_WIDTH}px`,
+        bottom: "0",
+        height: `${RESIZE_HANDLE_WIDTH}px`,
+      },
+    },
+    {
+      edge: "left",
+      cursor: "ew-resize",
+      style: { top: "0", bottom: "0", left: "0", width: `${RESIZE_HANDLE_WIDTH}px` },
+    },
+    {
+      edge: "right",
+      cursor: "ew-resize",
+      style: {
+        top: `${TITLE_BAR_HEIGHT}px`,
+        bottom: "0",
+        right: "0",
+        width: `${RESIZE_HANDLE_WIDTH}px`,
+      },
+    },
+    {
+      edge: "top-left",
+      cursor: "nwse-resize",
+      style: {
+        top: "0",
+        left: "0",
+        width: `${RESIZE_HANDLE_WIDTH}px`,
+        height: `${RESIZE_HANDLE_WIDTH}px`,
+      },
+    },
+    {
+      edge: "bottom-left",
+      cursor: "nesw-resize",
+      style: {
+        bottom: "0",
+        left: "0",
+        width: `${RESIZE_HANDLE_WIDTH}px`,
+        height: `${RESIZE_HANDLE_WIDTH}px`,
+      },
+    },
+    {
+      edge: "bottom-right",
+      cursor: "nwse-resize",
+      style: {
+        bottom: "0",
+        right: "0",
+        width: `${RESIZE_HANDLE_WIDTH}px`,
+        height: `${RESIZE_HANDLE_WIDTH}px`,
+      },
+    },
+  ];
+
+  for (const handle of handles) {
+    const el = document.createElement("div");
+    Object.assign(el.style, base, handle.style, { cursor: handle.cursor });
+    el.addEventListener("mousedown", (ev) => {
+      if (ev.button !== 0) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+
+      let pending = false;
+      let latestX = ev.screenX;
+      let latestY = ev.screenY;
+
+      const flushResize = () => {
+        if (pending) return;
+        pending = true;
+        call("updateManualWindowResize", latestX, latestY)
+          .catch((err) => {
+            console.warn("updateManualWindowResize failed:", err);
+          })
+          .finally(() => {
+            pending = false;
+          });
+      };
+
+      const onMove = (moveEv) => {
+        latestX = moveEv.screenX;
+        latestY = moveEv.screenY;
+        window.requestAnimationFrame(flushResize);
+      };
+
+      const onUp = () => {
+        window.removeEventListener("mousemove", onMove);
+        window.removeEventListener("mouseup", onUp);
+        call("endManualWindowResize").catch(() => {});
+      };
+
+      call("beginManualWindowResize", handle.edge, ev.screenX, ev.screenY)
+        .then((started) => {
+          if (!started) {
+            return call("startWindowResize", handle.edge);
+          }
+          window.addEventListener("mousemove", onMove);
+          window.addEventListener("mouseup", onUp);
+        })
+        .catch((err) => {
+          console.warn("beginManualWindowResize failed:", err);
+          call("startWindowResize", handle.edge).catch(() => {});
+        });
+    });
+    root.appendChild(el);
+  }
+
+  document.body.appendChild(root);
+}
+
+function initResizeHandles() {
+  setupResizeHandles();
+  const observer = new MutationObserver(() => setupResizeHandles());
+  observer.observe(document.body, { childList: true });
+}
+
+if (typeof window !== "undefined") {
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initResizeHandles);
+  } else {
+    initResizeHandles();
+  }
+}
+
 // ---- ArrayBuffer -> base64 (for moveFileRaw) ------------------------------
 function arrayBufferToBase64(buffer) {
   if (!buffer) return "";
@@ -175,6 +335,12 @@ const electronAPI = {
   maximize: () => call("maximize"),
   close: () => call("close"),
   toggleDevTools: () => call("toggleDevtools"),
+  startWindowResize: (edge) => call("startWindowResize", edge),
+  beginManualWindowResize: (edge, screenX, screenY) =>
+    call("beginManualWindowResize", edge, screenX, screenY),
+  updateManualWindowResize: (screenX, screenY) =>
+    call("updateManualWindowResize", screenX, screenY),
+  endManualWindowResize: () => call("endManualWindowResize"),
   onWindowStateChange: (callback) => {
     windowStateListeners.add(callback);
     return () => windowStateListeners.delete(callback);

@@ -32,7 +32,9 @@ function TitleBar() {
 
   return (
     <>
-      <div className={`titlebar pywebview-drag-region ${isMac ? "mac" : ""}`}>
+      <div className={`titlebar ${isMac ? "mac pywebview-drag-region" : ""}`}>
+        {!isMac && <div className="titlebar-drag-zone pywebview-drag-region" />}
+
         {isMac && (
           <div
             className={`mac-controls ${!isFocused ? "unfocused" : ""}`}

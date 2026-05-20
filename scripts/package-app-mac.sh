@@ -9,7 +9,7 @@ if [[ ! -d "./inner/src/assets" ]]; then
   exit 1
 fi
 
-echo "[0/5] Ensuring Python virtual environment exists..."
+echo "[1/8] Ensuring Python virtual environment exists..."
 if [[ -d ".venv" ]]; then
   VENV_DIR=".venv"
 elif [[ -d "venv" ]]; then
@@ -38,7 +38,7 @@ else
   PY_CMD="python3"
 fi
 
-echo "[1/5] Installing Python dependencies..."
+echo "[2/8] Installing Python dependencies..."
 "$PY_CMD" -m pip install --upgrade pip
 "$PY_CMD" -m pip install -r requirements.txt
 echo "[Symphony] Installing packages that fail in requirements.txt..."
@@ -47,7 +47,7 @@ echo "[Symphony] Installing packages that fail in requirements.txt..."
 "$PY_CMD" -m pip install soundfile
 "$PY_CMD" -m pip install pretty_midi
 
-echo "[2/5] Building inner app with PyInstaller..."
+echo "[3/8] Building inner editor with PyInstaller..."
 # -----------------------------------------------------------------------------
 # PyInstaller exclusions. Each exclude has a specific reason; do NOT add to
 # this list without checking that the package is genuinely unreferenced at
@@ -108,20 +108,23 @@ echo "[2/5] Building inner app with PyInstaller..."
   --exclude-module tkinter \
   --distpath ./inner/dist ./inner/src/main.py
 
-echo "[3/5] Syncing inner assets..."
+echo "[4/8] Syncing inner assets..."
 rm -rf ./inner/dist/assets
 cp -R ./inner/src/assets ./inner/dist/assets
 
-echo "[4/7] Building React app..."
+echo "[5/8] Building React app..."
 npm run build:react
 
-echo "[5/7] Building Symphony backend executable with PyInstaller..."
+echo "[6/8] Building Symphony backend executable with PyInstaller..."
 "$PY_CMD" -m PyInstaller --clean --noconfirm symphony-backend.spec
 
-echo "[6/7] Staging backend as Tauri sidecar..."
+echo "[7/8] Staging backend as Tauri sidecar and verifying artifacts..."
 npm run stage:backend
+npm run verify:artifacts
 
-echo "[7/7] Building Tauri macOS dmg installer..."
+echo "[8/8] Building Tauri macOS dmg installer..."
 npm run tauri:build
 
+echo ""
 echo "[Done] macOS dmg installer build complete."
+echo "[Done] Installer output: src-tauri/target/release/bundle/dmg/"

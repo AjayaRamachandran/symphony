@@ -8,7 +8,6 @@ pywebview window and exposes a ``js_api`` whose method names are consumed by
 from __future__ import annotations
 
 import base64
-import importlib.util
 import json
 import os
 import shutil
@@ -27,10 +26,7 @@ import webview
 import yaml
 from platformdirs import user_data_dir
 
-# Load the Windows ctypes/WndProc manager (dotted filename requires importlib).
-_wc_spec = importlib.util.spec_from_file_location("win_c_man", Path(__file__).parent / "win_c.man.py")
-win_c = importlib.util.module_from_spec(_wc_spec)
-_wc_spec.loader.exec_module(win_c)  # type: ignore[union-attr]
+import win_c_man as win_c
 
 win_c.patch_webview_nonclient()
 
@@ -82,11 +78,16 @@ CONFIG = loadConfig()
 
 EXECUTABLE_NAME = "main.exe" if sys.platform == "win32" else "main"
 if IS_FROZEN:
+    # Packaged builds always run the bundled PyInstaller editor executable from
+    # inner/dist/. config.yaml's editorIsExe is intentionally ignored here: a
+    # frozen build has no Python interpreter on PATH, and inner/src/main.py is
+    # not shipped in the sidecar payload, so falling back to "main.py" would
+    # leave the editor unable to launch.
     INNER_DIST_PATH = APP_ROOT / "inner" / "dist"
 else:
     INNER_DIST_PATH = APP_ROOT / "inner" / "src"
-if CONFIG and not CONFIG.get("editorIsExe", True):
-    EXECUTABLE_NAME = "main.py"
+    if CONFIG and not CONFIG.get("editorIsExe", True):
+        EXECUTABLE_NAME = "main.py"
 EXECUTABLE_PATH = INNER_DIST_PATH / EXECUTABLE_NAME
 
 print(f"USER_DATA_PATH: {USER_DATA_PATH}")
@@ -457,36 +458,19 @@ class Api:
         global _is_maximized, _prev_geometry
         if not _main_window:
             return
-        # On Windows the frameless WinForms backend's native maximize covers
-        # the taskbar (fullscreen-like). Resize/move to the work area instead
-        # so it behaves like a normal Win32 maximize.
+        # The Windows WndProc constrains native maximize to the monitor work
+        # area, so ShowWindow can keep the standard Aero animation.
         if sys.platform == "win32":
             try:
-                if _is_maximized and _prev_geometry:
-                    x, y, w, h = _prev_geometry
-                    _main_window.move(x, y)
-                    _main_window.resize(w, h)
-                    _is_maximized = False
-                    onRestored()
-                    return
-                work = win_c.get_work_area()
-                if not work:
+                maximized = win_c.toggle_native_maximize(_main_window)
+                if maximized is None:
                     _main_window.maximize()
                     return
-                try:
-                    _prev_geometry = (
-                        int(_main_window.x),
-                        int(_main_window.y),
-                        int(_main_window.width),
-                        int(_main_window.height),
-                    )
-                except Exception:  # noqa: BLE001
-                    _prev_geometry = (100, 100, 1300, 800)
-                wx, wy, ww, wh = work
-                _main_window.move(wx, wy)
-                _main_window.resize(ww, wh)
-                _is_maximized = True
-                onMaximized()
+                _is_maximized = maximized
+                if maximized:
+                    onMaximized()
+                else:
+                    onRestored()
                 return
             except Exception as exc:  # noqa: BLE001
                 print(f"maximize failed: {exc}")
@@ -529,6 +513,54 @@ class Api:
             _main_window.show_inspector()
         except Exception:  # noqa: BLE001
             pass
+
+    def startWindowResize(self, edge: str) -> bool:
+        '''
+        fields:
+            edge (string) - Resize edge or corner name.
+        outputs: boolean
+
+        Starts the native Windows resize loop for frameless WebView windows.
+        '''
+        if sys.platform != "win32":
+            return False
+        return win_c.start_resize(_main_window, edge)
+
+    def beginManualWindowResize(self, edge: str, screen_x: int, screen_y: int) -> bool:
+        '''
+        fields:
+            edge (string) - Resize edge or corner name.
+            screen_x (number) - Mouse screen X at drag start.
+            screen_y (number) - Mouse screen Y at drag start.
+        outputs: boolean
+
+        Captures initial geometry for JS-driven resize handles.
+        '''
+        if sys.platform != "win32":
+            return False
+        return win_c.begin_manual_resize(_main_window, edge, screen_x, screen_y)
+
+    def updateManualWindowResize(self, screen_x: int, screen_y: int) -> bool:
+        '''
+        fields:
+            screen_x (number) - Current mouse screen X.
+            screen_y (number) - Current mouse screen Y.
+        outputs: boolean
+
+        Applies a JS-driven resize update.
+        '''
+        if sys.platform != "win32":
+            return False
+        return win_c.update_manual_resize(_main_window, screen_x, screen_y)
+
+    def endManualWindowResize(self) -> None:
+        '''
+        fields: none
+        outputs: nothing
+
+        Clears JS-driven resize state.
+        '''
+        win_c.end_manual_resize()
 
     # ---- generic file ops ------------------------------------------------
     def openExternal(self, url: str) -> None:

@@ -1769,6 +1769,7 @@
   ('win32ctypes.version',
    'C:\\Code\\Nimbial\\Symphony\\venv\\Lib\\site-packages\\win32ctypes\\version.py',
    'PYMODULE'),
+  ('win_c_man', 'C:\\Code\\Nimbial\\Symphony\\win_c_man.py', 'PYMODULE'),
   ('wsgiref',
    'C:\\Users\\Ajaya\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\wsgiref\\__init__.py',
    'PYMODULE'),

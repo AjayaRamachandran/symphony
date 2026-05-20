@@ -19,7 +19,7 @@ taskkill /F /IM "main.exe" >nul 2>nul
 rem Give the OS a moment to release file handles (e.g. app.asar)
 ping -n 2 127.0.0.1 >nul
 
-echo [0/5] Ensuring Python virtual environment exists...
+echo [1/8] Ensuring Python virtual environment exists...
 if exist ".venv\Scripts\python.exe" (
   set "VENV_DIR=.venv"
 ) else if exist "venv\Scripts\python.exe" (
@@ -41,7 +41,7 @@ if errorlevel 1 goto :fail
 
 set "PY_CMD=%VENV_DIR%\Scripts\python.exe"
 
-echo [1/5] Installing Python dependencies...
+echo [2/8] Installing Python dependencies...
 %PY_CMD% -m pip install --upgrade pip
 if errorlevel 1 goto :fail
 %PY_CMD% -m pip install -r requirements.txt
@@ -56,7 +56,7 @@ if errorlevel 1 goto :fail
 %PY_CMD% -m pip install pretty_midi
 if errorlevel 1 goto :fail
 
-echo [2/5] Building inner app with PyInstaller...
+echo [3/8] Building inner editor with PyInstaller...
 rem ----------------------------------------------------------------------------
 rem PyInstaller exclusions. Each exclude has a specific reason; do NOT add to
 rem this list without checking that the package is genuinely unreferenced at
@@ -128,7 +128,7 @@ rem ----------------------------------------------------------------------------
   --distpath ./inner/dist ./inner/src/main.py
 if errorlevel 1 goto :fail
 
-echo [3/5] Syncing inner assets...
+echo [4/8] Syncing inner assets...
 if exist ".\inner\dist\assets" (
   rmdir /s /q ".\inner\dist\assets"
   if errorlevel 1 goto :fail
@@ -136,23 +136,27 @@ if exist ".\inner\dist\assets" (
 xcopy ".\inner\src\assets" ".\inner\dist\assets\" /e /i /y
 if errorlevel 4 goto :fail
 
-echo [4/7] Building React app...
+echo [5/8] Building React app...
 call npm run build:react
 if errorlevel 1 goto :fail
 
-echo [5/7] Building Symphony backend executable with PyInstaller...
+echo [6/8] Building Symphony backend executable with PyInstaller...
 %PY_CMD% -m PyInstaller --clean --noconfirm symphony-backend.spec
 if errorlevel 1 goto :fail
 
-echo [6/7] Staging backend as Tauri sidecar...
+echo [7/8] Staging backend as Tauri sidecar and verifying artifacts...
 call npm run stage:backend
 if errorlevel 1 goto :fail
+call npm run verify:artifacts
+if errorlevel 1 goto :fail
 
-echo [7/7] Building Tauri Windows NSIS installer...
+echo [8/8] Building Tauri Windows NSIS installer...
 call npm run tauri:build
 if errorlevel 1 goto :fail
 
+echo.
 echo [Done] Windows NSIS installer build complete.
+echo [Done] Installer output: src-tauri\target\release\bundle\nsis\
 exit /b 0
 
 :fail

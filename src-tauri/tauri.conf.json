@@ -38,6 +38,17 @@
       "icons/icon.icns",
       "icons/icon.png"
     ],
-    "resources": []
+    "windows": {
+      "nsis": {
+        "installerIcon": "icons/icon.ico",
+        "uninstallerIcon": "icons/icon.ico",
+        "headerImage": "installer/nsis-header.bmp",
+        "sidebarImage": "installer/nsis-sidebar.bmp"
+      }
+    },
+    "resources": [],
+    "externalBin": [
+      "binaries/symphony-backend"
+    ]
   }
 }

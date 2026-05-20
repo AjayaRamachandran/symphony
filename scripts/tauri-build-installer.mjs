@@ -1,5 +1,8 @@
 // Build only the installer bundle for the current platform.
 // Windows produces an NSIS setup.exe; macOS produces a dmg.
+//
+// The sidecar (symphony-backend) and resources are declared in
+// src-tauri/tauri.conf.json so a plain `tauri build` always includes them.
 
 import { spawn } from "node:child_process";
 import { dirname, resolve } from "node:path";
@@ -19,13 +22,7 @@ if (!bundle) {
   process.exit(1);
 }
 
-const args = [
-  "build",
-  "-c",
-  "src-tauri/tauri.bundle.conf.json",
-  "--bundles",
-  bundle,
-];
+const args = ["build", "--bundles", bundle];
 
 const child = spawn("tauri", args, {
   cwd: root,

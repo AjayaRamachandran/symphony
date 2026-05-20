@@ -1,6 +1,6 @@
 .titlebar {
-  -webkit-app-region: drag;
-  app-region: drag;
+  --titlebar-resize-strip: 10px;
+  position: relative;
   height: 30px;
   display: flex;
   flex-direction: row;
@@ -10,11 +10,26 @@
   color: var(--tinted-foreground);
   padding: 0px 0px 0px 8px;
 }
+
+.titlebar-drag-zone {
+  -webkit-app-region: drag;
+  app-region: drag;
+  position: absolute;
+  top: var(--titlebar-resize-strip);
+  left: 0;
+  right: 108px;
+  bottom: 0;
+  z-index: 0;
+}
+
 .titlebar-center {
   display: flex;
   flex-direction: row;
   align-items: center;
   gap: 5px;
+  pointer-events: none;
+  position: relative;
+  z-index: 1;
 }
 
 .window-controls {
@@ -22,6 +37,8 @@
   height: 100%;
   -webkit-app-region: no-drag;
   app-region: no-drag;
+  position: relative;
+  z-index: 2;
 }
 
 .window-controls button {
@@ -46,6 +63,8 @@
 
 /* Only applies to Mac layout */
 .titlebar.mac {
+  -webkit-app-region: drag;
+  app-region: drag;
   justify-content: center;
   position: relative;
   padding: 0; /* override Windows padding */

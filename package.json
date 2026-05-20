@@ -54,6 +54,7 @@
         "build:react": "vite build",
         "build:backend": "pyinstaller --clean --noconfirm symphony-backend.spec",
         "stage:backend": "node scripts/stage-backend-sidecar.mjs",
+        "verify:artifacts": "node scripts/verify-build-artifacts.mjs",
         "build:icons": "node ./scripts/generate-icons.mjs",
         "tauri": "tauri",
         "tauri:build": "node scripts/tauri-build-installer.mjs",
