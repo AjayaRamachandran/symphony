@@ -56,7 +56,7 @@ However, I found areas of bloat (full app sat at over 250MB, installer ZIP was a
 
 > This essentially removes Node and Electron from the stack, reducing disk size and RAM usage, and all-python backend means developer velocity is still fast. The thin Tauri shell is simply for a static launch pane, and for handling the NSIS/DMG installer simply.
 
-<img src='https://www.dropbox.com/scl/fi/m7vp194gkiovxp7oydcbk/StackBreakdown.jpg?rlkey=628b5o9vmvycfaugiqdxvmaa9&st=95zmxofb&raw=1' style='border-radius:5px;'>
+<!-- <img src='https://www.dropbox.com/scl/fi/m7vp194gkiovxp7oydcbk/StackBreakdown.jpg?rlkey=628b5o9vmvycfaugiqdxvmaa9&st=95zmxofb&raw=1' style='border-radius:5px;'> -->
 
 ## Design
 

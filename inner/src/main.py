@@ -7,7 +7,7 @@ from console_controls.console import *
 
 ###### IMPORT ######
 
-console.message('Welcome to Symphony v1.1.')
+console.message('Welcome to Symphony v1.1.5.')
 
 import time
 lastTime = time.time()
@@ -1073,7 +1073,7 @@ while run:
                 try:
                     sdl_window = SDLWindow.from_display_module()
                     sdl_window.show()
-                    pygame.display.set_caption(f"{title_text} - Symphony v1.1")
+                    pygame.display.set_caption(f"{title_text} - Symphony v1.1.5")
                     screen = pygame.display.get_surface()
                     if screen is None or screen.get_size() != (width, height):
                         screen = pygame.display.set_mode((width, height), pygame.RESIZABLE | pygame.SHOWN)
@@ -1081,13 +1081,13 @@ while run:
                     console.warn(f"Error showing hidden window: {e}")
                     # Fallback to full init
                     pygame.display.init()
-                    pygame.display.set_caption(f"{title_text} - Symphony v1.1")
+                    pygame.display.set_caption(f"{title_text} - Symphony v1.1.5")
                     pygame.display.set_icon(gameIcon)
                     screen = pygame.display.set_mode((width, height), pygame.RESIZABLE | pygame.SHOWN)
             else:
                 # Standard initialization for Windows/Linux or first run
                 pygame.display.init()
-                pygame.display.set_caption(f"{title_text} - Symphony v1.1")
+                pygame.display.set_caption(f"{title_text} - Symphony v1.1.5")
                 pygame.display.set_icon(gameIcon)
                 screen = pygame.display.set_mode((width, height), pygame.RESIZABLE | pygame.SHOWN)
             
