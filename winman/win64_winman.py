@@ -1318,3 +1318,57 @@ def install_aero_and_resize(main_window, on_maximize) -> None:
     _u32.SetWindowPos(hwnd, 0, x, y, w + 1, h, SWP_NOZORDER | SWP_NOACTIVATE)
     _u32.SetWindowPos(hwnd, 0, x, y, w, h, SWP_NOZORDER | SWP_FRAMECHANGED | SWP_NOACTIVATE)
     print("install_aero_and_resize: done")
+
+
+def focus_main_window(main_window) -> bool:
+    """Bring the pywebview top-level window to the foreground.
+
+    Used by the second-instance handoff: when a duplicate Symphony.exe
+    launches, the Rust launcher calls ``AllowSetForegroundWindow(<backend
+    PID>)`` before posting to the PM handoff endpoint, which then calls
+    this. We also use the AttachThreadInput trick as a fallback for cases
+    where AllowSetForegroundWindow was not granted (e.g. focus stolen by an
+    unrelated process between the call and our HTTP handler running).
+    """
+    if sys.platform != "win32" or main_window is None:
+        return False
+    import ctypes
+
+    hwnd = _get_hwnd(main_window)
+    if not hwnd:
+        return False
+
+    u32 = ctypes.WinDLL("user32")
+    k32 = ctypes.WinDLL("kernel32")
+    u32.IsIconic.restype = ctypes.c_bool
+    u32.IsIconic.argtypes = [wt.HWND]
+    u32.ShowWindow.restype = ctypes.c_bool
+    u32.ShowWindow.argtypes = [wt.HWND, ctypes.c_int]
+    u32.SetForegroundWindow.restype = ctypes.c_bool
+    u32.SetForegroundWindow.argtypes = [wt.HWND]
+    u32.BringWindowToTop.restype = ctypes.c_bool
+    u32.BringWindowToTop.argtypes = [wt.HWND]
+    u32.GetForegroundWindow.restype = wt.HWND
+    u32.GetWindowThreadProcessId.restype = wt.DWORD
+    u32.GetWindowThreadProcessId.argtypes = [wt.HWND, ctypes.POINTER(wt.DWORD)]
+    u32.AttachThreadInput.restype = ctypes.c_bool
+    u32.AttachThreadInput.argtypes = [wt.DWORD, wt.DWORD, ctypes.c_bool]
+    k32.GetCurrentThreadId.restype = wt.DWORD
+
+    SW_RESTORE = 9
+    if u32.IsIconic(hwnd):
+        u32.ShowWindow(hwnd, SW_RESTORE)
+
+    fg_hwnd = u32.GetForegroundWindow()
+    fg_thread = u32.GetWindowThreadProcessId(fg_hwnd, None) if fg_hwnd else 0
+    cur_thread = k32.GetCurrentThreadId()
+    attached = False
+    try:
+        if fg_thread and fg_thread != cur_thread:
+            attached = bool(u32.AttachThreadInput(cur_thread, fg_thread, True))
+        u32.BringWindowToTop(hwnd)
+        u32.SetForegroundWindow(hwnd)
+    finally:
+        if attached:
+            u32.AttachThreadInput(cur_thread, fg_thread, False)
+    return True

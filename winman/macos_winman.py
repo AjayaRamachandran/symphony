@@ -265,3 +265,34 @@ def install_aero_and_resize(main_window, on_maximize) -> None:
         print("install_aero_and_resize: mac NSWindow tuning applied")
     except Exception as exc:
         print(f"install_aero_and_resize failed: {exc}")
+
+
+def focus_main_window(main_window) -> bool:
+    """Activate the Symphony app and bring its main window to the front.
+
+    Mac analog of winman.win64_winman.focus_main_window; used by the
+    second-instance handoff so a duplicate Symphony launch surfaces the
+    running PM window instead of spawning a second backend.
+    """
+    if sys.platform != "darwin" or not main_window:
+        return False
+    try:
+        from AppKit import NSApp  # type: ignore[import]
+    except Exception as exc:
+        print(f"focus_main_window: PyObjC import failed: {exc}")
+        return False
+
+    nsw = _get_nswindow(main_window)
+
+    def _activate():
+        try:
+            NSApp.activateIgnoringOtherApps_(True)
+            if nsw is not None:
+                if nsw.isMiniaturized():
+                    nsw.deminiaturize_(None)
+                nsw.makeKeyAndOrderFront_(None)
+        except Exception as exc:
+            print(f"focus_main_window: activate failed: {exc}")
+
+    _run_on_main(_activate)
+    return True

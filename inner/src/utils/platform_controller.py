@@ -31,7 +31,14 @@ def getPlatformNameAndMeta():
 
     try:
         from ctypes import windll
-        myappid = 'nimbial.symphony.editor.v1-1' # arbitrary string
+        # Canonical Symphony AppUserModelID. Must match Tauri's ``identifier``
+        # in ``src-tauri/tauri.conf.json``, the Rust launcher
+        # (``src-tauri/src/main.rs``), and the backend (``main.py``). The
+        # installer stamps this same ID onto the Symphony Start Menu / Desktop
+        # shortcuts, so pinning the editor window resolves back to the
+        # installed Symphony app instead of registering a separate pin for the
+        # inner editor binary.
+        myappid = 'com.ajayarsymphony.desktop'
         windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
     except ImportError:
         console.warn('Error importing windll or setting Unique AppID. You might be gui_running on a non-Windows platform.')

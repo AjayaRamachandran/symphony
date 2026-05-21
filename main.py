@@ -103,8 +103,175 @@ winman.patch_webview_nonclient()
 
 
 APP_NAME = "Symphony"
+# Windows AppUserModelID. Must match Tauri's ``identifier`` in
+# ``src-tauri/tauri.conf.json`` and the ID assigned in the Rust launcher
+# (``src-tauri/src/main.rs``) and the inner editor
+# (``inner/src/utils/platform_controller.py``). The installer stamps this same
+# ID onto the Symphony Start Menu / Desktop shortcuts, so when every visible
+# HWND across the launcher, pywebview backend, and pygame editor declares it
+# explicitly, Windows groups them all under the installed Symphony shortcut
+# and right-click -> Pin to Start always pins the launcher, not this backend.
+APP_USER_MODEL_ID = "com.ajayarsymphony.desktop"
 IS_FROZEN = getattr(sys, "frozen", False)
 APP_ROOT = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
+
+
+def setAppUserModelId() -> None:
+    '''
+    fields: none
+    outputs: nothing
+
+    Binds this Python process to the canonical Symphony AppUserModelID on
+    Windows. Must be invoked before any top-level HWND is created (pywebview
+    window, file dialogs, etc.) so the taskbar associates them with the
+    installed Symphony shortcut instead of ``symphony-backend.exe``.
+    No-op on non-Windows platforms.
+    '''
+    if sys.platform != "win32":
+        return
+    try:
+        from ctypes import windll  # local import: Windows-only
+        windll.shell32.SetCurrentProcessExplicitAppUserModelID(APP_USER_MODEL_ID)
+    except Exception as exc:  # noqa: BLE001
+        print(f"setAppUserModelId failed: {exc}")
+
+
+# ---------------------------------------------------------------------------
+# Second-instance handoff (PM-owned localhost HTTP server)
+# ---------------------------------------------------------------------------
+#
+# The Rust launcher uses tauri-plugin-single-instance to detect a duplicate
+# Symphony.exe launch in the original Rust process. The original Rust process
+# then POSTs to this server, which (a) focuses the pywebview window and
+# (b) when a .symphony path is forwarded, queues it for the existing React
+# PendingFileHandoff via the same _PENDING_OPEN_FILE channel used at startup.
+
+def _pmPortFile() -> Path:
+    # Lazy resolution: USER_DATA_PATH is defined later in this module, so
+    # we can't bind this as a module-level constant up here without
+    # reordering imports.
+    return USER_DATA_PATH / "pm-port.txt"
+
+
+def _writePmPortFile(port: int) -> None:
+    try:
+        _pmPortFile().write_text(str(int(port)), encoding="utf-8")
+    except Exception as exc:  # noqa: BLE001
+        print(f"_writePmPortFile failed: {exc}")
+
+
+def _removePmPortFile() -> None:
+    try:
+        path = _pmPortFile()
+        if path.exists():
+            path.unlink()
+    except Exception as exc:  # noqa: BLE001
+        print(f"_removePmPortFile failed: {exc}")
+
+
+def _handleSecondInstance(payload: dict) -> None:
+    '''
+    fields:
+        payload (dict) - decoded JSON body from the Rust launcher
+    outputs: nothing
+
+    Sets _PENDING_OPEN_FILE if a path was forwarded, focuses the main
+    pywebview window, and dispatches a ``symphony:second-instance`` event
+    to React so the PendingFileHandoff component can replay its flow.
+    '''
+    global _PENDING_OPEN_FILE
+    path = payload.get("path") if isinstance(payload, dict) else None
+
+    if isinstance(path, str) and path:
+        try:
+            abs_path = os.path.abspath(path)
+        except Exception:  # noqa: BLE001
+            abs_path = path
+        with _pending_open_file_lock:
+            _PENDING_OPEN_FILE = abs_path
+        print(f"second-instance: queued PENDING_OPEN_FILE={abs_path}")
+
+    try:
+        winman.focus_main_window(_main_window)
+    except Exception as exc:  # noqa: BLE001
+        print(f"second-instance focus_main_window failed: {exc}")
+
+    if _main_window is not None:
+        try:
+            _main_window.evaluate_js(
+                "window.dispatchEvent(new CustomEvent('symphony:second-instance'));"
+            )
+        except Exception as exc:  # noqa: BLE001
+            print(f"second-instance evaluate_js failed: {exc}")
+
+
+def startPmHandoffServer() -> None:
+    '''
+    fields: none
+    outputs: nothing
+
+    Starts a 127.0.0.1-only HTTP server on an ephemeral port, writes the
+    chosen port to ``pm-port.txt`` in USER_DATA_PATH, and serves POST
+    /instance for the Rust launcher's second-instance handoff. Idempotent:
+    safe to call multiple times; subsequent calls are no-ops.
+    '''
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+    if getattr(startPmHandoffServer, "_started", False):
+        return
+
+    class HandoffHandler(BaseHTTPRequestHandler):
+        def do_POST(self) -> None:  # noqa: N802 (http.server contract)
+            if self.path != "/instance":
+                self.send_response(404)
+                self.end_headers()
+                return
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                raw = self.rfile.read(length) if length > 0 else b""
+                payload = json.loads(raw.decode("utf-8")) if raw else {}
+            except Exception as exc:  # noqa: BLE001
+                self.send_response(400)
+                self.end_headers()
+                self.wfile.write(f"bad request: {exc}".encode("utf-8"))
+                return
+            try:
+                _handleSecondInstance(payload)
+            except Exception as exc:  # noqa: BLE001
+                print(f"HandoffHandler: _handleSecondInstance failed: {exc}")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(b"{\"ok\":true}")
+
+        def log_message(self, *_args, **_kwargs) -> None:
+            # Silence the default stderr access log; the line-buffered
+            # backend stdout already gets piped into launcher.log.
+            return
+
+    try:
+        server = ThreadingHTTPServer(("127.0.0.1", 0), HandoffHandler)
+    except Exception as exc:  # noqa: BLE001
+        print(f"startPmHandoffServer: bind failed: {exc}")
+        return
+
+    port = server.server_address[1]
+    _writePmPortFile(port)
+    print(f"PM handoff server listening on 127.0.0.1:{port}")
+
+    def serve() -> None:
+        try:
+            server.serve_forever(poll_interval=0.5)
+        except Exception as exc:  # noqa: BLE001
+            print(f"PM handoff server stopped: {exc}")
+
+    thread = threading.Thread(target=serve, name="symphony-pm-handoff", daemon=True)
+    thread.start()
+    startPmHandoffServer._started = True  # type: ignore[attr-defined]
+
+    import atexit
+
+    atexit.register(_removePmPortFile)
 
 USER_DATA_PATH = Path(user_data_dir(APP_NAME, appauthor=False, roaming=True))
 USER_DATA_PATH.mkdir(parents=True, exist_ok=True)
@@ -129,6 +296,102 @@ DEFAULT_SETTINGS: dict[str, Any] = {
 }
 
 VALID_FILE_EXTS = {".symphony", ".wav", ".mid", ".mp3", ".flac", ".musicxml"}
+
+# When the OS launches Symphony to open a .symphony file (file association),
+# the Rust launcher forwards the resolved absolute path to this process via
+# the SYMPHONY_OPEN_FILE environment variable. We capture it once at module
+# load. ``Api.getPendingOpenFile`` clears it after the first successful read
+# so a webview reload (Ctrl+R) doesn't replay the open flow.
+_pending_open_file_lock = threading.Lock()
+_PENDING_OPEN_FILE: str | None = (
+    os.path.abspath(os.environ["SYMPHONY_OPEN_FILE"])
+    if os.environ.get("SYMPHONY_OPEN_FILE")
+    else None
+)
+if _PENDING_OPEN_FILE:
+    print(f"PENDING_OPEN_FILE: {_PENDING_OPEN_FILE}")
+
+
+def findFileInRegistry(file_path: str) -> dict | None:
+    '''
+    fields:
+        file_path (string) - absolute path to a .symphony file
+    outputs: dict | None
+
+    Returns the directory.json entry whose registered folder is the direct
+    parent of ``file_path`` (shallow match), searching all three sections.
+    Returns ``None`` when no registered folder owns the file's parent.
+    '''
+    try:
+        directory = readJson(DIRECTORY_PATH, {})
+    except Exception as exc:  # noqa: BLE001
+        print(f"findFileInRegistry: failed to read directory.json: {exc}")
+        return None
+    parent = os.path.normcase(os.path.normpath(os.path.dirname(file_path)))
+    for section, entries in directory.items():
+        if not isinstance(entries, list):
+            continue
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            for alias, registered in entry.items():
+                if not isinstance(registered, str):
+                    continue
+                normalized = os.path.normcase(os.path.normpath(registered))
+                if normalized == parent:
+                    return {"section": section, "name": alias, "dir": registered}
+    return None
+
+
+def isDirectoryRegistered(dir_path: str) -> bool:
+    '''
+    fields:
+        dir_path (string) - absolute folder path to look up
+    outputs: boolean
+
+    Returns whether ``dir_path`` is registered in any section of directory.json.
+    '''
+    try:
+        directory = readJson(DIRECTORY_PATH, {})
+    except Exception:  # noqa: BLE001
+        return False
+    target = os.path.normcase(os.path.normpath(dir_path))
+    for entries in directory.values():
+        if not isinstance(entries, list):
+            continue
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            for registered in entry.values():
+                if not isinstance(registered, str):
+                    continue
+                if os.path.normcase(os.path.normpath(registered)) == target:
+                    return True
+    return False
+
+
+def resolveCopyDestination(source_path: str, dest_dir: str) -> str:
+    '''
+    fields:
+        source_path (string) - .symphony file to copy
+        dest_dir (string) - destination folder
+    outputs: string
+
+    Returns an absolute destination path inside ``dest_dir`` that does not
+    collide with an existing file, suffixing " (1)", " (2)", ... as needed
+    while preserving the .symphony extension.
+    '''
+    base = os.path.basename(source_path)
+    stem, ext = os.path.splitext(base)
+    candidate = os.path.join(dest_dir, base)
+    if not os.path.exists(candidate):
+        return os.path.abspath(candidate)
+    n = 1
+    while True:
+        candidate = os.path.join(dest_dir, f"{stem} ({n}){ext}")
+        if not os.path.exists(candidate):
+            return os.path.abspath(candidate)
+        n += 1
 
 
 def loadConfig() -> dict:
@@ -1115,6 +1378,101 @@ class Api:
         except Exception as exc:  # noqa: BLE001
             return {"success": False, "error": str(exc)}
 
+    # ---- pending external file open --------------------------------------
+    def getPendingOpenFile(self) -> dict | None:
+        '''
+        fields: none
+        outputs: dict | None
+
+        Returns the .symphony file that the OS asked Symphony to open (via
+        file association) along with a ``knownLocation`` registry hit if the
+        file's parent folder is one of the user's registered directories.
+        Returns ``None`` when no pending open is queued. The pending file is
+        cleared on the first read so webview reloads do not replay the flow.
+
+        Shape:
+            {
+                "path": "C:/.../Foo.symphony",
+                "exists": true,
+                "knownLocation": {"section": "Projects", "name": "...", "dir": "C:/..."} | null,
+            }
+        '''
+        global _PENDING_OPEN_FILE
+        with _pending_open_file_lock:
+            path = _PENDING_OPEN_FILE
+            _PENDING_OPEN_FILE = None
+        if not path:
+            return None
+        exists = os.path.exists(path)
+        known = findFileInRegistry(path) if exists else None
+        return {
+            "path": path.replace("\\", "/"),
+            "exists": exists,
+            "knownLocation": (
+                {
+                    "section": known["section"],
+                    "name": known["name"],
+                    "dir": known["dir"].replace("\\", "/"),
+                }
+                if known
+                else None
+            ),
+        }
+
+    def copyAndOpenSymphonyFile(self, source_path: str, dest_dir: str) -> dict:
+        '''
+        fields:
+            source_path (string) - .symphony file outside any registered folder
+            dest_dir (string) - registered destination folder
+        outputs: dict
+
+        Copies ``source_path`` (and any sibling .json metadata) into the
+        registered ``dest_dir``, suffixing the filename if a collision exists.
+        Refuses to copy into folders that are not currently registered in
+        directory.json. Returns ``{"success": True, "path": "..."}`` on
+        success; ``{"success": False, "error": "..."}`` otherwise.
+        '''
+        try:
+            if not source_path or not os.path.exists(source_path):
+                return {"success": False, "error": "Source file no longer exists."}
+            if not source_path.lower().endswith(".symphony"):
+                return {"success": False, "error": "Source is not a .symphony file."}
+            if not dest_dir or not os.path.isdir(dest_dir):
+                return {"success": False, "error": "Destination folder does not exist."}
+            if not isDirectoryRegistered(dest_dir):
+                return {
+                    "success": False,
+                    "error": "Destination folder is not registered in Symphony.",
+                }
+
+            source_parent = os.path.normcase(os.path.normpath(os.path.dirname(source_path)))
+            dest_parent = os.path.normcase(os.path.normpath(dest_dir))
+            if source_parent == dest_parent:
+                return {
+                    "success": True,
+                    "path": os.path.abspath(source_path).replace("\\", "/"),
+                    "copied": False,
+                }
+
+            target = resolveCopyDestination(source_path, dest_dir)
+            shutil.copy2(source_path, target)
+
+            sidecar_src = source_path[: -len(".symphony")] + ".json"
+            if os.path.exists(sidecar_src):
+                sidecar_target = target[: -len(".symphony")] + ".json"
+                try:
+                    shutil.copy2(sidecar_src, sidecar_target)
+                except Exception as exc:  # noqa: BLE001
+                    print(f"copyAndOpenSymphonyFile: sidecar copy failed: {exc}")
+
+            return {
+                "success": True,
+                "path": target.replace("\\", "/"),
+                "copied": True,
+            }
+        except Exception as exc:  # noqa: BLE001
+            return {"success": False, "error": str(exc)}
+
     # ---- symphony files --------------------------------------------------
     def getSymphonyFiles(self, directory_path: str) -> Any:
         '''
@@ -1398,6 +1756,9 @@ def main() -> None:
     Creates the pywebview window, attaches lifecycle hooks, and starts the app event loop.
     '''
     global _main_window
+
+    setAppUserModelId()
+    startPmHandoffServer()
 
     asset_dir = APP_ROOT / "src" / "assets"
     ensureFile(asset_dir / "user-settings.json", USER_SETTINGS_PATH, DEFAULT_SETTINGS)

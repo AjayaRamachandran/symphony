@@ -461,6 +461,11 @@ const electronAPI = {
   runEditorProgram: () => call("runEditorProgram"),
   doProcessCommand: (symphonyFilePath, command, extraArgs) =>
     call("doProcessCommand", symphonyFilePath, command, extraArgs || {}),
+
+  // OS file association handoff (Open With Symphony)
+  getPendingOpenFile: () => call("getPendingOpenFile"),
+  copyAndOpenSymphonyFile: (sourcePath, destDirAbsPath) =>
+    call("copyAndOpenSymphonyFile", sourcePath, destDirAbsPath),
 };
 
 if (typeof window !== "undefined" && !window.electronAPI) {

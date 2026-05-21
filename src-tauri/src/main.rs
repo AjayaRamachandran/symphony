@@ -17,11 +17,13 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::fs::{create_dir_all, File, OpenOptions};
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader, Read as _, Write};
+use std::net::TcpStream;
 use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
-use std::sync::Mutex;
+use std::sync::{Mutex, OnceLock};
 use std::thread;
+use std::time::{Duration, Instant};
 
 use tauri::Manager;
 
@@ -32,7 +34,22 @@ const READY_MARKER: &str = "__SYMPHONY_READY__";
 #[cfg(windows)]
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
+// Windows AppUserModelID. Must match the `identifier` in tauri.conf.json and
+// the IDs set by the Python backend (main.py) and the inner editor
+// (inner/src/utils/platform_controller.py). The installer assigns this same
+// ID to the Symphony Start Menu / Desktop shortcuts, so when every visible
+// HWND across the launcher, pywebview backend, and pygame editor declares it
+// explicitly, Windows groups them all under the installed `Symphony` shortcut
+// and pinning from any surface pins the launcher, not a child binary.
+#[cfg(windows)]
+const APP_USER_MODEL_ID: &str = "com.ajayarsymphony.desktop";
+
 struct BackendProcess(#[allow(dead_code)] Mutex<Option<Child>>);
+
+// PID of the spawned Python backend. Captured at setup time so the
+// single-instance callback can grant the backend foreground rights on
+// Windows before asking it to refocus its pywebview HWND.
+static BACKEND_PID: OnceLock<u32> = OnceLock::new();
 
 // ---------------------------------------------------------------------------
 // Logging
@@ -134,6 +151,42 @@ fn try_attach_parent_console() {
 fn try_attach_parent_console() {}
 
 // ---------------------------------------------------------------------------
+// AppUserModelID (Windows only)
+// ---------------------------------------------------------------------------
+
+#[cfg(windows)]
+fn set_app_user_model_id() {
+    // SetCurrentProcessExplicitAppUserModelID binds this process (and every
+    // top-level HWND it creates) to the same AUMID Tauri's NSIS installer
+    // stamps onto the `Symphony` shortcut. Without this call, the splash
+    // HWND would inherit the default AUMID derived from the executable
+    // path, which makes the taskbar treat the launcher binary as a
+    // separate app from the installed shortcut and breaks pinning.
+    extern "system" {
+        fn SetCurrentProcessExplicitAppUserModelID(app_id: *const u16) -> i32;
+    }
+    let wide: Vec<u16> = APP_USER_MODEL_ID
+        .encode_utf16()
+        .chain(std::iter::once(0))
+        .collect();
+    let hr = unsafe { SetCurrentProcessExplicitAppUserModelID(wide.as_ptr()) };
+    if hr < 0 {
+        log_line(format!(
+            "[launcher] SetCurrentProcessExplicitAppUserModelID(\"{}\") failed: 0x{:08X}",
+            APP_USER_MODEL_ID, hr as u32
+        ));
+    } else {
+        log_line(format!(
+            "[launcher] AppUserModelID set to {}",
+            APP_USER_MODEL_ID
+        ));
+    }
+}
+
+#[cfg(not(windows))]
+fn set_app_user_model_id() {}
+
+// ---------------------------------------------------------------------------
 // Child process helpers
 // ---------------------------------------------------------------------------
 
@@ -153,6 +206,7 @@ fn main() {
     try_attach_parent_console();
     let log_path = open_launcher_log();
     install_panic_hook();
+    set_app_user_model_id();
 
     log_line(format!(
         "[launcher] symphony-launcher v{} ({} build) starting",
@@ -181,6 +235,15 @@ fn main() {
 
 fn run_launcher() -> Result<(), String> {
     tauri::Builder::default()
+        // The single-instance plugin must be the first plugin registered so
+        // its hidden message-loop window is in place before any other plugin
+        // (or our setup hook) does work that depends on a single owner of
+        // the user-data directory. When a duplicate Symphony.exe launches it
+        // hands argv to this callback in the original process via WM_COPYDATA
+        // (Windows) / equivalent IPC on other platforms, then exits.
+        .plugin(tauri_plugin_single_instance::init(|_app, argv, _cwd| {
+            handle_second_instance(argv);
+        }))
         .setup(|app| {
             let handle = app.handle().clone();
             let mut child = match spawn_backend() {
@@ -190,6 +253,7 @@ fn run_launcher() -> Result<(), String> {
                     return Err(Box::new(err) as Box<dyn std::error::Error>);
                 }
             };
+            let _ = BACKEND_PID.set(child.id());
 
             // Capture stdout for the ready-marker watcher.
             let stdout = child
@@ -238,6 +302,227 @@ fn run_launcher() -> Result<(), String> {
         .map_err(|e| format!("tauri runtime error: {}", e))
 }
 
+// Scans the launcher's argv for a ``.symphony`` file path that exists on disk
+// (the OS shell passes it as the first positional arg when the user opens a
+// .symphony file from Explorer). Returns the canonical absolute path so the
+// backend doesn't have to re-resolve relative or shell-quoted forms.
+fn resolve_pending_open_file() -> Option<PathBuf> {
+    for arg in std::env::args().skip(1) {
+        if !arg.to_lowercase().ends_with(".symphony") {
+            continue;
+        }
+        let raw = PathBuf::from(&arg);
+        if !raw.exists() {
+            log_line(format!(
+                "[launcher] ignoring .symphony argv {:?}: path does not exist",
+                arg
+            ));
+            continue;
+        }
+        match std::fs::canonicalize(&raw) {
+            Ok(canon) => return Some(canon),
+            Err(err) => {
+                log_line(format!(
+                    "[launcher] failed to canonicalize {:?}: {}",
+                    arg, err
+                ));
+                return Some(raw);
+            }
+        }
+    }
+    None
+}
+
+// Strips Windows' ``\\?\`` extended-length prefix from canonicalized paths so
+// the value we hand to the backend is a familiar shape (``C:\...``) for
+// downstream display and shutil/os.path normalization.
+fn strip_extended_length_prefix(path: PathBuf) -> PathBuf {
+    if cfg!(windows) {
+        if let Some(s) = path.to_str() {
+            if let Some(stripped) = s.strip_prefix(r"\\?\") {
+                return PathBuf::from(stripped);
+            }
+        }
+    }
+    path
+}
+
+fn apply_pending_open_file(command: &mut Command) {
+    if let Some(path) = resolve_pending_open_file().map(strip_extended_length_prefix) {
+        log_line(format!(
+            "[launcher] forwarding SYMPHONY_OPEN_FILE={}",
+            path.display()
+        ));
+        command.env("SYMPHONY_OPEN_FILE", path);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Second-instance handoff
+// ---------------------------------------------------------------------------
+//
+// When the OS attempts to launch a second Symphony.exe (bare double-click or
+// "Open With" on a .symphony file), tauri-plugin-single-instance routes the
+// duplicate launcher's argv into ``handle_second_instance`` in the original
+// launcher process. We translate that into a "focus and maybe open this
+// file" message to the running Python backend over a localhost handoff port
+// the backend wrote to disk on startup.
+
+fn user_data_dir() -> Option<PathBuf> {
+    if cfg!(windows) {
+        std::env::var_os("LOCALAPPDATA").map(|p| PathBuf::from(p).join("Symphony"))
+    } else if cfg!(target_os = "macos") {
+        std::env::var_os("HOME").map(|p| {
+            PathBuf::from(p)
+                .join("Library")
+                .join("Application Support")
+                .join("Symphony")
+        })
+    } else {
+        std::env::var_os("HOME")
+            .map(|p| PathBuf::from(p).join(".local").join("share").join("Symphony"))
+    }
+}
+
+fn pm_port_file() -> Option<PathBuf> {
+    user_data_dir().map(|d| d.join("pm-port.txt"))
+}
+
+// Polls pm-port.txt for up to ~1 s. On the very first second-instance race
+// (user double-clicks Symphony.exe twice within ~500 ms) the backend may not
+// have finished its HTTP server bind yet.
+fn read_pm_port_with_retry(deadline: Duration) -> Option<u16> {
+    let path = pm_port_file()?;
+    let started = Instant::now();
+    loop {
+        if let Ok(contents) = std::fs::read_to_string(&path) {
+            if let Ok(port) = contents.trim().parse::<u16>() {
+                if port != 0 {
+                    return Some(port);
+                }
+            }
+        }
+        if started.elapsed() >= deadline {
+            return None;
+        }
+        thread::sleep(Duration::from_millis(50));
+    }
+}
+
+fn extract_symphony_path(argv: &[String]) -> Option<PathBuf> {
+    for arg in argv.iter().skip(1) {
+        if !arg.to_lowercase().ends_with(".symphony") {
+            continue;
+        }
+        let raw = PathBuf::from(arg);
+        if !raw.exists() {
+            log_line(format!(
+                "[launcher] second-instance: ignoring .symphony argv {:?}: missing",
+                arg
+            ));
+            continue;
+        }
+        return Some(
+            std::fs::canonicalize(&raw)
+                .map(strip_extended_length_prefix)
+                .unwrap_or(raw),
+        );
+    }
+    None
+}
+
+#[cfg(windows)]
+fn allow_backend_foreground() {
+    let Some(pid) = BACKEND_PID.get().copied() else {
+        return;
+    };
+    extern "system" {
+        fn AllowSetForegroundWindow(process_id: u32) -> i32;
+    }
+    let ok = unsafe { AllowSetForegroundWindow(pid) };
+    if ok == 0 {
+        log_line(format!(
+            "[launcher] AllowSetForegroundWindow({}) failed (last-error not fetched)",
+            pid
+        ));
+    }
+}
+
+#[cfg(not(windows))]
+fn allow_backend_foreground() {}
+
+// Minimal 1-shot HTTP/1.1 POST so we don't pull in a full HTTP crate.
+fn post_handoff(port: u16, body: &str) -> std::io::Result<()> {
+    let mut stream = TcpStream::connect_timeout(
+        &format!("127.0.0.1:{}", port).parse().map_err(|e| {
+            std::io::Error::new(std::io::ErrorKind::InvalidInput, format!("addr: {}", e))
+        })?,
+        Duration::from_secs(2),
+    )?;
+    stream.set_read_timeout(Some(Duration::from_secs(2)))?;
+    stream.set_write_timeout(Some(Duration::from_secs(2)))?;
+    let request = format!(
+        "POST /instance HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nContent-Type: application/json\r\nContent-Length: {len}\r\nConnection: close\r\n\r\n{body}",
+        port = port,
+        len = body.as_bytes().len(),
+        body = body
+    );
+    stream.write_all(request.as_bytes())?;
+    let mut buf = Vec::new();
+    let _ = stream.read_to_end(&mut buf);
+    Ok(())
+}
+
+fn json_escape(s: &str) -> String {
+    let mut out = String::with_capacity(s.len() + 2);
+    for ch in s.chars() {
+        match ch {
+            '"' => out.push_str("\\\""),
+            '\\' => out.push_str("\\\\"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            c if (c as u32) < 0x20 => out.push_str(&format!("\\u{:04x}", c as u32)),
+            c => out.push(c),
+        }
+    }
+    out
+}
+
+fn handle_second_instance(argv: Vec<String>) {
+    log_line(format!(
+        "[launcher] forwarding second-instance argv: {:?}",
+        argv
+    ));
+    let path = extract_symphony_path(&argv);
+
+    let Some(port) = read_pm_port_with_retry(Duration::from_millis(1000)) else {
+        log_line(
+            "[launcher] second-instance: pm-port.txt not available; cannot focus existing window"
+                .to_string(),
+        );
+        return;
+    };
+
+    allow_backend_foreground();
+
+    let body = match &path {
+        Some(p) => format!("{{\"path\":\"{}\"}}", json_escape(&p.to_string_lossy())),
+        None => "{\"path\":null}".to_string(),
+    };
+
+    match post_handoff(port, &body) {
+        Ok(()) => log_line(format!(
+            "[launcher] posted to PM handoff on port {} (path={:?})",
+            port, path
+        )),
+        Err(err) => log_line(format!(
+            "[launcher] PM handoff POST failed on port {}: {}",
+            port, err
+        )),
+    }
+}
+
 #[cfg(debug_assertions)]
 fn spawn_backend() -> std::io::Result<Child> {
     // Dev: run the python source directly from the repo root. The launcher's
@@ -257,6 +542,7 @@ fn spawn_backend() -> std::io::Result<Child> {
         .arg(script)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
+    apply_pending_open_file(&mut command);
     command.spawn()
 }
 
@@ -320,5 +606,6 @@ fn spawn_backend() -> std::io::Result<Child> {
     let mut command = Command::new(&backend_path);
     hide_child_console(&mut command);
     command.stdout(Stdio::piped()).stderr(Stdio::piped());
+    apply_pending_open_file(&mut command);
     command.spawn()
 }

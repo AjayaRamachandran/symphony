@@ -1,13 +1,13 @@
 on:
   push:
     branches:
-    - release-mac
+    - release-macos
     - release-win64
 
 jobs:
   build-mac:
     name: Build on macOS
-    if: github.ref == 'refs/heads/release-mac'
+    if: github.ref == 'refs/heads/release-macos'
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v4

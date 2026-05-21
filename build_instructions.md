@@ -35,7 +35,7 @@ Use this `package.json` content before starting a build:
     "main": "main.js",
     "forceCodeSigning": false,
     "build": {
-        "appId": "com.ajayarsymphony.app",
+        "appId": "com.ajayarsymphony.desktop",
         "productName": "Symphony",
         "asarUnpack": [
             "inner/dist/main.exe",
