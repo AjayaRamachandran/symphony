@@ -1776,6 +1776,8 @@ def moveProjectManagerOnscreen() -> None:
         except Exception as exc:  # noqa: BLE001
             console.log(f"moveProjectManagerOnscreen failed: {exc}")
     try:
+        if sys.platform == "darwin" and _main_window and hasattr(_main_window, "show"):
+            _main_window.show()
         winman.focus_main_window(_main_window)
     except Exception as exc:  # noqa: BLE001
         console.log(f"focus Project Manager failed: {exc}")
@@ -1884,18 +1886,25 @@ def main() -> None:
     waitForEditorBeforeProjectManager()
 
     api = Api()
-    _main_window = webview.create_window(
-        "Symphony",
-        url=resolveUrl(),
-        js_api=api,
-        width=PROJECT_MANAGER_WIDTH,
-        height=PROJECT_MANAGER_HEIGHT,
-        x=PROJECT_MANAGER_OFFSCREEN_X,
-        y=PROJECT_MANAGER_OFFSCREEN_Y,
-        min_size=(PROJECT_MANAGER_MIN_WIDTH, PROJECT_MANAGER_MIN_HEIGHT),
-        frameless=True,
-        easy_drag=False,
-    )
+    windowOptions = {
+        "title": "Symphony",
+        "url": resolveUrl(),
+        "js_api": api,
+        "width": PROJECT_MANAGER_WIDTH,
+        "height": PROJECT_MANAGER_HEIGHT,
+        "min_size": (PROJECT_MANAGER_MIN_WIDTH, PROJECT_MANAGER_MIN_HEIGHT),
+        "frameless": True,
+        "easy_drag": False,
+    }
+    if sys.platform == "darwin":
+        # Cocoa reports no active screen for extreme offscreen coordinates,
+        # which can crash pywebview during the initial move callback.
+        windowOptions["hidden"] = True
+    else:
+        windowOptions["x"] = PROJECT_MANAGER_OFFSCREEN_X
+        windowOptions["y"] = PROJECT_MANAGER_OFFSCREEN_Y
+
+    _main_window = webview.create_window(**windowOptions)
     _main_window.events.maximized += onMaximized
     _main_window.events.restored += onRestored
     _main_window.events.closing += onClosing
