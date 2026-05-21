@@ -1,4 +1,4 @@
-# native_drag_mac.py
+# winman/native_drag_mac.py
 # macOS-side equivalents of the Windows drag-source / drop-target helpers in
 # winman/win64_winman.py. The pywebview Cocoa backend exposes the WKWebView via
 # ``window.native``; we reach the underlying view and use AppKit drag APIs
@@ -17,7 +17,13 @@ from __future__ import annotations
 
 import os
 import sys
+from pathlib import Path
 from typing import Callable, Iterable
+
+INNER_SRC_PATH = Path(__file__).resolve().parents[1] / "inner" / "src"
+if str(INNER_SRC_PATH) not in sys.path:
+    sys.path.insert(0, str(INNER_SRC_PATH))
+from console_controls.console import console
 
 _drag_refs: list = []   # keep PyObjC drag-source instances alive across sessions
 _drop_refs: list = []   # keep drop-target swizzle / handler refs alive
@@ -45,7 +51,7 @@ def _coerceFilePaths(file_paths) -> list[str]:
             continue
         absolute = os.path.abspath(str(entry))
         if not os.path.isfile(absolute):
-            print(f"native_drag_mac: file does not exist: {absolute}")
+            console.log(f"native_drag_mac: file does not exist: {absolute}")
             continue
         resolved.append(absolute)
     return resolved
@@ -63,7 +69,7 @@ def _runOnMain(fn: Callable[[], None]) -> None:
     try:
         from Foundation import NSThread, NSOperationQueue
     except Exception as exc:  # noqa: BLE001
-        print(f"native_drag_mac main-thread dispatch unavailable: {exc}")
+        console.log(f"native_drag_mac main-thread dispatch unavailable: {exc}")
         fn()
         return
     if NSThread.isMainThread():
@@ -91,7 +97,7 @@ def startFileDrag(file_paths) -> bool:
 
     main_window = _resolveMainWindow()
     if main_window is None:
-        print("native_drag_mac: no active pywebview window")
+        console.log("native_drag_mac: no active pywebview window")
         return False
 
     def _begin() -> None:
@@ -104,7 +110,7 @@ def startFileDrag(file_paths) -> bool:
         try:
             _beginDragSession(main_window, paths)
         except Exception as exc:  # noqa: BLE001
-            print(f"native_drag_mac startFileDrag failed: {exc}")
+            console.log(f"native_drag_mac startFileDrag failed: {exc}")
 
     _runOnMain(_begin)
     return True
@@ -205,7 +211,7 @@ def _resolveDragEvent(view):
             1.0,
         )
     except Exception as exc:  # noqa: BLE001
-        print(f"native_drag_mac _resolveDragEvent failed: {exc}")
+        console.log(f"native_drag_mac _resolveDragEvent failed: {exc}")
         return None
 
 
@@ -230,16 +236,16 @@ def _beginDragSession(main_window, paths: list[str]) -> None:
 
     view = _resolveWebView(main_window)
     if view is None:
-        print("native_drag_mac: no WKWebView resolved")
+        console.log("native_drag_mac: no WKWebView resolved")
         return
 
     event = _resolveDragEvent(view)
     if event is None:
-        print("native_drag_mac: no NSEvent available for drag session")
+        console.log("native_drag_mac: no NSEvent available for drag session")
         return
 
     if _SymphonyDragSource is None:
-        print("native_drag_mac: drag source class unavailable")
+        console.log("native_drag_mac: drag source class unavailable")
         return
 
     workspace = NSWorkspace.sharedWorkspace()
@@ -271,7 +277,7 @@ def _beginDragSession(main_window, paths: list[str]) -> None:
     try:
         view.beginDraggingSessionWithItems_event_source_(items, event, source)
     except Exception as exc:  # noqa: BLE001
-        print(f"native_drag_mac beginDraggingSession failed: {exc}")
+        console.log(f"native_drag_mac beginDraggingSession failed: {exc}")
 
 
 def _defineDragSourceClass():
@@ -304,5 +310,5 @@ if sys.platform == "darwin":
     try:
         _SymphonyDragSource = _defineDragSourceClass()
     except Exception as exc:  # noqa: BLE001
-        print(f"native_drag_mac: failed to define drag source class: {exc}")
+        console.log(f"native_drag_mac: failed to define drag source class: {exc}")
         _SymphonyDragSource = None  # type: ignore[assignment]

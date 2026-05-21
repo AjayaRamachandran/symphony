@@ -1,6 +1,6 @@
 [package]
 name = "symphony-launcher"
-version = "1.1.0"
+version = "1.1.5"
 description = "Symphony splash launcher"
 edition = "2021"
 rust-version = "1.70"

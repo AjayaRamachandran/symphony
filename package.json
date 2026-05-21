@@ -3,7 +3,7 @@
     "private": true,
     "version": "1.1.0",
     "scripts": {
-        "dev": "tauri dev",
+        "dev": "node scripts/dev.mjs",
         "package-app": "node scripts/package-app.mjs",
         "package-app:windows": ".\\scripts\\package-app-windows.bat",
         "package-app:mac": "sh ./scripts/package-app-mac.sh",

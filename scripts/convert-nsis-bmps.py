@@ -18,9 +18,16 @@ Usage:
 
 from __future__ import annotations
 
-import struct
+
 import sys
 from pathlib import Path
+
+INNER_SRC_PATH = Path(__file__).resolve().parents[1] / "inner" / "src"
+if str(INNER_SRC_PATH) not in sys.path:
+    sys.path.insert(0, str(INNER_SRC_PATH))
+from console_controls.console import console
+
+import struct
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -172,20 +179,20 @@ def convert(path: Path) -> None:
     width, height, rows = _parse_bmp(path)
     out = _encode_bmp3(width, height, rows)
     path.write_bytes(out)
-    print(f"  rewrote {path} as {width}x{height} 24-bit BMP3 ({len(out)} bytes)")
+    console.log(f"  rewrote {path} as {width}x{height} 24-bit BMP3 ({len(out)} bytes)")
 
 
 def main(argv: list[str]) -> int:
     targets = [Path(a) for a in argv[1:]] or DEFAULT_TARGETS
-    print("Converting BMPs to NSIS-compatible BMP3:")
+    console.log("Converting BMPs to NSIS-compatible BMP3:")
     for target in targets:
         if not target.exists():
-            print(f"  skip (missing): {target}")
+            console.log(f"  skip (missing): {target}")
             continue
         try:
             convert(target)
         except Exception as exc:
-            print(f"  FAILED {target}: {exc}")
+            console.log(f"  FAILED {target}: {exc}")
             return 1
     return 0
 

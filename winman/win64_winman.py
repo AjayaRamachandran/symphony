@@ -2,7 +2,14 @@
 # Windows ctypes, WndProc, and Aero handlers for the frameless Symphony window.
 
 from __future__ import annotations
+
 import sys
+from pathlib import Path
+
+INNER_SRC_PATH = Path(__file__).resolve().parents[1] / "inner" / "src"
+if str(INNER_SRC_PATH) not in sys.path:
+    sys.path.insert(0, str(INNER_SRC_PATH))
+from console_controls.console import console
 
 TITLE_BAR_H = 30   # must match title-bar.css: .titlebar { height: 30px }
 BUTTON_W    = 108  # 3 × 36 px window-controls buttons
@@ -51,7 +58,7 @@ def patch_webview_nonclient() -> None:
 
         _ec.EdgeChrome.on_webview_ready = _patched
     except Exception as exc:
-        print(f"webview nonclient-region patch skipped: {exc}")
+        console.log(f"webview nonclient-region patch skipped: {exc}")
 
 
 def get_work_area() -> tuple[int, int, int, int] | None:
@@ -80,8 +87,53 @@ def get_work_area() -> tuple[int, int, int, int] | None:
             return None
         return (rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top)
     except Exception as exc:
-        print(f"get_work_area failed: {exc}")
+        console.log(f"get_work_area failed: {exc}")
         return None
+
+
+def center_window(main_window, width: int, height: int) -> bool:
+    """Center the pywebview HWND using native Windows pixel coordinates."""
+    if sys.platform != "win32" or main_window is None:
+        return False
+    try:
+        import ctypes
+        import ctypes.wintypes as wt
+
+        hwnd = _get_hwnd(main_window)
+        if not hwnd:
+            return False
+
+        work_area = get_work_area()
+        if not work_area:
+            return False
+        work_x, work_y, work_w, work_h = work_area
+
+        user32 = ctypes.WinDLL("user32")
+        rect = wt.RECT()
+        if not user32.GetWindowRect(hwnd, ctypes.byref(rect)):
+            return False
+        hwnd_w = int(rect.right - rect.left)
+        hwnd_h = int(rect.bottom - rect.top)
+        x = int(work_x + max((work_w - hwnd_w) // 2, 0))
+        y = int(work_y + max((work_h - hwnd_h) // 2, 0))
+
+        user32.SetWindowPos.argtypes = [
+            wt.HWND,
+            wt.HWND,
+            ctypes.c_int,
+            ctypes.c_int,
+            ctypes.c_int,
+            ctypes.c_int,
+            wt.UINT,
+        ]
+        user32.SetWindowPos.restype = wt.BOOL
+        SWP_NOZORDER = 0x0004
+        SWP_NOACTIVATE = 0x0010
+        SWP_NOSIZE = 0x0001
+        return bool(user32.SetWindowPos(hwnd, 0, x, y, 0, 0, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOSIZE))
+    except Exception as exc:
+        console.log(f"center_window failed: {exc}")
+        return False
 
 
 def _get_hwnd(main_window) -> int:
@@ -95,7 +147,7 @@ def _get_hwnd(main_window) -> int:
             handle = native.Handle
             hwnd = handle.ToInt64() if hasattr(handle, "ToInt64") else handle.ToInt32()
         except Exception as exc:
-            print(f"win_c: Handle conversion failed: {exc}")
+            console.log(f"win_c: Handle conversion failed: {exc}")
     if not hwnd:
         hwnd = ctypes.windll.user32.FindWindowW(None, getattr(main_window, "title", "Symphony"))
     return int(hwnd or 0)
@@ -130,7 +182,7 @@ def post_native_drag(main_window, file_paths) -> bool:
 
     hwnd = _get_hwnd(main_window)
     if not hwnd:
-        print("[symphony-drag] post_native_drag: could not obtain HWND")
+        console.log("[symphony-drag] post_native_drag: could not obtain HWND")
         return False
 
     global _pending_drag_paths
@@ -141,7 +193,7 @@ def post_native_drag(main_window, file_paths) -> bool:
     user32.PostMessageW.restype = wt.BOOL
 
     ok = bool(user32.PostMessageW(hwnd, WM_APP_DRAG, 0, 0))
-    print(f"[symphony-drag] post_native_drag PostMessage ok={ok} paths={paths}")
+    console.log(f"[symphony-drag] post_native_drag PostMessage ok={ok} paths={paths}")
     return ok
 
 
@@ -171,13 +223,13 @@ def start_file_drag(file_paths) -> bool:
             continue
         absolute = os.path.abspath(str(entry))
         if not os.path.isfile(absolute):
-            print(f"start_file_drag: file does not exist: {absolute}")
+            console.log(f"start_file_drag: file does not exist: {absolute}")
             continue
         resolved.append(absolute)
     if not resolved:
-        print("[symphony-drag] start_file_drag: no resolvable paths")
+        console.log("[symphony-drag] start_file_drag: no resolvable paths")
         return False
-    print(f"[symphony-drag] start_file_drag resolved={resolved}")
+    console.log(f"[symphony-drag] start_file_drag resolved={resolved}")
 
     HRESULT = ctypes.c_long
     ULONG = wt.DWORD
@@ -375,7 +427,7 @@ def start_file_drag(file_paths) -> bool:
             pmedium.contents.pUnkForRelease = None
             return S_OK
         except Exception as exc:
-            print(f"start_file_drag GetData failed: {exc}")
+            console.log(f"start_file_drag GetData failed: {exc}")
             return DV_E_FORMATETC
 
     @GetData
@@ -505,11 +557,11 @@ def start_file_drag(file_paths) -> bool:
             ctypes.byref(effect),
         )
         if result not in (S_OK, DRAGDROP_S_DROP, DRAGDROP_S_CANCEL):
-            print(f"start_file_drag: DoDragDrop returned {result:#010x}")
+            console.log(f"start_file_drag: DoDragDrop returned {result:#010x}")
             return False
         return True
     except Exception as exc:
-        print(f"start_file_drag failed: {exc}")
+        console.log(f"start_file_drag failed: {exc}")
         return False
     finally:
         try:
@@ -541,7 +593,7 @@ def register_drop_target(main_window, on_paths) -> bool:
 
     hwnd = _get_hwnd(main_window)
     if not hwnd:
-        print("register_drop_target: could not obtain HWND")
+        console.log("register_drop_target: could not obtain HWND")
         return False
 
     HRESULT = ctypes.c_long
@@ -685,7 +737,7 @@ def register_drop_target(main_window, on_paths) -> bool:
             fn = ctypes.cast(fn_ptr, QueryGetDataT)
             return fn(data_object_ptr, ctypes.byref(fmt)) == S_OK
         except Exception as exc:  # noqa: BLE001
-            print(f"register_drop_target QueryGetData failed: {exc}")
+            console.log(f"register_drop_target QueryGetData failed: {exc}")
             return False
 
     def _read_paths(data_object_ptr) -> list[str]:
@@ -723,7 +775,7 @@ def register_drop_target(main_window, on_paths) -> bool:
                 kernel32.GlobalUnlock(medium.hGlobal)
                 ole32.ReleaseStgMedium(ctypes.byref(medium))
         except Exception as exc:  # noqa: BLE001
-            print(f"register_drop_target GetData failed: {exc}")
+            console.log(f"register_drop_target GetData failed: {exc}")
             return []
 
     state = {"accept": False}
@@ -732,7 +784,7 @@ def register_drop_target(main_window, on_paths) -> bool:
     def drag_enter(this, p_data_object, _key_state, _pt, p_effect):
         accept = _has_hdrop(p_data_object)
         state["accept"] = accept
-        print(f"[symphony-drag] IDropTarget.DragEnter accept={accept}")
+        console.log(f"[symphony-drag] IDropTarget.DragEnter accept={accept}")
         if p_effect:
             p_effect[0] = DROPEFFECT_COPY if accept else DROPEFFECT_NONE
         return S_OK
@@ -745,21 +797,21 @@ def register_drop_target(main_window, on_paths) -> bool:
 
     @DragLeaveFn
     def drag_leave(_this):
-        print("[symphony-drag] IDropTarget.DragLeave")
+        console.log("[symphony-drag] IDropTarget.DragLeave")
         state["accept"] = False
         return S_OK
 
     @DropFn
     def drop(_this, p_data_object, _key_state, pt, p_effect):
-        print(f"[symphony-drag] IDropTarget.Drop at ({int(pt.x)},{int(pt.y)})")
+        console.log(f"[symphony-drag] IDropTarget.Drop at ({int(pt.x)},{int(pt.y)})")
         try:
             paths = _read_paths(p_data_object)
-            print(f"[symphony-drag] IDropTarget paths={paths}")
+            console.log(f"[symphony-drag] IDropTarget paths={paths}")
             if paths:
                 try:
                     on_paths(paths, int(pt.x), int(pt.y))
                 except Exception as exc:  # noqa: BLE001
-                    print(f"[symphony-drag] on_paths failed: {exc}")
+                    console.log(f"[symphony-drag] on_paths failed: {exc}")
         finally:
             state["accept"] = False
             if p_effect:
@@ -775,11 +827,11 @@ def register_drop_target(main_window, on_paths) -> bool:
     try:
         ole32.OleInitialize(None)
     except Exception as exc:  # noqa: BLE001
-        print(f"register_drop_target OleInitialize failed: {exc}")
+        console.log(f"register_drop_target OleInitialize failed: {exc}")
 
     hr = ole32.RegisterDragDrop(hwnd, ctypes.cast(ctypes.byref(target), LPVOID))
     if hr != S_OK:
-        print(f"register_drop_target: RegisterDragDrop returned {hr:#010x}")
+        console.log(f"register_drop_target: RegisterDragDrop returned {hr:#010x}")
         return False
 
     _drop_target_refs.extend([
@@ -789,7 +841,7 @@ def register_drop_target(main_window, on_paths) -> bool:
         state, on_paths,
     ])
     _drop_target_installed = True
-    print(f"register_drop_target: installed on HWND {hwnd:#010x}")
+    console.log(f"register_drop_target: installed on HWND {hwnd:#010x}")
     return True
 
 
@@ -817,7 +869,7 @@ def start_resize(main_window, edge: str) -> bool:
 
     hwnd = _get_hwnd(main_window)
     if not hwnd:
-        print("start_resize: could not obtain HWND")
+        console.log("start_resize: could not obtain HWND")
         return False
 
     user32 = ctypes.WinDLL("user32")
@@ -857,7 +909,7 @@ def begin_manual_resize(main_window, edge: str, screen_x: int, screen_y: int) ->
 
         hwnd = _get_hwnd(main_window)
         if not hwnd:
-            print("begin_manual_resize: could not obtain HWND")
+            console.log("begin_manual_resize: could not obtain HWND")
             return False
 
         user32 = ctypes.WinDLL("user32")
@@ -896,7 +948,7 @@ def begin_manual_resize(main_window, edge: str, screen_x: int, screen_y: int) ->
         }
         return True
     except Exception as exc:
-        print(f"begin_manual_resize failed: {exc}")
+        console.log(f"begin_manual_resize failed: {exc}")
         _manual_resize_start = None
         return False
 
@@ -970,7 +1022,7 @@ def update_manual_resize(main_window, screen_x: int, screen_y: int) -> bool:
             SWP_NOZORDER | SWP_NOACTIVATE,
         ))
     except Exception as exc:
-        print(f"update_manual_resize failed: {exc}")
+        console.log(f"update_manual_resize failed: {exc}")
         return False
 
 
@@ -990,7 +1042,7 @@ def toggle_native_maximize(main_window) -> bool | None:
 
     hwnd = _get_hwnd(main_window)
     if not hwnd:
-        print("toggle_native_maximize: could not obtain HWND")
+        console.log("toggle_native_maximize: could not obtain HWND")
         return None
 
     user32 = ctypes.WinDLL("user32")
@@ -1040,10 +1092,10 @@ def install_aero_and_resize(main_window, on_maximize) -> None:
     # --- get HWND from pywebview's native WinForms Form ----------------------
     hwnd = _get_hwnd(main_window)
     if not hwnd:
-        print("install_aero_and_resize: could not obtain HWND — aborting")
+        console.log("install_aero_and_resize: could not obtain HWND — aborting")
         return
 
-    print(f"install_aero_and_resize: HWND={hwnd:#010x}")
+    console.log(f"install_aero_and_resize: HWND={hwnd:#010x}")
 
     # --- Win32 constants -----------------------------------------------------
     GWL_STYLE      = -16
@@ -1137,7 +1189,7 @@ def install_aero_and_resize(main_window, on_maximize) -> None:
     old_style = _u32.GetWindowLongW(hwnd, GWL_STYLE)
     new_style  = old_style | WS_CAPTION | WS_THICKFRAME | WS_SYSMENU | WS_MAXIMIZEBOX | WS_MINIMIZEBOX
     _u32.SetWindowLongW(hwnd, GWL_STYLE, new_style)
-    print(f"install_aero_and_resize: style {old_style:#010x} -> {new_style:#010x}")
+    console.log(f"install_aero_and_resize: style {old_style:#010x} -> {new_style:#010x}")
 
     # --- Aero drop shadow + border via DWM -----------------------------------
     class MARGINS(ctypes.Structure):
@@ -1154,14 +1206,14 @@ def install_aero_and_resize(main_window, on_maximize) -> None:
     try:
         dwm.DwmExtendFrameIntoClientArea(hwnd, ctypes.byref(MARGINS(1, 1, 1, 1)))
     except Exception as exc:
-        print(f"DwmExtendFrameIntoClientArea failed: {exc}")
+        console.log(f"DwmExtendFrameIntoClientArea failed: {exc}")
     try:
         # DWMWA_BORDER_COLOR = 34. A visible border gives users an edge target
         # while keeping the frameless client-drawn titlebar.
         _border_color = ctypes.c_uint32(WINDOW_BORDER_COLOR)
         dwm.DwmSetWindowAttribute(hwnd, 34, ctypes.byref(_border_color), ctypes.sizeof(_border_color))
     except Exception as exc:
-        print(f"DwmSetWindowAttribute BORDER_COLOR failed: {exc}")
+        console.log(f"DwmSetWindowAttribute BORDER_COLOR failed: {exc}")
 
     # --- WndProc subclass (ctypes, explicit 64-bit argtypes) -----------------
     WndProcT = ctypes.WINFUNCTYPE(ctypes.c_ssize_t, wt.HWND, wt.UINT, wt.WPARAM, wt.LPARAM)
@@ -1238,7 +1290,7 @@ def install_aero_and_resize(main_window, on_maximize) -> None:
                                 params.rgrc[0].top    += frame_y
                                 params.rgrc[0].bottom -= frame_y
                     except Exception as exc:
-                        print(f"WM_NCCALCSIZE maximized inset failed: {exc}")
+                        console.log(f"WM_NCCALCSIZE maximized inset failed: {exc}")
                 return 0
 
             if msg == WM_NCHITTEST:
@@ -1277,16 +1329,16 @@ def install_aero_and_resize(main_window, on_maximize) -> None:
                 global _pending_drag_paths
                 paths = list(_pending_drag_paths)
                 _pending_drag_paths = []
-                print(f"[symphony-drag] WndProc WM_APP_DRAG paths={paths}")
+                console.log(f"[symphony-drag] WndProc WM_APP_DRAG paths={paths}")
                 if paths:
                     try:
                         start_file_drag(paths)
                     except Exception as exc:  # noqa: BLE001
-                        print(f"[symphony-drag] WndProc DoDragDrop failed: {exc}")
+                        console.log(f"[symphony-drag] WndProc DoDragDrop failed: {exc}")
                 return 0
 
         except Exception as exc:
-            print(f"_proc error (msg={msg:#06x}): {exc}")
+            console.log(f"_proc error (msg={msg:#06x}): {exc}")
 
         return _u32.CallWindowProcW(old_proc[0], h, msg, wp, lp)
 
@@ -1296,13 +1348,13 @@ def install_aero_and_resize(main_window, on_maximize) -> None:
         old_proc[0] = _u32.SetWindowLongPtrW(hwnd, GWLP_WNDPROC, cb_ptr)
         if old_proc[0] == 0:
             err = ctypes.windll.kernel32.GetLastError()
-            print(f"install_aero_and_resize: SetWindowLongPtrW failed, GetLastError={err}")
+            console.log(f"install_aero_and_resize: SetWindowLongPtrW failed, GetLastError={err}")
         else:
             _win_proc_installed = True
-            print(f"install_aero_and_resize: WndProc installed, old={old_proc[0]:#018x}")
+            console.log(f"install_aero_and_resize: WndProc installed, old={old_proc[0]:#018x}")
         _win_hook_refs.extend([cb, old_proc, _u32])
     else:
-        print("install_aero_and_resize: WndProc already installed, refreshing frame only")
+        console.log("install_aero_and_resize: WndProc already installed, refreshing frame only")
 
     # Nudge the window by 1px then back so Windows fires WM_SIZE, which
     # activates the resize grip zones.  SetWindowPos with the same rect (even
@@ -1317,7 +1369,7 @@ def install_aero_and_resize(main_window, on_maximize) -> None:
     h = int(rc.bottom - rc.top)
     _u32.SetWindowPos(hwnd, 0, x, y, w + 1, h, SWP_NOZORDER | SWP_NOACTIVATE)
     _u32.SetWindowPos(hwnd, 0, x, y, w, h, SWP_NOZORDER | SWP_FRAMECHANGED | SWP_NOACTIVATE)
-    print("install_aero_and_resize: done")
+    console.log("install_aero_and_resize: done")
 
 
 def focus_main_window(main_window) -> bool:

@@ -109,11 +109,11 @@ function ImportExternalFile({ sourcePath, onCancel, onImported }) {
   return (
     <>
       <div className="modal-title" style={{ marginBottom: "15px" }}>
-        Import piece into Symphony
+        Import a Symphony
       </div>
       <div className="modal-paragraph" style={{ marginBottom: "20px" }}>
-        <strong>{fileName}</strong> isn't in any of your Symphony folders yet.
-        Pick one to copy it into.
+        "{fileName}" isn't in your Symphony directory.
+        Pick a project folder to copy it into.
       </div>
       <div className="modal-body">Destination folder</div>
       <Dropdown
@@ -146,9 +146,6 @@ function ImportExternalFile({ sourcePath, onCancel, onImported }) {
           marginTop: "24px",
         }}
       >
-        <button onClick={onCancel} disabled={busy}>
-          Cancel
-        </button>
         <button
           className={
             !selectedFolder?.dirPath || busy
@@ -159,7 +156,7 @@ function ImportExternalFile({ sourcePath, onCancel, onImported }) {
             !selectedFolder?.dirPath || busy ? undefined : importAndOpen
           }
         >
-          {busy ? "Importing..." : "Import and open"}
+          {busy ? "Importing..." : "Import & Open"}
         </button>
       </div>
       <GenericModal

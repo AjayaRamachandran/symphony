@@ -1,6 +1,16 @@
+
+import sys
+from pathlib import Path
+
 import json
 import os
 import re
+from pathlib import Path
+
+INNER_SRC_PATH = Path(__file__).resolve().parents[1] / "inner" / "src"
+if str(INNER_SRC_PATH) not in sys.path:
+    sys.path.insert(0, str(INNER_SRC_PATH))
+from console_controls.console import console
 
 PY_RAW = "scripts/packages_raw.txt"
 JS_RAW = "scripts/packages_raw_js.txt"
@@ -191,4 +201,4 @@ with open(OUT, "w") as f:
             f"(prod: {round(prod_total, 1)} MB, dev: {round(dev_total, 1)} MB)\n"
         )
 
-print("Written to packages_sorted.md")
+console.log("Written to packages_sorted.md")

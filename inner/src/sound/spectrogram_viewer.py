@@ -5,6 +5,12 @@ from __future__ import annotations
 import importlib
 import json
 from pathlib import Path
+import sys
+
+INNER_SRC_PATH = Path(__file__).resolve().parents[1]
+if str(INNER_SRC_PATH) not in sys.path:
+    sys.path.insert(0, str(INNER_SRC_PATH))
+from console_controls.console import console
 
 import numpy as np
 import pygame
@@ -371,12 +377,12 @@ def run_viewer(
                     with open(output_tones_file, "w", encoding="utf-8") as output_file:
                         json.dump(output_payload, output_file, indent=2, sort_keys=True)
 
-                    print("\n# Tones map saved")
-                    print(f"mode = {mode}")
-                    print(f"root_frequency_hz = {root_freq}")
-                    print("# Copyable hashmap: key=(freq/rootfreq), value=amplitude")
-                    print(ratio_to_amp)
-                    print(f"# Saved tones map to file: {output_tones_file}")
+                    console.log("\n# Tones map saved")
+                    console.log(f"mode = {mode}")
+                    console.log(f"root_frequency_hz = {root_freq}")
+                    console.log("# Copyable hashmap: key=(freq/rootfreq), value=amplitude")
+                    console.log(ratio_to_amp)
+                    console.log(f"# Saved tones map to file: {output_tones_file}")
 
                     hover_text = (
                         f"window={window_start_s:4.2f}-{window_start_s + window_duration_s:4.2f}s | "

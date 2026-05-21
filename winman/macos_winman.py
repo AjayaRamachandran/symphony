@@ -7,7 +7,14 @@
 # harmless.
 
 from __future__ import annotations
+
 import sys
+from pathlib import Path
+
+INNER_SRC_PATH = Path(__file__).resolve().parents[1] / "inner" / "src"
+if str(INNER_SRC_PATH) not in sys.path:
+    sys.path.insert(0, str(INNER_SRC_PATH))
+from console_controls.console import console
 
 _manual_resize_start: dict | None = None
 _install_done: bool = False
@@ -36,8 +43,26 @@ def get_work_area() -> tuple[int, int, int, int] | None:
         y = int(primary_h - vf.origin.y - vf.size.height)
         return (x, y, int(vf.size.width), int(vf.size.height))
     except Exception as exc:
-        print(f"get_work_area failed: {exc}")
+        console.log(f"get_work_area failed: {exc}")
         return None
+
+
+def center_window(main_window, width: int, height: int) -> bool:
+    """Center a pywebview window using top-left screen coordinates."""
+    if sys.platform != "darwin" or main_window is None:
+        return False
+    work_area = get_work_area()
+    if not work_area:
+        return False
+    work_x, work_y, work_w, work_h = work_area
+    x = work_x + max((work_w - width) // 2, 0)
+    y = work_y + max((work_h - height) // 2, 0)
+    try:
+        main_window.move(int(x), int(y))
+        return True
+    except Exception as exc:
+        console.log(f"center_window failed: {exc}")
+        return False
 
 
 def _get_nswindow(main_window):
@@ -47,7 +72,7 @@ def _get_nswindow(main_window):
     try:
         from AppKit import NSApp, NSWindow  # type: ignore[import]
     except Exception as exc:
-        print(f"mac_w: PyObjC import failed: {exc}")
+        console.log(f"mac_w: PyObjC import failed: {exc}")
         return None
 
     native = getattr(main_window, "native", None)
@@ -73,7 +98,7 @@ def _get_nswindow(main_window):
             if str(w.title()) == title:
                 return w
     except Exception as exc:
-        print(f"mac_w: NSApp.windows fallback failed: {exc}")
+        console.log(f"mac_w: NSApp.windows fallback failed: {exc}")
     return None
 
 
@@ -89,7 +114,7 @@ def _run_on_main(callable_, *args) -> None:
         try:
             callable_(*args)
         except Exception as exc:
-            print(f"mac_w: main-thread dispatch fallback failed: {exc}")
+            console.log(f"mac_w: main-thread dispatch fallback failed: {exc}")
 
 
 def start_file_drag(file_path: str) -> bool:
@@ -120,7 +145,7 @@ def begin_manual_resize(main_window, edge: str, screen_x: int, screen_y: int) ->
     try:
         nsw = _get_nswindow(main_window)
         if nsw is None:
-            print("begin_manual_resize: could not obtain NSWindow")
+            console.log("begin_manual_resize: could not obtain NSWindow")
             return False
         frame = nsw.frame()
         min_w, min_h = getattr(main_window, "min_size", (800, 800)) or (800, 800)
@@ -138,7 +163,7 @@ def begin_manual_resize(main_window, edge: str, screen_x: int, screen_y: int) ->
         }
         return True
     except Exception as exc:
-        print(f"begin_manual_resize failed: {exc}")
+        console.log(f"begin_manual_resize failed: {exc}")
         _manual_resize_start = None
         return False
 
@@ -192,7 +217,7 @@ def update_manual_resize(main_window, screen_x: int, screen_y: int) -> bool:
         _run_on_main(nsw.setFrame_display_, rect, True)
         return True
     except Exception as exc:
-        print(f"update_manual_resize failed: {exc}")
+        console.log(f"update_manual_resize failed: {exc}")
         return False
 
 
@@ -209,7 +234,7 @@ def toggle_native_maximize(main_window) -> bool | None:
     try:
         nsw = _get_nswindow(main_window)
         if nsw is None:
-            print("toggle_native_maximize: could not obtain NSWindow")
+            console.log("toggle_native_maximize: could not obtain NSWindow")
             return None
         was_zoomed = bool(nsw.isZoomed())
         _run_on_main(nsw.zoom_, None)
@@ -217,7 +242,7 @@ def toggle_native_maximize(main_window) -> bool | None:
         # callers that drive maximize/restore event emission.
         return not was_zoomed
     except Exception as exc:
-        print(f"toggle_native_maximize failed: {exc}")
+        console.log(f"toggle_native_maximize failed: {exc}")
         return None
 
 
@@ -245,7 +270,7 @@ def install_aero_and_resize(main_window, on_maximize) -> None:
 
         nsw = _get_nswindow(main_window)
         if nsw is None:
-            print("install_aero_and_resize: could not obtain NSWindow — aborting")
+            console.log("install_aero_and_resize: could not obtain NSWindow — aborting")
             return
 
         min_w, min_h = getattr(main_window, "min_size", (800, 800)) or (800, 800)
@@ -258,13 +283,13 @@ def install_aero_and_resize(main_window, on_maximize) -> None:
                 nsw.setHasShadow_(True)
                 nsw.setContentMinSize_(min_size)
             except Exception as exc:
-                print(f"install_aero_and_resize apply failed: {exc}")
+                console.log(f"install_aero_and_resize apply failed: {exc}")
 
         _run_on_main(_apply)
         _install_done = True
-        print("install_aero_and_resize: mac NSWindow tuning applied")
+        console.log("install_aero_and_resize: mac NSWindow tuning applied")
     except Exception as exc:
-        print(f"install_aero_and_resize failed: {exc}")
+        console.log(f"install_aero_and_resize failed: {exc}")
 
 
 def focus_main_window(main_window) -> bool:
@@ -279,7 +304,7 @@ def focus_main_window(main_window) -> bool:
     try:
         from AppKit import NSApp  # type: ignore[import]
     except Exception as exc:
-        print(f"focus_main_window: PyObjC import failed: {exc}")
+        console.log(f"focus_main_window: PyObjC import failed: {exc}")
         return False
 
     nsw = _get_nswindow(main_window)
@@ -292,7 +317,7 @@ def focus_main_window(main_window) -> bool:
                     nsw.deminiaturize_(None)
                 nsw.makeKeyAndOrderFront_(None)
         except Exception as exc:
-            print(f"focus_main_window: activate failed: {exc}")
+            console.log(f"focus_main_window: activate failed: {exc}")
 
     _run_on_main(_activate)
     return True

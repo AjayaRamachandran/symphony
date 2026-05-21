@@ -4,6 +4,12 @@ from __future__ import annotations
 
 import importlib
 from pathlib import Path
+import sys
+
+INNER_SRC_PATH = Path(__file__).resolve().parents[1]
+if str(INNER_SRC_PATH) not in sys.path:
+    sys.path.insert(0, str(INNER_SRC_PATH))
+from console_controls.console import console
 
 import numpy as np
 import pygame
@@ -196,13 +202,13 @@ def print_frequency_time_slice_csv(
     spec_linear: np.ndarray,
 ) -> None:
     freq_pos = float(np.interp(clicked_freq_hz, frequencies, np.arange(frequencies.size)))
-    print(f"\n# clicked_freq_hz={clicked_freq_hz:.2f}")
-    print("# time_s,amplitude")
+    console.log(f"\n# clicked_freq_hz={clicked_freq_hz:.2f}")
+    console.log("# time_s,amplitude")
     for t in np.arange(0.0, 1.0 + 1e-9, 0.1):
         t_eval = float(np.clip(t, float(frame_times[0]), float(frame_times[-1])))
         frame_pos = float(np.interp(t_eval, frame_times, np.arange(frame_times.size)))
         amplitude = sample_interpolated_value(spec_linear, freq_pos=freq_pos, frame_pos=frame_pos)
-        print(f"{t:.1f},{amplitude:.6f}")
+        console.log(f"{t:.1f},{amplitude:.6f}")
 
 
 def draw_view(

@@ -990,7 +990,7 @@ console.log("Initialized NoteGrid Functionality "+ '(' + str(round(time.time() -
 lastTime = time.time()
 console.message("Startup complete in " + str(round(time.time() - START_TIME, 5)) + ' seconds.')
 pcrw.startProcessCommandServer()
-console.message("Process command server listening on localhost:7279.")
+console.message(f"Process command server listening on localhost:{pcrw.PROCESS_COMMAND_PORT}.")
 
 ###### MAINLOOP ######
 
@@ -1097,6 +1097,7 @@ while run:
             psm.resetTransactionHistory()
             pygame.event.pump()
             pygame.display.flip()
+            plat.bringEditorWindowToFront()
 
     while gui_running:
         try:

@@ -20,6 +20,7 @@ from pathlib import Path
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 SPEC_DIR = Path(os.path.abspath(SPECPATH))  # noqa: F821 (PyInstaller-injected)
+INNER_SRC_DIR = SPEC_DIR / "inner" / "src"
 
 
 def _require_dir(rel: str) -> str:
@@ -60,7 +61,7 @@ icon = str(icon_path) if icon_path.exists() else None
 
 a = Analysis(
     ["main.py"],
-    pathex=[str(SPEC_DIR)],
+    pathex=[str(SPEC_DIR), str(INNER_SRC_DIR)],
     binaries=[],
     datas=datas,
     hiddenimports=hiddenimports,

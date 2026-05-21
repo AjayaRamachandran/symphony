@@ -7,10 +7,12 @@
 
 from __future__ import annotations
 
+
 import base64
 import json
 import os
 import shutil
+import socket
 import subprocess
 import sys
 import threading
@@ -18,6 +20,11 @@ import time
 import uuid
 import webbrowser
 from pathlib import Path
+
+INNER_SRC_PATH = Path(__file__).resolve().parent / "inner" / "src"
+if str(INNER_SRC_PATH) not in sys.path:
+    sys.path.insert(0, str(INNER_SRC_PATH))
+from console_controls.console import console  # type: ignore[import]
 from typing import Any
 from urllib import request as urlrequest
 from urllib.parse import urlparse
@@ -42,9 +49,9 @@ else:
 
 if sys.platform == "darwin":
     try:
-        import native_drag_mac as native_drag  # type: ignore[import]
+        from winman import native_drag_mac as native_drag
     except Exception as exc:  # noqa: BLE001
-        print(f"native_drag_mac unavailable: {exc}")
+        console.log(f"native_drag_mac unavailable: {exc}")
         native_drag = None  # type: ignore[assignment]
 else:
     native_drag = None  # type: ignore[assignment]
@@ -64,13 +71,13 @@ def nativeStartDrag(file_paths) -> bool:
         try:
             return bool(winman.post_native_drag(_main_window, file_paths))
         except Exception as exc:  # noqa: BLE001
-            print(f"nativeStartDrag (win32) failed: {exc}")
+            console.log(f"nativeStartDrag (win32) failed: {exc}")
             return False
     if sys.platform == "darwin" and native_drag is not None:
         try:
             return bool(native_drag.startFileDrag(file_paths))
         except Exception as exc:  # noqa: BLE001
-            print(f"nativeStartDrag (darwin) failed: {exc}")
+            console.log(f"nativeStartDrag (darwin) failed: {exc}")
             return False
     return False
 
@@ -88,13 +95,13 @@ def nativeRegisterDrop(window, on_paths) -> bool:
         try:
             return bool(winman.register_drop_target(window, on_paths))
         except Exception as exc:  # noqa: BLE001
-            print(f"nativeRegisterDrop (win32) failed: {exc}")
+            console.log(f"nativeRegisterDrop (win32) failed: {exc}")
             return False
     if sys.platform == "darwin" and native_drag is not None:
         try:
             return bool(native_drag.registerDropTarget(window, on_paths))
         except Exception as exc:  # noqa: BLE001
-            print(f"nativeRegisterDrop (darwin) failed: {exc}")
+            console.log(f"nativeRegisterDrop (darwin) failed: {exc}")
             return False
     return False
 
@@ -133,7 +140,7 @@ def setAppUserModelId() -> None:
         from ctypes import windll  # local import: Windows-only
         windll.shell32.SetCurrentProcessExplicitAppUserModelID(APP_USER_MODEL_ID)
     except Exception as exc:  # noqa: BLE001
-        print(f"setAppUserModelId failed: {exc}")
+        console.log(f"setAppUserModelId failed: {exc}")
 
 
 # ---------------------------------------------------------------------------
@@ -157,7 +164,7 @@ def _writePmPortFile(port: int) -> None:
     try:
         _pmPortFile().write_text(str(int(port)), encoding="utf-8")
     except Exception as exc:  # noqa: BLE001
-        print(f"_writePmPortFile failed: {exc}")
+        console.log(f"_writePmPortFile failed: {exc}")
 
 
 def _removePmPortFile() -> None:
@@ -166,7 +173,7 @@ def _removePmPortFile() -> None:
         if path.exists():
             path.unlink()
     except Exception as exc:  # noqa: BLE001
-        print(f"_removePmPortFile failed: {exc}")
+        console.log(f"_removePmPortFile failed: {exc}")
 
 
 def _handleSecondInstance(payload: dict) -> None:
@@ -179,7 +186,7 @@ def _handleSecondInstance(payload: dict) -> None:
     pywebview window, and dispatches a ``symphony:second-instance`` event
     to React so the PendingFileHandoff component can replay its flow.
     '''
-    global _PENDING_OPEN_FILE
+    global _PENDING_OPEN_FILE, _PENDING_OPEN_FILE_IS_TEST_IMPORT
     path = payload.get("path") if isinstance(payload, dict) else None
 
     if isinstance(path, str) and path:
@@ -189,12 +196,13 @@ def _handleSecondInstance(payload: dict) -> None:
             abs_path = path
         with _pending_open_file_lock:
             _PENDING_OPEN_FILE = abs_path
-        print(f"second-instance: queued PENDING_OPEN_FILE={abs_path}")
+            _PENDING_OPEN_FILE_IS_TEST_IMPORT = False
+        console.log(f"second-instance: queued PENDING_OPEN_FILE={abs_path}")
 
     try:
         winman.focus_main_window(_main_window)
     except Exception as exc:  # noqa: BLE001
-        print(f"second-instance focus_main_window failed: {exc}")
+        console.log(f"second-instance focus_main_window failed: {exc}")
 
     if _main_window is not None:
         try:
@@ -202,7 +210,7 @@ def _handleSecondInstance(payload: dict) -> None:
                 "window.dispatchEvent(new CustomEvent('symphony:second-instance'));"
             )
         except Exception as exc:  # noqa: BLE001
-            print(f"second-instance evaluate_js failed: {exc}")
+            console.log(f"second-instance evaluate_js failed: {exc}")
 
 
 def startPmHandoffServer() -> None:
@@ -238,7 +246,7 @@ def startPmHandoffServer() -> None:
             try:
                 _handleSecondInstance(payload)
             except Exception as exc:  # noqa: BLE001
-                print(f"HandoffHandler: _handleSecondInstance failed: {exc}")
+                console.log(f"HandoffHandler: _handleSecondInstance failed: {exc}")
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
@@ -252,18 +260,18 @@ def startPmHandoffServer() -> None:
     try:
         server = ThreadingHTTPServer(("127.0.0.1", 0), HandoffHandler)
     except Exception as exc:  # noqa: BLE001
-        print(f"startPmHandoffServer: bind failed: {exc}")
+        console.log(f"startPmHandoffServer: bind failed: {exc}")
         return
 
     port = server.server_address[1]
     _writePmPortFile(port)
-    print(f"PM handoff server listening on 127.0.0.1:{port}")
+    console.log(f"PM handoff server listening on 127.0.0.1:{port}")
 
     def serve() -> None:
         try:
             server.serve_forever(poll_interval=0.5)
         except Exception as exc:  # noqa: BLE001
-            print(f"PM handoff server stopped: {exc}")
+            console.log(f"PM handoff server stopped: {exc}")
 
     thread = threading.Thread(target=serve, name="symphony-pm-handoff", daemon=True)
     thread.start()
@@ -279,8 +287,24 @@ DIRECTORY_PATH = USER_DATA_PATH / "directory.json"
 RECENTLY_VIEWED_PATH = USER_DATA_PATH / "recently-viewed.json"
 STARRED_PATH = USER_DATA_PATH / "starred.json"
 USER_SETTINGS_PATH = USER_DATA_PATH / "user-settings.json"
-PROCESS_COMMAND_URL = "http://127.0.0.1:7279/process-command"
-PROCESS_COMMAND_HEALTH_URL = "http://127.0.0.1:7279/health"
+PROCESS_COMMAND_HOST = "127.0.0.1"
+
+
+def findAvailableLocalPort() -> int:
+    '''
+    fields: none
+    outputs: int
+
+    Reserves a free localhost port number for this backend/editor pair.
+    '''
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind((PROCESS_COMMAND_HOST, 0))
+        return int(sock.getsockname()[1])
+
+
+PROCESS_COMMAND_PORT = int(os.environ.get("SYMPHONY_PROCESS_COMMAND_PORT") or findAvailableLocalPort())
+PROCESS_COMMAND_URL = f"http://{PROCESS_COMMAND_HOST}:{PROCESS_COMMAND_PORT}/process-command"
+PROCESS_COMMAND_HEALTH_URL = f"http://{PROCESS_COMMAND_HOST}:{PROCESS_COMMAND_PORT}/health"
 
 DEFAULT_SETTINGS: dict[str, Any] = {
     "needs_onboarding": True,
@@ -299,17 +323,21 @@ VALID_FILE_EXTS = {".symphony", ".wav", ".mid", ".mp3", ".flac", ".musicxml"}
 
 # When the OS launches Symphony to open a .symphony file (file association),
 # the Rust launcher forwards the resolved absolute path to this process via
-# the SYMPHONY_OPEN_FILE environment variable. We capture it once at module
-# load. ``Api.getPendingOpenFile`` clears it after the first successful read
-# so a webview reload (Ctrl+R) doesn't replay the open flow.
+# the SYMPHONY_OPEN_FILE environment variable. Dev can also set
+# SYMPHONY_TEST_IMPORT to force the same startup handoff into the import modal.
+# We capture it once at module load. ``Api.getPendingOpenFile`` clears it after
+# the first successful read so a webview reload (Ctrl+R) doesn't replay the flow.
 _pending_open_file_lock = threading.Lock()
+_PENDING_OPEN_FILE_IS_TEST_IMPORT = bool(os.environ.get("SYMPHONY_TEST_IMPORT"))
 _PENDING_OPEN_FILE: str | None = (
-    os.path.abspath(os.environ["SYMPHONY_OPEN_FILE"])
+    os.path.abspath(os.environ["SYMPHONY_TEST_IMPORT"])
+    if os.environ.get("SYMPHONY_TEST_IMPORT")
+    else os.path.abspath(os.environ["SYMPHONY_OPEN_FILE"])
     if os.environ.get("SYMPHONY_OPEN_FILE")
     else None
 )
 if _PENDING_OPEN_FILE:
-    print(f"PENDING_OPEN_FILE: {_PENDING_OPEN_FILE}")
+    console.log(f"PENDING_OPEN_FILE: {_PENDING_OPEN_FILE}")
 
 
 def findFileInRegistry(file_path: str) -> dict | None:
@@ -325,7 +353,7 @@ def findFileInRegistry(file_path: str) -> dict | None:
     try:
         directory = readJson(DIRECTORY_PATH, {})
     except Exception as exc:  # noqa: BLE001
-        print(f"findFileInRegistry: failed to read directory.json: {exc}")
+        console.log(f"findFileInRegistry: failed to read directory.json: {exc}")
         return None
     parent = os.path.normcase(os.path.normpath(os.path.dirname(file_path)))
     for section, entries in directory.items():
@@ -405,7 +433,7 @@ def loadConfig() -> dict:
         with open(APP_ROOT / "config.yaml", "r", encoding="utf-8") as f:
             return yaml.safe_load(f) or {}
     except Exception as exc:  # noqa: BLE001
-        print(f"Failed to load YAML: {exc}")
+        console.log(f"Failed to load YAML: {exc}")
         return {}
 
 
@@ -425,8 +453,9 @@ else:
         EXECUTABLE_NAME = "main.py"
 EXECUTABLE_PATH = INNER_DIST_PATH / EXECUTABLE_NAME
 
-print(f"USER_DATA_PATH: {USER_DATA_PATH}")
-print(f"EXECUTABLE_PATH: {EXECUTABLE_PATH}")
+console.log(f"USER_DATA_PATH: {USER_DATA_PATH}")
+console.log(f"EXECUTABLE_PATH: {EXECUTABLE_PATH}")
+console.log(f"PROCESS_COMMAND_PORT: {PROCESS_COMMAND_PORT}")
 
 _main_window: webview.Window | None = None
 _persist_editor = True
@@ -490,7 +519,7 @@ def ensureFile(src: Path, dest: Path, default_content: Any | None = None) -> Non
         elif default_content is not None:
             writeJson(dest, default_content)
     except Exception as exc:  # noqa: BLE001
-        print(f"Failed to copy default file: {src} -> {dest}: {exc}")
+        console.log(f"Failed to copy default file: {src} -> {dest}: {exc}")
 
 
 def deleteFile(file_path: str) -> dict:
@@ -559,7 +588,7 @@ def doProcessCommand(symphony_file_path: str, command: str, extra_args: dict | N
         try:
             addRecentlyViewed(symphony_file_path)
         except Exception as exc:  # noqa: BLE001
-            print(f"Failed to add to recently viewed on open: {exc}")
+            console.log(f"Failed to add to recently viewed on open: {exc}")
 
     payload = {
         "command": command,
@@ -571,9 +600,9 @@ def doProcessCommand(symphony_file_path: str, command: str, extra_args: dict | N
             **extra_args,
         },
     }
-    print(payload)
+    console.log(payload)
     response = postProcessCommandPayload(payload)
-    print(response)
+    console.log(response)
     return response
 
 
@@ -605,7 +634,7 @@ def postProcessCommandPayload(payload: dict, timeout: float = 15.0) -> dict:
         }
 
 
-def waitForProcessCommandServer(timeout: float = 5.0) -> bool:
+def waitForProcessCommandServer(timeout: float = 30.0) -> bool:
     '''
     fields:
         timeout (float) - max time to wait in seconds
@@ -647,6 +676,10 @@ def spawnEditor() -> None:
         "stdout": subprocess.PIPE,
         "stderr": subprocess.PIPE,
         "stdin": subprocess.DEVNULL,
+        "env": {
+            **os.environ,
+            "SYMPHONY_PROCESS_COMMAND_PORT": str(PROCESS_COMMAND_PORT),
+        },
     }
     if sys.platform == "win32":
         popen_kwargs["creationflags"] = (
@@ -668,8 +701,20 @@ def spawnEditor() -> None:
                 child = subprocess.Popen(args, **popen_kwargs)
                 _current_editor_child = child
             except Exception as exc:  # noqa: BLE001
-                print(f"Failed to spawn editor: {exc}")
+                console.log(f"Failed to spawn editor: {exc}")
                 return
+
+            # Grant the editor process explicit permission to call
+            # SetForegroundWindow once. Without this, Windows can refuse the
+            # editor's own focus call if the user moved focus elsewhere
+            # between PM click and editor display, leaving the pygame
+            # window stuck behind PM.
+            if sys.platform == "win32":
+                try:
+                    from ctypes import windll  # local import: Windows-only
+                    windll.user32.AllowSetForegroundWindow(child.pid)
+                except Exception as exc:  # noqa: BLE001
+                    console.log(f"AllowSetForegroundWindow(editor) failed: {exc}")
 
             def pump(stream, sink) -> None:
                 '''
@@ -693,13 +738,13 @@ def spawnEditor() -> None:
             code = child.wait()
             _current_editor_child = None
             if code != 0:
-                print(f"Editor process crashed with code {code}.")
+                console.log(f"Editor process crashed with code {code}.")
             else:
-                print("Editor process exited.")
+                console.log("Editor process exited.")
             if _runner_should_stop.is_set() or not _persist_editor:
-                print("Runner exiting.")
+                console.log("Runner exiting.")
                 return
-            print("Restarting...")
+            console.log("Restarting...")
 
     global _current_runner_thread
     _runner_should_stop.clear()
@@ -735,7 +780,7 @@ def stopEditor() -> None:
         try:
             postProcessCommandPayload({"command": "kill", "id": str(uuid.uuid4()), "args": {}}, timeout=2.0)
         except Exception as exc:  # noqa: BLE001
-            print(f"kill request failed: {exc}")
+            console.log(f"kill request failed: {exc}")
         try:
             child.wait(timeout=2)
         except Exception:  # noqa: BLE001
@@ -764,7 +809,11 @@ def runEditorProgram() -> dict:
     with _editor_lock:
         try:
             if editorIsRunning():
-                return {"success": True, "message": "Editor already running"}
+                serverReady = waitForProcessCommandServer()
+                return {
+                    "success": serverReady,
+                    "message": "Editor already running" if serverReady else "Editor running, but command server did not become ready",
+                }
             stopEditor()
             spawnEditor()
             serverReady = waitForProcessCommandServer()
@@ -840,7 +889,7 @@ class Api:
                     onRestored()
                 return
             except Exception as exc:  # noqa: BLE001
-                print(f"maximize failed: {exc}")
+                console.log(f"maximize failed: {exc}")
                 return
         # Linux / unknown-platform fallback
         try:
@@ -863,7 +912,7 @@ class Api:
         try:
             onClosing()
         except Exception as exc:  # noqa: BLE001
-            print(f"onClosing during close failed: {exc}")
+            console.log(f"onClosing during close failed: {exc}")
         if _main_window:
             _main_window.destroy()
 
@@ -935,7 +984,7 @@ class Api:
         try:
             webbrowser.open(url)
         except Exception as exc:  # noqa: BLE001
-            print(f"openExternal failed: {exc}")
+            console.log(f"openExternal failed: {exc}")
 
     def openFileLocation(self, file_path: str) -> bool:
         '''
@@ -954,7 +1003,7 @@ class Api:
             else:
                 subprocess.Popen(["xdg-open", folder])
         except Exception as exc:  # noqa: BLE001
-            print(f"openFileLocation failed: {exc}")
+            console.log(f"openFileLocation failed: {exc}")
             return False
         return True
 
@@ -1051,27 +1100,27 @@ class Api:
         dest_path = os.path.join(destination_dir, file_name)
         try:
             buf = base64.b64decode(file_data_b64 or "")
-            print(f"[move-file-raw] source buffer bytes={len(buf)}")
+            console.log(f"[move-file-raw] source buffer bytes={len(buf)}")
             with open(dest_path, "wb") as f:
                 f.write(buf)
             dest_size = os.path.getsize(dest_path)
-            print(f"[move-file-raw] dest file bytes={dest_size}")
-            print(f"[move-file-raw] originalFilePath={original_file_path or 'N/A'}")
+            console.log(f"[move-file-raw] dest file bytes={dest_size}")
+            console.log(f"[move-file-raw] originalFilePath={original_file_path or 'N/A'}")
             deleted_original = False
             if original_file_path:
                 if os.path.abspath(original_file_path) == os.path.abspath(dest_path):
-                    print("[move-file-raw] Source and destination are the same path; skipping delete.")
+                    console.log("[move-file-raw] Source and destination are the same path; skipping delete.")
                     return {"success": True, "deletedOriginal": False}
                 try:
                     src_size = os.path.getsize(original_file_path)
                 except Exception:
                     src_size = -1
                 same_size = src_size == dest_size
-                print(f"[move-file-raw] sizeEqual={same_size}")
+                console.log(f"[move-file-raw] sizeEqual={same_size}")
                 if same_size:
                     res = deleteFile(original_file_path)
                     if not res.get("success"):
-                        print(f"[move-file-raw] delete failed: {res.get('error')}")
+                        console.log(f"[move-file-raw] delete failed: {res.get('error')}")
                     deleted_original = bool(res.get("success"))
             return {"success": True, "deletedOriginal": deleted_original}
         except Exception as exc:  # noqa: BLE001
@@ -1332,7 +1381,7 @@ class Api:
             user_settings.pop("close_project_manager_when_editing", None)
             return {**DEFAULT_SETTINGS, **user_settings}
         except Exception as exc:  # noqa: BLE001
-            print(f"Error reading user settings: {exc}")
+            console.log(f"Error reading user settings: {exc}")
             return dict(DEFAULT_SETTINGS)
 
     def updateUserSettings(self, key: str, value: Any) -> dict:
@@ -1397,14 +1446,16 @@ class Api:
                 "knownLocation": {"section": "Projects", "name": "...", "dir": "C:/..."} | null,
             }
         '''
-        global _PENDING_OPEN_FILE
+        global _PENDING_OPEN_FILE, _PENDING_OPEN_FILE_IS_TEST_IMPORT
         with _pending_open_file_lock:
             path = _PENDING_OPEN_FILE
+            is_test_import = _PENDING_OPEN_FILE_IS_TEST_IMPORT
             _PENDING_OPEN_FILE = None
+            _PENDING_OPEN_FILE_IS_TEST_IMPORT = False
         if not path:
             return None
-        exists = os.path.exists(path)
-        known = findFileInRegistry(path) if exists else None
+        exists = True if is_test_import else os.path.exists(path)
+        known = None if is_test_import else findFileInRegistry(path) if exists else None
         return {
             "path": path.replace("\\", "/"),
             "exists": exists,
@@ -1463,7 +1514,7 @@ class Api:
                 try:
                     shutil.copy2(sidecar_src, sidecar_target)
                 except Exception as exc:  # noqa: BLE001
-                    print(f"copyAndOpenSymphonyFile: sidecar copy failed: {exc}")
+                    console.log(f"copyAndOpenSymphonyFile: sidecar copy failed: {exc}")
 
             return {
                 "success": True,
@@ -1524,15 +1575,15 @@ class Api:
         runs on the UI thread so it shares mouse capture with the WebView's
         in-flight HTML5 drag instead of fighting it.
         '''
-        print(f"[symphony-drag] Api.startFileDrag invoked: {file_path}")
+        console.log(f"[symphony-drag] Api.startFileDrag invoked: {file_path}")
         if not file_path:
             return {"started": False, "reason": "missing-path"}
         try:
             ok = nativeStartDrag(file_path)
-            print(f"[symphony-drag] nativeStartDrag posted ok={ok}")
+            console.log(f"[symphony-drag] nativeStartDrag posted ok={ok}")
             return {"started": bool(ok)}
         except Exception as exc:  # noqa: BLE001
-            print(f"[symphony-drag] startFileDrag failed: {exc}")
+            console.log(f"[symphony-drag] startFileDrag failed: {exc}")
             return {"started": False, "error": str(exc)}
 
     def copyPathsInto(self, paths: list[str], destination_dir: str) -> dict:
@@ -1546,7 +1597,7 @@ class Api:
         large drops do not need to round-trip through base64. Filters paths by
         the supported extension set used by the rest of the app.
         '''
-        print(f"[symphony-drag] Api.copyPathsInto destination={destination_dir} paths={paths}")
+        console.log(f"[symphony-drag] Api.copyPathsInto destination={destination_dir} paths={paths}")
         if not destination_dir:
             return {"success": False, "error": "missing-destination"}
         if not isinstance(paths, list):
@@ -1651,15 +1702,83 @@ def onClosing() -> bool:
     '''
     global _persist_editor
     _persist_editor = False
-    print("--> Stopping editor subprocess..")
+    console.log("--> Stopping editor subprocess..")
     try:
         stopEditor()
     except Exception as exc:  # noqa: BLE001
-        print(f"stopEditor failed: {exc}")
+        console.log(f"stopEditor failed: {exc}")
     return True
 
 
 READY_MARKER = "__SYMPHONY_READY__"
+_ready_marker_emitted = threading.Event()
+PROJECT_MANAGER_WIDTH = 1300
+PROJECT_MANAGER_HEIGHT = 800
+PROJECT_MANAGER_MIN_WIDTH = 800
+PROJECT_MANAGER_MIN_HEIGHT = 800
+PROJECT_MANAGER_OFFSCREEN_X = -32000
+PROJECT_MANAGER_OFFSCREEN_Y = -32000
+
+
+def emitReadyMarker() -> None:
+    '''
+    fields: none
+    outputs: nothing
+
+    Signals the Tauri splash launcher after the editor can accept commands and
+    the hidden Project Manager webview is ready to reveal.
+    '''
+    if _ready_marker_emitted.is_set():
+        return
+    console.log(READY_MARKER, flush=True)
+    _ready_marker_emitted.set()
+
+
+def waitForEditorBeforeProjectManager() -> None:
+    '''
+    fields: none
+    outputs: nothing
+
+    Blocks Project Manager webview creation until the editor is responsive.
+    '''
+    result = runEditorProgram()
+    console.log(result)
+    while not result.get("success"):
+        time.sleep(1.0)
+        if editorIsRunning() and waitForProcessCommandServer():
+            result = {"success": True, "message": "Editor command server became ready"}
+        else:
+            result = runEditorProgram()
+        console.log(result)
+
+
+def moveProjectManagerOnscreen() -> None:
+    '''
+    fields: none
+    outputs: nothing
+
+    Moves the preloaded Project Manager from its offscreen load position to the
+    center of the current work area.
+    '''
+    if not _main_window:
+        return
+    if not winman.center_window(_main_window, PROJECT_MANAGER_WIDTH, PROJECT_MANAGER_HEIGHT):
+        work_area = winman.get_work_area()
+        if work_area:
+            work_x, work_y, work_w, work_h = work_area
+            x = work_x + max((work_w - PROJECT_MANAGER_WIDTH) // 2, 0)
+            y = work_y + max((work_h - PROJECT_MANAGER_HEIGHT) // 2, 0)
+        else:
+            x = 100
+            y = 100
+        try:
+            _main_window.move(int(x), int(y))
+        except Exception as exc:  # noqa: BLE001
+            console.log(f"moveProjectManagerOnscreen failed: {exc}")
+    try:
+        winman.focus_main_window(_main_window)
+    except Exception as exc:  # noqa: BLE001
+        console.log(f"focus Project Manager failed: {exc}")
 
 
 def emitNativeDrop(paths: list[str], screen_x: int, screen_y: int) -> None:
@@ -1672,7 +1791,7 @@ def emitNativeDrop(paths: list[str], screen_x: int, screen_y: int) -> None:
 
     Forwards a native OS file drop into the WebView as a custom JS payload.
     '''
-    print(f"[symphony-drag] emitNativeDrop paths={paths} at ({screen_x},{screen_y})")
+    console.log(f"[symphony-drag] emitNativeDrop paths={paths} at ({screen_x},{screen_y})")
     if not _main_window or not paths:
         return
     payload = json.dumps({
@@ -1685,7 +1804,7 @@ def emitNativeDrop(paths: list[str], screen_x: int, screen_y: int) -> None:
             f"window.__symphonyNativeDrop && window.__symphonyNativeDrop({payload})"
         )
     except Exception as exc:  # noqa: BLE001
-        print(f"[symphony-drag] emitNativeDrop evaluate_js failed: {exc}")
+        console.log(f"[symphony-drag] emitNativeDrop evaluate_js failed: {exc}")
 
 
 def onLoaded() -> None:
@@ -1695,22 +1814,14 @@ def onLoaded() -> None:
 
     Handles webview load completion and starts the editor process when needed.
     '''
-    # Signal the Tauri launcher (if any) that the pywebview window is up so it
-    # can hide its splash. Safe to emit unconditionally; standalone runs just
-    # see an extra log line.
-    print(READY_MARKER, flush=True)
     if sys.platform in ("win32", "darwin"):
         winman.install_aero_and_resize(_main_window, lambda: Api().maximize())
     try:
         nativeRegisterDrop(_main_window, emitNativeDrop)
     except Exception as exc:  # noqa: BLE001
-        print(f"nativeRegisterDrop failed: {exc}")
-    # The ``loaded`` event fires on every page load, including Ctrl+R reloads.
-    # Only start the editor when nothing is already running; otherwise reloads
-    # would stack up duplicate runner threads and subprocesses.
-    if editorIsRunning():
-        return
-    threading.Thread(target=lambda: print(runEditorProgram()), daemon=True).start()
+        console.log(f"nativeRegisterDrop failed: {exc}")
+    moveProjectManagerOnscreen()
+    emitReadyMarker()
 
 
 def checkVite(retries: int = 20, delay: float = 0.5) -> bool:
@@ -1770,14 +1881,18 @@ def main() -> None:
     ensureFile(asset_dir / "starred.json", STARRED_PATH, [])
     ensureFile(asset_dir / "recently-viewed.json", RECENTLY_VIEWED_PATH, [])
 
+    waitForEditorBeforeProjectManager()
+
     api = Api()
     _main_window = webview.create_window(
         "Symphony",
         url=resolveUrl(),
         js_api=api,
-        width=1300,
-        height=800,
-        min_size=(800, 800),
+        width=PROJECT_MANAGER_WIDTH,
+        height=PROJECT_MANAGER_HEIGHT,
+        x=PROJECT_MANAGER_OFFSCREEN_X,
+        y=PROJECT_MANAGER_OFFSCREEN_Y,
+        min_size=(PROJECT_MANAGER_MIN_WIDTH, PROJECT_MANAGER_MIN_HEIGHT),
         frameless=True,
         easy_drag=False,
     )
@@ -1816,7 +1931,7 @@ def main() -> None:
                     time.sleep(0.05)
                     _main_window.resize(w, h)
                 except Exception as exc:
-                    print(f"startup grip nudge failed: {exc}")
+                    console.log(f"startup grip nudge failed: {exc}")
         webview.start(debug=not IS_FROZEN, func=winAeroDeferred)
     else:
         webview.start(debug=not IS_FROZEN)

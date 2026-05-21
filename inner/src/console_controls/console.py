@@ -29,13 +29,18 @@ class console:
         return filename, lineno
 
     @staticmethod
-    def log(message):
-        file, line = console._caller_info()
+    def _format_values(values, sep):
+        return sep.join(str(value) for value in values)
+
+    @staticmethod
+    def log(*values, sep=" ", end="\n", file=None, flush=False):
+        source_file, line = console._caller_info()
+        message = console._format_values(values, sep)
         _msg = (
             f"{time.strftime('%Y-%m-%d %H:%M:%S')} > "
-            f"[Log] ({file}:{line}) {message}"
+            f"[Log] ({source_file}:{line}) {message}"
         )
-        print(f"{console._ANSI_GRAY}{_msg}{console._ANSI_RESET}")
+        print(f"{console._ANSI_GRAY}{_msg}{console._ANSI_RESET}", end=end, file=file or sys.stdout, flush=flush)
         consoleMessages.append((_msg, "gray"))
 
     @staticmethod

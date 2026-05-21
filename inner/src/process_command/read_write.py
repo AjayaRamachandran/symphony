@@ -25,7 +25,10 @@ openCommandQueue = queue.Queue()
 commandLock = threading.Lock()
 
 PROCESS_COMMAND_HOST = '127.0.0.1'
-PROCESS_COMMAND_PORT = 7279
+try:
+    PROCESS_COMMAND_PORT = int(os.environ.get('SYMPHONY_PROCESS_COMMAND_PORT', '7279'))
+except ValueError:
+    PROCESS_COMMAND_PORT = 7279
 ENDPOINT_COMMANDS = ['retrieve', 'instantiate', 'export', 'convert', 'update_metadata']
 
 ###### FUNCTIONS ######
