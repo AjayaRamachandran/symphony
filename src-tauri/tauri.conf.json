@@ -47,9 +47,7 @@
       }
     },
     "macOS": {
-      "infoPlist": {
-        "LSUIElement": true
-      }
+      "infoPlist": "Info.plist"
     },
     "resources": [],
     "externalBin": [
