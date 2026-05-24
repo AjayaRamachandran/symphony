@@ -465,6 +465,7 @@ _prev_geometry: tuple[int, int, int, int] | None = None
 _current_editor_child: subprocess.Popen | None = None
 _current_runner_thread: threading.Thread | None = None
 _runner_should_stop = threading.Event()
+_shutdown_cleanup_started = threading.Event()
 
 
 # ---------------------------------------------------------------------------
@@ -907,14 +908,7 @@ class Api:
 
         Stops the editor process and closes the application window.
         '''
-        # destroy() does not fire the ``closing`` event on pywebview, so the
-        # editor-subprocess kill handshake never runs. Invoke it explicitly.
-        try:
-            onClosing()
-        except Exception as exc:  # noqa: BLE001
-            console.log(f"onClosing during close failed: {exc}")
-        if _main_window:
-            _main_window.destroy()
+        requestAppQuit()
 
     def toggleDevtools(self) -> None:
         '''
@@ -1693,6 +1687,55 @@ def onRestored() -> None:
         )
 
 
+def performShutdownCleanup() -> None:
+    '''
+    fields: none
+    outputs: nothing
+
+    Runs the one-time shutdown cleanup shared by native Quit and the custom
+    titlebar close button.
+    '''
+    global _persist_editor
+    if _shutdown_cleanup_started.is_set():
+        return
+    _shutdown_cleanup_started.set()
+    _persist_editor = False
+    console.log("--> Stopping editor subprocess..")
+    try:
+        stopEditor()
+    except Exception as exc:  # noqa: BLE001
+        console.log(f"stopEditor failed: {exc}")
+
+
+def requestAppQuit() -> None:
+    '''
+    fields: none
+    outputs: nothing
+
+    Starts a full app shutdown from the JS API close button. The pywebview
+    bridge can hang if the window is destroyed synchronously while it is waiting
+    for this API call to return, so the button returns immediately and a worker
+    exits the backend after cleanup. The Rust shell exits when backend stdout
+    closes, matching native Quit's process teardown.
+    '''
+    def shutdownWorker() -> None:
+        try:
+            performShutdownCleanup()
+        finally:
+            try:
+                sys.stdout.flush()
+                sys.stderr.flush()
+            except Exception:  # noqa: BLE001
+                pass
+            os._exit(0)
+
+    threading.Thread(
+        target=shutdownWorker,
+        name="symphony-app-quit",
+        daemon=False,
+    ).start()
+
+
 def onClosing() -> bool:
     '''
     fields: none
@@ -1700,13 +1743,7 @@ def onClosing() -> bool:
 
     Handles window shutdown by stopping the editor process before close completes.
     '''
-    global _persist_editor
-    _persist_editor = False
-    console.log("--> Stopping editor subprocess..")
-    try:
-        stopEditor()
-    except Exception as exc:  # noqa: BLE001
-        console.log(f"stopEditor failed: {exc}")
+    performShutdownCleanup()
     return True
 
 

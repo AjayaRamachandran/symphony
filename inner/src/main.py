@@ -101,10 +101,26 @@ lastTime = time.time()
 
 width, height = (1100, 592)
 minWidth, minHeight = (1000, 592)
+MAC_ICON_ZOOM_OUT_PERCENT = 20
+
+
+def createMacDockIcon(iconSurface):
+    iconWidth, iconHeight = iconSurface.get_size()
+    scaledWidth = max(1, round(iconWidth * (100 - MAC_ICON_ZOOM_OUT_PERCENT) / 100))
+    scaledHeight = max(1, round(iconHeight * (100 - MAC_ICON_ZOOM_OUT_PERCENT) / 100))
+    paddingLeft = (iconWidth - scaledWidth) // 2
+    paddingTop = (iconHeight - scaledHeight) // 2
+
+    scaledIcon = pygame.transform.smoothscale(iconSurface, (scaledWidth, scaledHeight))
+    dockIcon = pygame.Surface((iconWidth, iconHeight), pygame.SRCALPHA)
+    dockIcon.blit(scaledIcon, (paddingLeft, paddingTop))
+    return dockIcon
 
 iconPath = f'{source_path}/assets/icon32x32.png'
 if path.exists(iconPath):
     gameIcon = pygame.image.load(iconPath)
+    if platform == 'mac':
+        gameIcon = createMacDockIcon(gameIcon)
 else:
     console.warn(f"Warning: Icon file not found at {iconPath}")
 
