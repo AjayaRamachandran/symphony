@@ -245,6 +245,9 @@ fn run_launcher() -> Result<(), String> {
             handle_second_instance(argv);
         }))
         .setup(|app| {
+            #[cfg(target_os = "macos")]
+            app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+
             let handle = app.handle().clone();
             let mut child = match spawn_backend() {
                 Ok(c) => c,

@@ -123,3 +123,36 @@ def _bringToFrontMac():
         console.warn(f"_bringToFrontMac: PyObjC import failed: {exc}")
         return
     NSApp.activateIgnoringOtherApps_(True)
+
+
+def setDockIconVisible(visible: bool):
+    '''
+    fields:
+        visible (boolean) - whether the macOS app should appear in the Dock
+    outputs: nothing
+
+    Toggles the process activation policy on macOS. This lets the persistent
+    editor daemon hide its Dock icon after the SDL window is hidden without
+    destroying the Cocoa window, which has historically caused hangs.
+    '''
+    if sys.platform != "darwin":
+        return
+    try:
+        from AppKit import (  # type: ignore[import]
+            NSApp,
+            NSApplicationActivationPolicyAccessory,
+            NSApplicationActivationPolicyRegular,
+        )
+    except Exception as exc:  # noqa: BLE001
+        console.warn(f"setDockIconVisible: PyObjC import failed: {exc}")
+        return
+
+    try:
+        policy = (
+            NSApplicationActivationPolicyRegular
+            if visible
+            else NSApplicationActivationPolicyAccessory
+        )
+        NSApp.setActivationPolicy_(policy)
+    except Exception as exc:  # noqa: BLE001
+        console.warn(f"setDockIconVisible failed: {exc}")

@@ -228,19 +228,21 @@ def end_manual_resize() -> None:
 
 
 def toggle_native_maximize(main_window) -> bool | None:
-    """Toggle NSWindow.zoom_ (green-button behavior, respects visibleFrame)."""
+    """Toggle native macOS fullscreen for the custom green window button."""
     if sys.platform != "darwin" or not main_window:
         return None
     try:
+        from AppKit import NSWindowStyleMaskFullScreen  # type: ignore[import]
+
         nsw = _get_nswindow(main_window)
         if nsw is None:
             console.log("toggle_native_maximize: could not obtain NSWindow")
             return None
-        was_zoomed = bool(nsw.isZoomed())
-        _run_on_main(nsw.zoom_, None)
-        # zoom_ is async via callAfter, so report the *new* desired state to
-        # callers that drive maximize/restore event emission.
-        return not was_zoomed
+        was_fullscreen = bool(nsw.styleMask() & NSWindowStyleMaskFullScreen)
+        _run_on_main(nsw.toggleFullScreen_, None)
+        # toggleFullScreen_ is async via callAfter, so report the intended new
+        # state to callers that drive maximize/restore event emission.
+        return not was_fullscreen
     except Exception as exc:
         console.log(f"toggle_native_maximize failed: {exc}")
         return None
@@ -256,7 +258,7 @@ def install_aero_and_resize(main_window, on_maximize) -> None:
       Drag      setMovableByWindowBackground:NO because the React titlebar
                 already owns drag via .pywebview-drag-region.
       Shadow    NSWindow.hasShadow defaults to YES; asserted explicitly.
-      Zoom      Handled by NSWindow.zoom_; nothing to install here. The
+      Fullscreen Handled by NSWindow.toggleFullScreen_; nothing to install here. The
                 on_maximize callback is unused on mac.
     """
     global _install_done

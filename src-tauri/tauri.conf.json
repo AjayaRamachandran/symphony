@@ -46,6 +46,11 @@
         "sidebarImage": "installer/nsis-sidebar.bmp"
       }
     },
+    "macOS": {
+      "infoPlist": {
+        "LSUIElement": true
+      }
+    },
     "resources": [],
     "externalBin": [
       "binaries/symphony-backend"

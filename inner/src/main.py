@@ -1071,6 +1071,7 @@ while run:
             if platform == 'mac' and pygame.display.get_init():
                 # Window was hidden, not destroyed - show it and update
                 try:
+                    plat.setDockIconVisible(True)
                     sdl_window = SDLWindow.from_display_module()
                     sdl_window.show()
                     pygame.display.set_caption(f"{title_text} - Symphony v1.1.5")
@@ -1086,6 +1087,8 @@ while run:
                     screen = pygame.display.set_mode((width, height), pygame.RESIZABLE | pygame.SHOWN)
             else:
                 # Standard initialization for Windows/Linux or first run
+                if platform == 'mac':
+                    plat.setDockIconVisible(True)
                 pygame.display.init()
                 pygame.display.set_caption(f"{title_text} - Symphony v1.1.5")
                 pygame.display.set_icon(gameIcon)
@@ -1274,23 +1277,22 @@ while run:
     worldMessage = fio.dumpToFile(working_file_path, working_file_path, sl.newProgramState(key, mode, tempo, noteMap, instrumentMap, beatLength, beatsPerMeasure, meta=projectMeta), autoSave, title_text, sessionID)
     
     try:
-        # on macOS, hiding the window works better than destroying it, i think
-        # pygame.display.quit() doesn't properly close the window on macOS
+        # On macOS, destroying/recreating pygame's Cocoa window while the
+        # daemon persists can hang SDL. Keep the historical hide path, then
+        # hide this process from the Dock so closing the editor removes its icon.
         if platform == 'mac':
             try:
                 sdl_window = SDLWindow.from_display_module()
                 sdl_window.hide()
-                # pump events to let macOS process the hide
+                plat.setDockIconVisible(False)
                 for _ in range(5):
                     pygame.event.pump()
                     time.sleep(0.02)
             except Exception as e:
                 console.warn(f"Error hiding window on macOS: {e}")
-                # fallback to display quit
                 if pygame.display.get_init():
                     pygame.display.quit()
         else:
-            # on Windows/Linux, display quit works fine
             pygame.event.pump()
             if pygame.display.get_init():
                 pygame.display.quit()
