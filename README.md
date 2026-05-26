@@ -6,29 +6,15 @@
 
 <p align="center">
   
-  <div style="display: inline-flex;translate:0px -6px;">Languages: </div>
   <img src="https://img.shields.io/badge/Rust-sienna?logo=rust"/>
-  <div style="display: inline-flex;translate:0px -6px;">,</div>
   <img src="https://img.shields.io/badge/Python-navy?logo=Python">
-  <div style="display: inline-flex;translate:0px -6px;">,</div>
-  <img src="https://img.shields.io/badge/JavaScript-yellow?logo=JavaScript">
-</p>
-<p align="center" style="display:flex;flex-direction: row; margin-top: -28px;">
-  <div style="display: inline-flex;translate:0px -6px;">Frameworks:</div>
+  <img src="https://img.shields.io/badge/JavaScript-yellow?logo=JavaScript"> *
   <img src="https://img.shields.io/badge/React-teal?logo=react" />
-  <div style="display: inline-flex;translate:0px -6px;">+</div>
-  <img src="https://img.shields.io/badge/Vite-indigo?logo=vite" />
-  <div style="display: inline-flex;translate:0px -6px;">served via</div>
   <img src="https://img.shields.io/badge/Tauri-cadetblue?logo=tauri" />
-  <div style="display: inline-flex;translate:0px -6px;">and</div>
-  <img src="https://img.shields.io/badge/Pywebview-lightblue?logo=GoogleChrome">
-  <div style="display: inline-flex;translate:0px -6px;margin:5px;">|</div>
-  <img src="https://img.shields.io/badge/Pygame-darkgreen?logo=Pythonanywhere">
-</p>
-<p align="center" style="display:flex;flex-direction: row; margin-top: -28px;">
-  <div style="display: inline-flex;translate:0px -6px;">Assets:</div>
-  <img src="https://img.shields.io/badge/Lucide&nbsp;Icons-darkred?logo=Lucide">
-  <img src="https://img.shields.io/badge/Google&nbsp;Fonts-black?logo=googlefonts">
+  <img src="https://img.shields.io/badge/Pywebview-lightblue?logo=GoogleChrome"> *
+  <!--<img src="https://img.shields.io/badge/Pygame-darkgreen?logo=Pythonanywhere">-->
+  <img src="https://img.shields.io/badge/Lucide-darkred?logo=Lucide">
+  <!--<img src="https://img.shields.io/badge/Google&nbsp;Fonts-black?logo=googlefonts">-->
 </p>
 <img src="https://www.dropbox.com/scl/fi/sj3qb5zu4x82k8s6785rn/Symphony-SS.png?rlkey=lxpta4hjcdhybl4400nrql20o&st=wpe8nxt3&raw=1" style="border-radius: 5px;">
 
@@ -54,7 +40,7 @@ However, I found areas of bloat (full app sat at over 250MB, installer ZIP was a
 - Python (for ALL system ops - CRUD and project state)
 - EventGame + Pygame.Mixer (like before)
 
-> This essentially removes Node and Electron from the stack, reducing disk size and RAM usage, and all-python backend means developer velocity is still fast. The thin Tauri shell is simply for a static launch pane, and for handling the NSIS/DMG installer simply.
+> This essentially removes Node and Electron from the stack, reducing disk size and RAM usage, and all-python backend means developer velocity is still fast. The thin Tauri shell is simply for a static launch pane, and for handling the NSIS/DMG installer.
 
 <!-- <img src='https://www.dropbox.com/scl/fi/m7vp194gkiovxp7oydcbk/StackBreakdown.jpg?rlkey=628b5o9vmvycfaugiqdxvmaa9&st=95zmxofb&raw=1' style='border-radius:5px;'> -->
 
