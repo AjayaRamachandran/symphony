@@ -53,7 +53,14 @@ export const moveInAppFileToDirectory = async (
     }
 
     await api.copyFile(src, destPath);
-    await api.deleteFile(src);
+    const deleteResult = await api.deleteFile(src);
+    if (deleteResult && deleteResult.success === false) {
+      return {
+        status: "error",
+        error: deleteResult.error || "delete-failed",
+        destPath,
+      };
+    }
     return { status: "moved", destPath };
   } catch (err) {
     console.error("moveInAppFileToDirectory failed:", err);

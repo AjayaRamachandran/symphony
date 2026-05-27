@@ -9,7 +9,7 @@ from datetime import datetime
 
 from utils.stack import Stack
 from utils.transactions import Transaction
-from gui.custom import Note
+from utils.note import Note
 
 ###### CLASSES ######
 

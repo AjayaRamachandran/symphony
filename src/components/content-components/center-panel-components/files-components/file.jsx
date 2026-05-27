@@ -137,6 +137,7 @@ function File({ name }) {
               types: e.dataTransfer ? Array.from(e.dataTransfer.types) : null,
             });
             setDraggingFilePath(filePath);
+            window.__symphonyDraggingFilePath = filePath;
             if (!window.electronAPI.isPywebview) {
               e.preventDefault();
             }
@@ -147,6 +148,11 @@ function File({ name }) {
               dropEffect: e.dataTransfer?.dropEffect,
             });
             setDraggingFilePath(null);
+            setTimeout(() => {
+              if (window.__symphonyDraggingFilePath === filePath) {
+                window.__symphonyDraggingFilePath = null;
+              }
+            }, 500);
           }}
           onClick={(e) => {
             e.stopPropagation();

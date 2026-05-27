@@ -6,16 +6,34 @@ import ProgramData from "@/assets/program-data.json";
 
 import "@/ui/title-bar.css";
 
-function TitleBar() {
+function getWindowApi(api) {
+  if (api) return api;
+  if (typeof window === "undefined") return null;
+  return window.electronAPI || window.editorAPI || null;
+}
+
+function TitleBar({
+  title = `Project Manager - Symphony v${ProgramData.version}`,
+  icon = Icon,
+  api = null,
+}) {
+  const windowApi = getWindowApi(api);
   const [isMaximized, setIsMaximized] = useState(false);
   const [isFocused, setIsFocused] = useState(true);
-  const [isMac, setIsMac] = useState(true);
+  const [isMac, setIsMac] = useState(() => getWindowApi(api)?.platform === "darwin");
 
   useEffect(() => {
-    // Listen for maximize/unmaximize from backend
-    window.electronAPI.onWindowStateChange(setIsMaximized);
-    setIsMac(window.electronAPI.platform === "darwin");
-  }, []);
+    if (!windowApi) return undefined;
+
+    const off = windowApi.onWindowStateChange?.(setIsMaximized);
+    if (windowApi.platform) {
+      setIsMac(windowApi.platform === "darwin");
+    } else if (windowApi.getPlatform) {
+      windowApi.getPlatform().then((platform) => setIsMac(platform === "darwin")).catch(() => {});
+    }
+
+    return () => off?.();
+  }, [windowApi]);
 
   useEffect(() => {
     const onFocus = () => setIsFocused(true);
@@ -43,7 +61,7 @@ function TitleBar() {
             <div className="mac-buttons">
               <span
                 className="mac-btn close"
-                onClick={() => window.electronAPI.close()}
+                onClick={() => windowApi?.close?.()}
               >
                 <svg
                   className="mac-btn-icon"
@@ -60,7 +78,7 @@ function TitleBar() {
               </span>
               <span
                 className="mac-btn minimize"
-                onClick={() => window.electronAPI.minimize()}
+                onClick={() => windowApi?.minimize?.()}
               >
                 <svg
                   className="mac-btn-icon"
@@ -77,7 +95,7 @@ function TitleBar() {
               </span>
               <span
                 className="mac-btn maximize"
-                onClick={() => window.electronAPI.maximize()}
+                onClick={() => windowApi?.maximize?.()}
               >
                 <svg
                   className="mac-btn-icon"
@@ -95,8 +113,8 @@ function TitleBar() {
         )}
 
         <div className="titlebar-center">
-          <img src={Icon} width="16px" style={{ filter: "drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5))" }} />
-          <div>Project Manager - Symphony v{ProgramData.version}</div>
+          {icon && <img src={icon} width="16px" style={{ filter: "drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5))" }} />}
+          <div>{title}</div>
         </div>
 
         {!isMac && (
@@ -106,13 +124,13 @@ function TitleBar() {
           >
             <button
               className="topbar-button"
-              onClick={() => window.electronAPI.minimize()}
+              onClick={() => windowApi?.minimize?.()}
             >
               <Minus size={13} />
             </button>
             <button
               className="topbar-button"
-              onClick={() => window.electronAPI.maximize()}
+              onClick={() => windowApi?.maximize?.()}
             >
               {isMaximized ? (
                 <Copy size={12} style={{ transform: "rotate(90deg)" }} />
@@ -122,7 +140,7 @@ function TitleBar() {
             </button>
             <button
               className="topbar-button x-button"
-              onClick={() => window.electronAPI.close()}
+              onClick={() => windowApi?.close?.()}
             >
               <X size={15} strokeWidth={1.7} />
             </button>

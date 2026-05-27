@@ -3,7 +3,10 @@ import HomePage from "@/pages/home-page";
 import PendingFileHandoff from "@/components/pending-file-handoff";
 import { useDirectory } from "@/contexts/directory-context";
 import path from "path-browserify";
-import { isSupportedDropExtension } from "@/utils/move-in-app-file";
+import {
+  isSupportedDropExtension,
+  moveInAppFileToDirectory,
+} from "@/utils/move-in-app-file";
 
 function App() {
   const {
@@ -14,6 +17,8 @@ function App() {
     clipboardCut,
     setClipboardCut,
     setGlobalUpdateTimestamp,
+    draggingFilePath,
+    setDraggingFilePath,
   } = useDirectory();
 
   // Operator functions
@@ -179,20 +184,43 @@ function App() {
       }
 
       try {
-        const result = await window.electronAPI.copyPathsInto(
-          supported,
-          destination,
+        const activeDragPath =
+          draggingFilePath || window.__symphonyDraggingFilePath;
+        const normalizedDraggingPath = activeDragPath?.replace(/\\/g, "/");
+        const inAppDragPath = supported.find(
+          (sourcePath) =>
+            sourcePath.replace(/\\/g, "/") === normalizedDraggingPath,
         );
-        console.log("[symphony-drag] copyPathsInto result", result);
+
+        if (inAppDragPath) {
+          const result = await moveInAppFileToDirectory(
+            inAppDragPath,
+            destination,
+          );
+          console.log("[symphony-drag] native in-app move result", result);
+          setDraggingFilePath(null);
+          window.__symphonyDraggingFilePath = null;
+        } else {
+          const result = await window.electronAPI.copyPathsInto(
+            supported,
+            destination,
+          );
+          console.log("[symphony-drag] copyPathsInto result", result);
+        }
         setGlobalUpdateTimestamp(Date.now());
       } catch (err) {
-        console.error("[symphony-drag] copyPathsInto failed:", err);
+        console.error("[symphony-drag] native drop failed:", err);
       }
     };
     window.addEventListener("symphony:native-drop", handleNativeDrop);
     return () =>
       window.removeEventListener("symphony:native-drop", handleNativeDrop);
-  }, [globalDirectory, setGlobalUpdateTimestamp]);
+  }, [
+    draggingFilePath,
+    globalDirectory,
+    setDraggingFilePath,
+    setGlobalUpdateTimestamp,
+  ]);
 
   // Attach operator functions to window for Toolbar access
   window.symphonyOps = {

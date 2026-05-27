@@ -45,6 +45,7 @@ body,
   --foreground: #d9d9d9;
   --muted-foreground: #898989;
   --tinted-foreground: #bbbbbb;
+  --border-color: #ffffff33;
 
   /* Brand / primary */
   --primary: #ea7b36;

@@ -145,7 +145,7 @@ function Files() {
 
   const handleDragOver = (e) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = "copy";
+    e.dataTransfer.dropEffect = draggingFilePath ? "move" : "copy";
     setIsDragging(true);
   };
 

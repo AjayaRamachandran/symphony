@@ -125,6 +125,7 @@ function Directory() {
 
   const onDragOver = (e) => {
     e.preventDefault();
+    e.dataTransfer.dropEffect = draggingFilePath ? "move" : "copy";
   };
 
   const onDragEnter = (e, dir) => {

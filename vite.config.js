@@ -8,10 +8,15 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      // Optional aliases — uncomment or customize if needed
       '@': path.resolve(__dirname, 'src'),
-      // 'components': path.resolve(__dirname, 'src/components'),
-      // 'assets': path.resolve(__dirname, 'src/assets'),
+    },
+  },
+  build: {
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, 'index.html'),
+        editor: path.resolve(__dirname, 'inner/src/gui/editor.html'),
+      },
     },
   },
 });

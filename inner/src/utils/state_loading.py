@@ -7,7 +7,7 @@ import copy
 ###### INTERNAL MODULES ######
 
 from console_controls.console import *
-from gui.custom import Note
+from utils.note import Note
 from utils.transactions import Transaction
 
 ###### INITIALIZE ######

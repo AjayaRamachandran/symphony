@@ -49,7 +49,9 @@ function Tooltip({
     let top = triggerRect.top - tooltipHeight - gap;
     let left = triggerRect.left + triggerRect.width / 2 - tooltipWidth / 2;
 
-    if (align === "left") {
+    if (align === "bottom") {
+      top = triggerRect.bottom + gap;
+    } else if (align === "left") {
       top = triggerRect.top + triggerRect.height / 2 - tooltipHeight / 2;
       left = triggerRect.left - tooltipWidth - gap;
     } else if (align === "right") {

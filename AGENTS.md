@@ -15,6 +15,9 @@ This project has a restrained, intentional UI language. When making changes, pre
 - Use the custom `Tooltip` component from `src/ui/Tooltip.jsx` for affordance, shortcuts, and compact explanation. Do not build ad hoc tooltip behavior.
 - Keep interface density calm and legible. Favor subtle borders, theme-aware contrast, and existing spacing rhythms over heavy decoration.
 - Match the surrounding component style before adding a new convention. Local consistency beats abstract preference.
+- For piano-roll and note-grid surfaces, reserve the darkest background values for negative space such as gaps between cells. Do not brighten the note cells to create this contrast; preserve intentional cell shading and change the surrounding/gap surface instead.
+- Keep editor measurement chrome neutral. Measure tickers, rulers, zoom controls, scrollbars, and debug readouts should not use primary/brand color unless they represent an actual selected or active musical state.
+- Pitch labels should read like labels, not debug badges: use normal spacing, moderate weight, left alignment in the pitch rail, and existing musical glyph assets such as the flat icon instead of text approximations like `b`.
 
 ## Implementation Notes
 
