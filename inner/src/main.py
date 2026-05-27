@@ -24,6 +24,7 @@ START_TIME = lastTime
 
 import os
 import sys
+import threading
 import traceback
 
 # Pygame is still required for ``pygame.mixer`` (note preview / full play)
@@ -127,8 +128,8 @@ def runEditorWindowOnce(pcData: dict) -> None:
         pcData (dict) - open command payload
     outputs: nothing
 
-    Loads the requested project and runs the pywebview editor window
-    blocking on the main thread until it is closed.
+    Loads the requested project, opens one pywebview editor window, and
+    blocks this command-loop thread until that window is closed.
     '''
     context = _loadOpenContext(pcData)
     session = EditorSession(
@@ -143,7 +144,13 @@ def runEditorWindowOnce(pcData: dict) -> None:
     host.createWindow(api)
 
     try:
-        host.runBlocking()
+        if sys.platform in ("win32", "darwin"):
+            threading.Thread(
+                target=host.installChromeDeferred,
+                name="SymphonyEditorChromeInstall",
+                daemon=True,
+            ).start()
+        host.closedEvent.wait()
     finally:
         try:
             session.close()
@@ -151,24 +158,69 @@ def runEditorWindowOnce(pcData: dict) -> None:
             console.warn(f"editor session close (post-run) failed: {exc}")
 
 
+def editorCommandLoop() -> None:
+    '''
+    fields: none
+    outputs: nothing
+
+    Runs inside pywebview's background function thread. The process command
+    server stays alive between editor windows so closing the editor only tears
+    down that window and its session state.
+    '''
+    while True:
+        pcData = pcrw.waitForOpenCommand()
+        if pcData is None:
+            continue
+
+        try:
+            runEditorWindowOnce(pcData)
+        except Exception:  # noqa: BLE001
+            traceback.print_exc()
+        finally:
+            pcrw.setGuiIsOpen(False)
+
+
+def createKeepAliveWindow():
+    '''
+    fields: none
+    outputs: webview.Window
+
+    Creates a hidden host window so pywebview's single event loop can remain
+    alive after the visible editor window closes.
+    '''
+    import webview
+
+    options = {
+        "title": "Symphony Editor Host",
+        "url": "about:blank",
+        "width": 1,
+        "height": 1,
+        "frameless": True,
+        "easy_drag": False,
+        "hidden": True,
+        "x": -32000,
+        "y": -32000,
+    }
+    try:
+        return webview.create_window(**options)
+    except TypeError:
+        options.pop("hidden", None)
+        return webview.create_window(**options)
+
+
+def runEditorEventLoop() -> None:
+    '''
+    fields: none
+    outputs: nothing
+
+    Starts pywebview once for the lifetime of this inner process.
+    '''
+    import webview
+
+    createKeepAliveWindow()
+    webview.start(debug=not getattr(sys, "frozen", False), func=editorCommandLoop)
+
+
 ###### MAIN ######
 
-run = True
-while run:
-    pcData = pcrw.waitForOpenCommand()
-    if pcData is None:
-        continue
-
-    try:
-        runEditorWindowOnce(pcData)
-    except Exception:  # noqa: BLE001
-        traceback.print_exc()
-    finally:
-        pcrw.setGuiIsOpen(False)
-
-    # pywebview's webview.start() can only be invoked once per process.
-    # The project manager's runner respawns this process for the next
-    # open, so we exit after the first webview lifecycle.
-    run = False
-
-console.warn("Editor inner process exiting.")
+runEditorEventLoop()

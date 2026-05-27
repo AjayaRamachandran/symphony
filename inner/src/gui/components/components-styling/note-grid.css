@@ -3,12 +3,16 @@
   --note-grid-offset-y: 0px;
   --note-grid-side-width: 74px;
   --note-grid-ticker-height: 20px;
-  --note-grid-navigator-height: 64px;
+  --note-grid-navigator-height: 48px;
   --note-grid-surface: var(--background);
   --note-grid-panel: var(--background);
-  --note-grid-gap-surface: #121212;
-  --note-grid-rule: #ffffff07;
-  --note-grid-rule-strong: #ffffff07;
+  --note-grid-gap-surface: var(--background);
+  --note-grid-cell-base-offset: 4;
+  --note-grid-cell-in-key-offset: 8;
+  --note-grid-cell-beat-offset: 9;
+  --note-grid-cell-beat-in-key-offset: 14;
+  --note-grid-cell-downbeat-offset: 14;
+  --note-grid-cell-downbeat-in-key-offset: 22;
   flex: 1;
   min-height: 0;
   display: grid;
@@ -116,6 +120,7 @@
   font-variant-numeric: tabular-nums;
   letter-spacing: 0;
   border-bottom: 1px solid var(--border-color);
+  cursor: pointer;
 }
 
 .note-grid-pitch-label {
@@ -162,6 +167,16 @@
   background: var(--note-grid-gap-surface);
   overscroll-behavior: none;
   touch-action: none;
+  cursor: none;
+}
+
+.note-grid-viewport * {
+  cursor: none;
+}
+
+.note-grid-viewport[data-cursor-disabled="true"],
+.note-grid-viewport[data-cursor-disabled="true"] * {
+  cursor: not-allowed;
 }
 
 .note-grid {
@@ -176,6 +191,150 @@
   background: transparent;
 }
 
+.note-grid-notes,
+.note-grid-ghosts {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.note-grid-notes {
+  z-index: 1;
+}
+
+.note-grid-ghosts {
+  z-index: 2;
+}
+
+.note-grid-note {
+  opacity: 0.96;
+  shape-rendering: geometricPrecision;
+}
+
+.note-grid-note-inactive {
+  opacity: 0.4;
+}
+
+.note-grid-note-selected {
+  stroke: #ffffff;
+  stroke-width: 3px;
+  paint-order: stroke fill;
+}
+
+.note-grid-note-ghost {
+  opacity: 0.35;
+  stroke: #ffffff;
+  stroke-width: 1.5px;
+  stroke-dasharray: 4 3;
+  pointer-events: none;
+}
+
+.note-grid-note-drag-preview {
+  opacity: 0.96;
+  stroke: #ffffff;
+  stroke-width: 2px;
+  paint-order: stroke fill;
+  pointer-events: none;
+}
+
+.note-grid-note-tail-affordance {
+  fill: rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+
+.note-grid-playhead {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 3;
+  width: 2px;
+  background: var(--primary);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--background) 78%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate3d(-999px, 0, 0);
+  will-change: transform;
+}
+
+.note-grid-playhead[data-visible="true"] {
+  opacity: 0.9;
+}
+
+.note-grid-selection-rect {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 2;
+  width: 0;
+  height: 0;
+  border: 1px solid var(--tinted-foreground);
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  pointer-events: none;
+  transform: translate3d(0, 0, 0);
+}
+
+.note-grid-custom-cursor {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 4;
+  width: 20px;
+  height: 20px;
+  color: #000;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate3d(-999px, -999px, 0);
+  transition: opacity 80ms ease;
+}
+
+.note-grid-custom-cursor[data-visible="true"] {
+  opacity: 1;
+}
+
+.note-grid-custom-cursor svg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  fill: #000;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.note-grid-custom-cursor-outline {
+  color: #fff;
+  stroke: #fff;
+  stroke-width: 5;
+}
+
+.note-grid-custom-cursor-fill {
+  color: #000;
+  stroke: #000;
+  stroke-width: 2.4;
+}
+
+.note-grid-custom-cursor-select {
+  transform-origin: 5px 5px;
+}
+
+.note-grid-custom-cursor-pencil,
+.note-grid-custom-cursor-eraser {
+  margin-left: -0px;
+  margin-top: -15px;
+}
+
+.note-grid-custom-cursor-resize,
+.note-grid-custom-cursor-playhead {
+  transform-origin: 10px 10px;
+  margin-left: -10px;
+  margin-top: -10px;
+}
+
 .note-grid-overlay-scrollbar {
   position: absolute;
   right: 6px;
@@ -185,7 +344,7 @@
   height: 10px;
   display: flex;
   align-items: center;
-  cursor: pointer;
+  cursor: none;
 }
 
 .note-grid-overlay-scrollbar-thumb {
@@ -193,11 +352,45 @@
   height: 8px;
   border-radius: 999px;
   background: #ffffff52;
-  cursor: grab;
+  cursor: none;
 }
 
-.note-grid-overlay-scrollbar-thumb:active {
-  cursor: grabbing;
+.note-grid-overlay-scrollbar-cursor {
+  position: absolute;
+  z-index: 1;
+  width: 20px;
+  height: 20px;
+  color: #000;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-2px, -2px);
+  transition: opacity 80ms ease;
+}
+
+.note-grid-overlay-scrollbar-cursor[data-visible="true"] {
+  opacity: 1;
+}
+
+.note-grid-overlay-scrollbar-cursor svg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.note-grid-overlay-scrollbar-cursor-outline {
+  color: #fff;
+  stroke: #fff;
+  stroke-width: 5;
+}
+
+.note-grid-overlay-scrollbar-cursor-fill {
+  color: #000;
+  stroke: #000;
+  stroke-width: 2.2;
 }
 
 .note-grid-navigator {

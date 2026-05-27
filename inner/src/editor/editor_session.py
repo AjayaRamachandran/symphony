@@ -661,16 +661,17 @@ class EditorSession:
             return {"ok": False, "error": str(exc)}
         return {"ok": True}
 
-    def playPitch(self, pitch: int) -> dict:
+    def playPitch(self, pitch: int, durationSeconds: float = 0.2) -> dict:
         '''
         fields:
             pitch (int) - pitch from the pitch list
+            durationSeconds (float) - preview length
         outputs: dict
 
         Convenience wrapper used when the user clicks anywhere in the pitch
         list. Uses the wave configured on the active color channel.
         '''
-        return self.playNotePreview(int(pitch))
+        return self.playNotePreview(int(pitch), durationSeconds=durationSeconds)
 
     def playFull(self, options: dict = None) -> dict:
         '''
@@ -750,12 +751,16 @@ class EditorSession:
 
     # ---- temp drag list -------------------------------------------------
 
-    def beginTempNotes(self, action: str, color: str, originals: list) -> dict:
+    def beginTempNotes(self, action: str, color: str, originals: list, targetColor: str = None) -> dict:
         '''
         fields:
             action (string) - "move" or "duplicate"
             color (string) - channel originals belong to
             originals (list) - list of {pitch, time, duration, data_fields}
+            targetColor (string | None) - destination channel for proposed
+                notes; defaults to ``color`` so single-channel drags stay
+                backward compatible. Move drags retarget the destination
+                channel when the user pressed a channel hotkey mid-drag.
         outputs: dict
 
         Marks the start of a drag/duplicate gesture. Frontend captures the
@@ -769,6 +774,7 @@ class EditorSession:
             self.tempDragState = {
                 "action": action,
                 "color": color,
+                "targetColor": targetColor if targetColor else color,
                 "originals": normalizedOriginals,
                 "proposed": list(normalizedOriginals),
             }
@@ -819,16 +825,18 @@ class EditorSession:
                 return {"ok": False, "error": "NoActiveDrag"}
 
             color = state["color"]
+            targetColor = state.get("targetColor", color)
             action = state["action"]
             beforeSnapshot = self.snapshotEditorState()
 
-            channelNotes = self.noteMap.setdefault(color, [])
+            sourceNotes = self.noteMap.setdefault(color, [])
             if action == "move":
                 for original in state["originals"]:
-                    self._removeMatchingNote(channelNotes, original)
+                    self._removeMatchingNote(sourceNotes, original)
 
+            destinationNotes = self.noteMap.setdefault(targetColor, [])
             for proposed in state["proposed"]:
-                channelNotes.append(deserializeNote(proposed))
+                destinationNotes.append(deserializeNote(proposed))
 
             self._preprocess()
 

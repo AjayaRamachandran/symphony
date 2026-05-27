@@ -1,6 +1,6 @@
 import { HelpCircle, Milestone, Pause, Play } from "lucide-react";
-import editorAPI from "./editor-bridge.js";
-import { IconButton, StepperField, SvgAssetIcon, ToolbarDropdown } from "./editor-toolbar-controls.jsx";
+import editorAPI from "../editor-bridge.js";
+import { IconButton, StepperField, SvgAssetIcon, ToolbarDropdown } from "./ui-elements.jsx";
 import {
   BRUSHES,
   CHANNELS,
@@ -10,12 +10,13 @@ import {
   MODE_OPTIONS,
   flatIcon,
   sharpIcon,
-} from "./editor-options.jsx";
+} from "./toolbar-options.jsx";
 import NoteGrid from "./note-grid.jsx";
 
 export default function EditorSurface({
   docState,
   isPlaying,
+  playbackClock,
   playheadArmed,
   brush,
   tempo,
@@ -32,6 +33,7 @@ export default function EditorSurface({
   onSetInstrument,
   onSetKey,
   onSetMode,
+  onConsumePlayheadArm,
 }) {
   const colorIndex = Math.max(0, Math.min(6, Number(docState?.currentColorIdx ?? 0)));
   const activeChannel = CHANNELS[colorIndex];
@@ -45,7 +47,7 @@ export default function EditorSurface({
 
   return (
     <div className="editor-content-shell" style={{ "--brush-accent": brush.color }}>
-      <div className="editor-brush-line" />
+      <div className="editor-border-top" />
       <div className="editor-toolbar">
         <div className="editor-toolbar-side">
           <div className="editor-fused-icon-group" aria-label="Editor tools">
@@ -157,11 +159,21 @@ export default function EditorSurface({
           </IconButton>
         </div>
       </div>
+      <div className="editor-brush-line" />
       <NoteGrid
         beatLength={beatLength}
         beatsPerMeasure={beatsPerMeasure}
+        brush={brush}
         keySignature={docState?.key}
         mode={docState?.mode}
+        noteMap={docState?.noteMap}
+        currentColorIdx={colorIndex}
+        isPlaying={isPlaying}
+        playheadHomeTime={docState?.playheadHomeTime}
+        playbackClock={playbackClock}
+        tempo={tempo}
+        playheadArmed={playheadArmed}
+        onConsumePlayheadArm={onConsumePlayheadArm}
       />
     </div>
   );

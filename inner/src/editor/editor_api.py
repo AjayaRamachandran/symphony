@@ -326,22 +326,24 @@ class EditorApi:
 
     # ---- audio ----------------------------------------------------------
 
-    def playNotePreview(self, pitch: int, color: str = None) -> dict:
+    def playNotePreview(self, pitch: int, color: str = None, durationSeconds: float = 0.2) -> dict:
         '''
         fields:
             pitch (int)
             color (string | None)
+            durationSeconds (float)
         outputs: dict
         '''
-        return self.session.playNotePreview(pitch, color)
+        return self.session.playNotePreview(pitch, color, durationSeconds)
 
-    def playPitch(self, pitch: int) -> dict:
+    def playPitch(self, pitch: int, durationSeconds: float = 0.2) -> dict:
         '''
         fields:
             pitch (int)
+            durationSeconds (float)
         outputs: dict
         '''
-        return self.session.playPitch(pitch)
+        return self.session.playPitch(pitch, durationSeconds)
 
     def playFull(self, options: dict = None) -> dict:
         '''
@@ -384,15 +386,16 @@ class EditorApi:
 
     # ---- temp drag list -------------------------------------------------
 
-    def beginTempNotes(self, action: str, color: str, originals: list) -> dict:
+    def beginTempNotes(self, action: str, color: str, originals: list, targetColor: str = None) -> dict:
         '''
         fields:
             action (string)
             color (string)
             originals (list)
+            targetColor (string | None)
         outputs: dict
         '''
-        return self.session.beginTempNotes(action, color, originals)
+        return self.session.beginTempNotes(action, color, originals, targetColor)
 
     def appendTempNotes(self, notes: list) -> dict:
         '''

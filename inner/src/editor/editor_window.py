@@ -112,10 +112,10 @@ class EditorWindowHost:
     '''
     Coordinates the lifetime of the editor pywebview window.
 
-    The inner process creates one EditorWindowHost per session, calls
-    ``createWindow``, then ``runBlocking`` on the main thread. The host
-    forwards state-change events to the JS stub and ensures the session
-    is closed when the window is destroyed.
+    The inner process creates one EditorWindowHost per session while the
+    shared pywebview event loop is already running. The host forwards
+    state-change events to the JS stub and ensures the session is closed
+    when the window is destroyed.
     '''
 
     def __init__(self, session, titleText: str):
@@ -131,6 +131,7 @@ class EditorWindowHost:
         self.winman = _selectWinman()
         self._isMaximized = False
         self._closing = False
+        self.closedEvent = threading.Event()
 
     # ---- creation -------------------------------------------------------
 
@@ -171,6 +172,8 @@ class EditorWindowHost:
         self.window.events.maximized += self._onMaximized
         self.window.events.restored += self._onRestored
         self.window.events.closing += self._onClosing
+        if hasattr(self.window.events, "closed"):
+            self.window.events.closed += self._onClosed
         self.window.events.loaded += self._onLoaded
 
         self.session.setStateChangeCallback(self._emitDocumentState)
@@ -181,8 +184,8 @@ class EditorWindowHost:
         fields: none
         outputs: nothing
 
-        Runs the pywebview event loop. Blocks until every window is closed.
-        Must be called from the main thread.
+        Runs the pywebview event loop. Kept for legacy callers; the inner
+        editor process now uses one shared event loop for every editor window.
         '''
         import webview  # local import
 
@@ -191,6 +194,13 @@ class EditorWindowHost:
             webview.start(debug=debug, func=self._deferredChromeInstall)
         else:
             webview.start(debug=debug)
+
+    def installChromeDeferred(self):
+        '''
+        fields: none
+        outputs: nothing
+        '''
+        self._deferredChromeInstall()
 
     # ---- lifecycle hooks ------------------------------------------------
 
@@ -225,8 +235,8 @@ class EditorWindowHost:
         outputs: nothing
 
         Pywebview fires this just before the window is destroyed. We
-        synchronously persist and stop autosave so the inner process
-        can exit cleanly afterwards.
+        synchronously persist and stop autosave so the editor session
+        can close cleanly afterwards.
         '''
         if self._closing:
             return
@@ -235,6 +245,17 @@ class EditorWindowHost:
             self.session.close()
         except Exception as exc:  # noqa: BLE001
             console.warn(f"editor session close failed: {exc}")
+        finally:
+            self.closedEvent.set()
+
+    def _onClosed(self):
+        '''
+        fields: none
+        outputs: nothing
+        '''
+        if not self._closing:
+            self._onClosing()
+        self.closedEvent.set()
 
     def _onMaximized(self):
         '''

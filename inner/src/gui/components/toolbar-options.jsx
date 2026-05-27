@@ -4,7 +4,7 @@ import sharpIcon from "@/assets/editor-icons/sharp.svg?raw";
 import squareWaveIcon from "@/assets/editor-icons/square-wave.svg?raw";
 import triangleWaveIcon from "@/assets/editor-icons/triangle-wave.svg?raw";
 import sawtoothWaveIcon from "@/assets/editor-icons/sawtooth-wave.svg?raw";
-import { SvgAssetIcon } from "./editor-toolbar-controls.jsx";
+import { SvgAssetIcon } from "./ui-elements.jsx";
 
 export const HELP_URL = "https://docs.nimbial.com/symphony/4";
 

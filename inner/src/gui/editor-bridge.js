@@ -144,8 +144,8 @@ const editorAPI = {
   updateProjectMetadata: (metadata) => call("updateProjectMetadata", metadata),
 
   // ---- audio playback -------------------------------------------------
-  playNotePreview: (pitch, color) => call("playNotePreview", pitch, color),
-  playPitch: (pitch) => call("playPitch", pitch),
+  playNotePreview: (pitch, color, durationSeconds) => call("playNotePreview", pitch, color, durationSeconds),
+  playPitch: (pitch, durationSeconds) => call("playPitch", pitch, durationSeconds),
   playFull: (options) => call("playFull", options || {}),
   stopPlayback: () => call("stopPlayback"),
   setPlayheadHome: (time) => call("setPlayheadHome", time),
@@ -155,8 +155,8 @@ const editorAPI = {
   redo: () => call("redo"),
 
   // ---- temp drag list -------------------------------------------------
-  beginTempNotes: (action, color, originals) =>
-    call("beginTempNotes", action, color, originals),
+  beginTempNotes: (action, color, originals, targetColor = null) =>
+    call("beginTempNotes", action, color, originals, targetColor),
   appendTempNotes: (notes) => call("appendTempNotes", notes),
   setTempNotes: (notes) => call("setTempNotes", notes),
   commitTempNotes: () => call("commitTempNotes"),
