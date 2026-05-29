@@ -5,7 +5,7 @@ import path from "path-browserify";
 import Field from "@/ui/field";
 import SearchResults from "@/components/content-components/center-panel-components/search-results";
 
-import "@/components/components-styling/search-bar.css";
+import "@/components/universal-styling/search-bar.css";
 
 function SearchBar() {
   const [searchContent, setSearchContent] = useState("");
@@ -99,16 +99,41 @@ function SearchBar() {
         <Field
           value={searchContent}
           className="search-field"
-          placeholder={<span style={{ display: "flex", flexDirection: "row", alignItems: "center" }}>
-            Search All Files <div style={{ fontSize: "10px", color: "#888", backgroundColor: "#fff1", padding: "2px 4px", borderRadius: "4px", display: "flex", alignItems: "center", justifyContent: "center", marginLeft: "7px" }}>
-              {navigator.platform && navigator.platform.startsWith("Mac") ? (
-                "⌘ + K"
-              ) : (
-                "Ctrl + K"
-              )}
-            </div>
-          </span>}
-          style={{ height: "31px", fontSize: "1.1em", width: "100%", paddingLeft: "32px", boxShadow: "none !important" }}
+          placeholder={
+            <span
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "center",
+              }}
+            >
+              Search All Files{" "}
+              <div
+                style={{
+                  fontSize: "10px",
+                  color: "#888",
+                  backgroundColor: "#fff1",
+                  padding: "2px 4px",
+                  borderRadius: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginLeft: "7px",
+                }}
+              >
+                {navigator.platform && navigator.platform.startsWith("Mac")
+                  ? "⌘ + K"
+                  : "Ctrl + K"}
+              </div>
+            </span>
+          }
+          style={{
+            height: "31px",
+            fontSize: "1.1em",
+            width: "100%",
+            paddingLeft: "32px",
+            boxShadow: "none !important",
+          }}
           onChange={(e) => setSearchContent(e.target.value)}
           onFocus={() => setFocused(true)}
           singleLine={true}

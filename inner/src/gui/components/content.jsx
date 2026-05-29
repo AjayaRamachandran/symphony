@@ -1,6 +1,9 @@
 import { HelpCircle, Milestone, Pause, Play } from "lucide-react";
 import editorAPI from "../editor-bridge.js";
-import { IconButton, StepperField, SvgAssetIcon, ToolbarDropdown } from "./ui-elements.jsx";
+import { IconButton } from "./toolbar-components/icon-button.jsx";
+import { StepperField } from "./toolbar-components/stepper-field.jsx";
+import { SvgAssetIcon } from "./toolbar-components/svg-asset-icon.jsx";
+import { ToolbarDropdown } from "./toolbar-components/toolbar-dropdown.jsx";
 import {
   BRUSHES,
   CHANNELS,
@@ -11,8 +14,11 @@ import {
   flatIcon,
   sharpIcon,
 } from "./toolbar-options.jsx";
-import NoteGrid from "./note-grid.jsx";
+import NoteGrid from "./notegrid.jsx";
 
+/**
+ * Composes the editor toolbar, active controls, and note grid surface.
+ */
 export default function EditorSurface({
   docState,
   isPlaying,
@@ -34,19 +40,34 @@ export default function EditorSurface({
   onSetKey,
   onSetMode,
   onConsumePlayheadArm,
+  debugUiEnabled = false,
+  showDebugByDefault = false,
 }) {
-  const colorIndex = Math.max(0, Math.min(6, Number(docState?.currentColorIdx ?? 0)));
+  const colorIndex = Math.max(
+    0,
+    Math.min(6, Number(docState?.currentColorIdx ?? 0)),
+  );
   const activeChannel = CHANNELS[colorIndex];
   const activeColorName = activeChannel.name;
-  const currentInstrumentValue = docState?.instrumentMap?.[activeColorName] ?? 0;
+  const currentInstrumentValue =
+    docState?.instrumentMap?.[activeColorName] ?? 0;
   const instrumentValue =
-    INSTRUMENT_OPTIONS.find((option) => option.value === currentInstrumentValue) ?? INSTRUMENT_OPTIONS[0];
-  const keyValue = KEY_OPTIONS.find((option) => option.value === docState?.key) ?? KEY_OPTIONS[0];
-  const modeValue = MODE_OPTIONS.find((option) => option.value === docState?.mode) ?? MODE_OPTIONS[1];
+    INSTRUMENT_OPTIONS.find(
+      (option) => option.value === currentInstrumentValue,
+    ) ?? INSTRUMENT_OPTIONS[0];
+  const keyValue =
+    KEY_OPTIONS.find((option) => option.value === docState?.key) ??
+    KEY_OPTIONS[0];
+  const modeValue =
+    MODE_OPTIONS.find((option) => option.value === docState?.mode) ??
+    MODE_OPTIONS[1];
   const BrushIcon = brush.Icon;
 
   return (
-    <div className="editor-content-shell" style={{ "--brush-accent": brush.color }}>
+    <div
+      className="editor-content-shell"
+      style={{ "--brush-accent": brush.color }}
+    >
       <div className="editor-border-top" />
       <div className="editor-toolbar">
         <div className="editor-toolbar-side">
@@ -71,7 +92,12 @@ export default function EditorSurface({
               ))}
               onClick={onToggleAccidentals}
             >
-              <SvgAssetIcon source={docState?.accidentals === "flats" ? flatIcon : sharpIcon} size={15} />
+              <SvgAssetIcon
+                source={
+                  docState?.accidentals === "flats" ? flatIcon : sharpIcon
+                }
+                size={15}
+              />
             </IconButton>
 
             <IconButton
@@ -101,7 +127,13 @@ export default function EditorSurface({
 
           <span className="editor-toolbar-separator" />
 
-          <StepperField label="Beat length (in tiles)" suffix="tiles" value={beatLength} min={1} onCommit={onSetBeatLength} />
+          <StepperField
+            label="Beat length (in tiles)"
+            suffix="tiles"
+            value={beatLength}
+            min={1}
+            onCommit={onSetBeatLength}
+          />
           <StepperField
             label="Beats per measure"
             suffix="beats"
@@ -112,8 +144,17 @@ export default function EditorSurface({
         </div>
 
         <div className="editor-toolbar-side right">
-          <StepperField label="Tempo" suffix="tpm" value={tempo} min={1} onCommit={onSetTempo} />
-          <div className="editor-fused-channel-instrument-group" aria-label="Channel and instrument">
+          <StepperField
+            label="Tempo"
+            suffix="tpm"
+            value={tempo}
+            min={1}
+            onCommit={onSetTempo}
+          />
+          <div
+            className="editor-fused-channel-instrument-group"
+            aria-label="Channel and instrument"
+          >
             <IconButton
               label={`Color channel: ${activeChannel.label}`}
               shortcut="Numkeys 1-7"
@@ -128,10 +169,15 @@ export default function EditorSurface({
               label="Instrument"
               options={INSTRUMENT_OPTIONS}
               value={instrumentValue}
-              onSelect={(option) => onSetInstrument(activeColorName, option.value)}
+              onSelect={(option) =>
+                onSetInstrument(activeColorName, option.value)
+              }
             />
           </div>
-          <div className="editor-fused-dropdown-group" aria-label="Key and mode">
+          <div
+            className="editor-fused-dropdown-group"
+            aria-label="Key and mode"
+          >
             <ToolbarDropdown
               label="Key"
               options={KEY_OPTIONS}
@@ -152,7 +198,9 @@ export default function EditorSurface({
             onClick={() =>
               editorAPI
                 .openExternalUrl(HELP_URL)
-                .catch(() => window.open(HELP_URL, "_blank", "noopener,noreferrer"))
+                .catch(() =>
+                  window.open(HELP_URL, "_blank", "noopener,noreferrer"),
+                )
             }
           >
             <HelpCircle size={15} />
@@ -174,6 +222,8 @@ export default function EditorSurface({
         tempo={tempo}
         playheadArmed={playheadArmed}
         onConsumePlayheadArm={onConsumePlayheadArm}
+        debugUiEnabled={debugUiEnabled}
+        showDebugByDefault={showDebugByDefault}
       />
     </div>
   );

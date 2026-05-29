@@ -3,7 +3,7 @@ import path from "path-browserify"; // Required for path operations in browser
 import { Music, FolderClosed, X, KeyboardMusic, Star } from "lucide-react";
 
 import Tooltip from "@/ui/tooltip";
-import "@/components/components-styling/search-results.css";
+import "@/components/universal-styling/search-results.css";
 
 import FileNotExist from "@/modals/file-not-exist";
 import GenericModal from "@/modals/generic-modal";

@@ -23,6 +23,11 @@ This project has a restrained, intentional UI language. When making changes, pre
 
 - Before adding UI, search for a nearby component that already solves the interaction.
 - New shared UI should live with the existing UI/component structure and expose a small, predictable API.
+- Prefer smaller, composable, reusable functions with intuitive names, especially in `inner/src/gui` React code. Keep interaction, rendering, coordinate math, and data-shaping responsibilities easy to scan.
+- Export-level JavaScript or JSX functions should generally live in their own files. Keep same-file helpers local to the exported component or utility surface they support.
+- Give functions concise docstrings. Document exported components, exported helpers, local helpers, and named callbacks whose intent is not obvious from the name alone.
+- Add minimal lowercase end-of-line comments for dense coordinate math, timing conversions, render signatures, or other complex expressions. Avoid commenting obvious assignments or JSX wiring.
+- When splitting a large UI surface, preserve the local architecture: colocate narrowly scoped helpers with their owning component, move reusable helpers into utility files, and expose imperative refs only where they keep hot-path rendering out of React state.
 - Prefer theme variables over hard-coded colors. Add a new variable only when the color represents a reusable semantic role.
 - Use icons and microcopy to make actions discoverable, then rely on `Tooltip` for compact secondary context.
 - Keep modal, panel, and toolbar interactions consistent with existing disclosure patterns.

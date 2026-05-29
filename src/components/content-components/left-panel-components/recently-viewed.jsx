@@ -10,7 +10,7 @@ import {
 import path from "path-browserify";
 
 import Tooltip from "@/ui/tooltip";
-import "@/components/components-styling/recently-viewed.css";
+import "@/components/universal-styling/recently-viewed.css";
 import { useDirectory } from "@/contexts/directory-context";
 import FileNotExist from "@/modals/file-not-exist";
 import GenericModal from "@/modals/generic-modal";

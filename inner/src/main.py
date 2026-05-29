@@ -55,6 +55,22 @@ platformName, _CMD_KEY = plat.getPlatformNameAndMeta()
 
 SAMPLE_RATE = 44100
 
+def _readEnvBool(key: str, default: bool = False) -> bool:
+    '''
+    fields:
+        key (string) - environment variable name
+        default (boolean) - fallback value when the variable is absent
+    outputs: boolean
+    '''
+    value = os.environ.get(key)
+    if value is None:
+        return default
+    return value.strip().lower() in ("1", "true", "yes", "on")
+
+
+DEBUG_UI_ENABLED = not getattr(sys, "frozen", False)
+SHOW_DEBUG_BY_DEFAULT = DEBUG_UI_ENABLED and _readEnvBool("SYMPHONY_SHOW_DEBUG_BY_DEFAULT", True)
+
 console.log(f"sysargs: {sys.argv}")
 source_path = sys.argv[1] if len(sys.argv) > 1 else os.path.dirname(os.path.abspath(__file__))
 
@@ -119,6 +135,8 @@ def _loadOpenContext(pcData: dict) -> dict:
         "workingFilePath": workingFilePath,
         "titleText": titleText,
         "autoSaveDirectory": autoSaveDirectory,
+        "debugUiEnabled": DEBUG_UI_ENABLED,
+        "showDebugByDefault": SHOW_DEBUG_BY_DEFAULT,
     }
 
 
@@ -137,6 +155,8 @@ def runEditorWindowOnce(pcData: dict) -> None:
         titleText=context["titleText"],
         sessionID=sessionID,
         autoSaveDirectory=context["autoSaveDirectory"],
+        debugUiEnabled=context["debugUiEnabled"],
+        showDebugByDefault=context["showDebugByDefault"],
     )
 
     host = EditorWindowHost(session=session, titleText=context["titleText"])

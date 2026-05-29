@@ -1,16 +1,27 @@
 import { ArrowRightFromLine, MoveHorizontal } from "lucide-react";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import editorAPI from "../editor-bridge.js";
 import {
   Navigator,
   NoteGridCanvas,
-  NoteGridNotes,
-  NoteGridOverlay,
-  NoteGridPlayhead,
-  OverlayScrollbar,
   PitchList,
   Ticker,
-} from "./note-grid-components.jsx";
+} from "./notegrid-components/canvas.jsx";
+import {
+  OverlayScrollbar,
+  OVERLAY_SCROLLBAR_TRACK_INSET,
+  MIN_SCROLLBAR_THUMB_WIDTH,
+} from "./notegrid-components/scrollbar.jsx";
+import { Notes } from "./notegrid-components/notes.jsx";
+import { Overlay } from "./notegrid-components/overlay.jsx";
+import { Playhead } from "./notegrid-components/playhead.jsx";
 import {
   ALL_CHANNEL_INDEX,
   NOTE_PITCH_TO_GRID_ROW_OFFSET,
@@ -29,8 +40,8 @@ import {
   serializeSelectionEntries,
   snapDelta,
   viewportToWorldPoint,
-} from "./note-grid-note-behavior.js";
-import "./components-styling/note-grid.css";
+} from "./notegrid-utils.js";
+import "./universal-styling/note-grid.css";
 
 const ZOOM_LEVELS = [20, 26, 32, 40, 48];
 const DEFAULT_ZOOM_INDEX = 2;
@@ -43,8 +54,6 @@ const MAX_ROW = 96;
 const MIN_BOTTOM_ROW = 12;
 const DEFAULT_TOP_ROW = 96;
 const DEFAULT_COLUMN = 0;
-const OVERLAY_SCROLLBAR_TRACK_INSET = 6;
-const MIN_SCROLLBAR_THUMB_WIDTH = 44;
 const NOTE_PREVIEW_SECONDS = 0.5;
 const ROOT_THEME_COLORS = {
   background: "#fff",
@@ -83,14 +92,23 @@ const MODE_INTERVALS = {
   Locrian: [0, 1, 3, 5, 6, 8, 10],
 };
 
+/**
+ * Returns a non-negative modulo result for wrapped grid math.
+ */
 function positiveModulo(value, divisor) {
   return ((value % divisor) + divisor) % divisor;
 }
 
+/**
+ * Bounds a number between a minimum and maximum value.
+ */
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
+/**
+ * Calculates how many grid cells are needed to cover the viewport.
+ */
 function getViewportCellCounts(size, cellSize) {
   return {
     columns: Math.ceil(size.width / cellSize) + 1,
@@ -98,24 +116,37 @@ function getViewportCellCounts(size, cellSize) {
   };
 }
 
+/**
+ * Calculates the maximum horizontal scroll offset for the project width.
+ */
 function getMaxScrollX(viewportWidth, cellSize, maxColumn) {
   const contentWidth = (maxColumn - MIN_COLUMN + 1) * cellSize;
   return Math.max(0, contentWidth - viewportWidth);
 }
 
+/**
+ * Calculates the maximum vertical scroll offset for the fixed pitch range.
+ */
 function getMaxScrollY(viewportHeight, cellSize) {
   const contentHeight = (MAX_ROW - MIN_BOTTOM_ROW + 1) * cellSize;
   return Math.max(0, contentHeight - viewportHeight);
 }
 
+/**
+ * Builds the pitch-class set for the current key and mode.
+ */
 function getKeyPitchClasses(key, mode) {
   const root = KEY_ROOTS[key] ?? KEY_ROOTS.C;
   const intervals = MODE_INTERVALS[mode] ?? MODE_INTERVALS["Ionian (maj.)"];
   return new Set(intervals.map((interval) => (root + interval) % 12));
 }
 
+/**
+ * Extends the grid width to include the latest note plus end padding.
+ */
 function getProjectMaxColumn(noteMap) {
-  if (!noteMap || typeof noteMap !== "object") return DEFAULT_PROJECT_MAX_COLUMN;
+  if (!noteMap || typeof noteMap !== "object")
+    return DEFAULT_PROJECT_MAX_COLUMN;
 
   let latestNoteEnd = 0;
   Object.values(noteMap).forEach((notes) => {
@@ -124,34 +155,61 @@ function getProjectMaxColumn(noteMap) {
     notes.forEach((note) => {
       const time = Number(note?.time);
       const duration = Number(note?.duration);
-      if (!Number.isFinite(time) || !Number.isFinite(duration) || duration <= 0) return;
+      if (!Number.isFinite(time) || !Number.isFinite(duration) || duration <= 0)
+        return;
 
       latestNoteEnd = Math.max(latestNoteEnd, time + duration);
     });
   });
 
-  return Math.max(DEFAULT_PROJECT_MAX_COLUMN, latestNoteEnd + PROJECT_END_PADDING_COLUMNS);
+  return Math.max(
+    DEFAULT_PROJECT_MAX_COLUMN,
+    latestNoteEnd + PROJECT_END_PADDING_COLUMNS,
+  );
 }
 
+/**
+ * Reads a root theme color with a safe fallback for non-browser contexts.
+ */
 function readRootThemeColor(variableName, fallback) {
   if (typeof document === "undefined") return fallback;
 
-  return getComputedStyle(document.documentElement).getPropertyValue(variableName).trim() || fallback;
+  return (
+    getComputedStyle(document.documentElement)
+      .getPropertyValue(variableName)
+      .trim() || fallback
+  );
 }
 
+/**
+ * Reads a numeric css variable from an element.
+ */
 function readCssNumber(element, variableName, fallback) {
   if (!element) return fallback;
 
-  const value = Number(getComputedStyle(element).getPropertyValue(variableName).trim());
+  const value = Number(
+    getComputedStyle(element).getPropertyValue(variableName).trim(),
+  );
   return Number.isFinite(value) ? value : fallback;
 }
 
+/**
+ * Detects editable targets so global shortcuts do not steal text input.
+ */
 function isTextEditingTarget(target) {
   if (!target) return false;
   const tagName = target.tagName?.toLowerCase();
-  return tagName === "input" || tagName === "textarea" || tagName === "select" || target.isContentEditable;
+  return (
+    tagName === "input" ||
+    tagName === "textarea" ||
+    tagName === "select" ||
+    target.isContentEditable
+  );
 }
 
+/**
+ * Parses supported css color strings into rgb channels.
+ */
 function parseCssColor(value) {
   const trimmed = value.trim();
   const hex = trimmed.match(/^#([0-9a-f]{3,8})$/i)?.[1];
@@ -183,12 +241,18 @@ function parseCssColor(value) {
   };
 }
 
+/**
+ * Formats rgb channels as a hex color.
+ */
 function formatHexColor({ r, g, b }) {
   return `#${[r, g, b]
     .map((channel) => Math.round(channel).toString(16).padStart(2, "0"))
     .join("")}`;
 }
 
+/**
+ * Converts a color to its neutral grayscale channel.
+ */
 function getNeutralChannel(color) {
   const parsed = parseCssColor(color);
   if (!parsed) return null;
@@ -196,11 +260,17 @@ function getNeutralChannel(color) {
   return Math.round((parsed.r + parsed.g + parsed.b) / 3);
 }
 
+/**
+ * Formats a grayscale channel as a hex color.
+ */
 function formatNeutralShade(channel) {
   const safeChannel = Math.min(255, Math.max(0, Math.round(channel)));
   return formatHexColor({ r: safeChannel, g: safeChannel, b: safeChannel });
 }
 
+/**
+ * Offsets a theme color while preserving neutral shading.
+ */
 function offsetThemeGray(baseColor, offset) {
   const channel = getNeutralChannel(baseColor);
   if (channel === null) return baseColor;
@@ -208,26 +278,79 @@ function offsetThemeGray(baseColor, offset) {
   return formatNeutralShade(channel + offset);
 }
 
+/**
+ * Derives the full grid cell palette from theme variables.
+ */
 function getGridCellPalette(sourceElement) {
-  const background = readRootThemeColor("--background", ROOT_THEME_COLORS.background);
-  const getOffset = (name, fallback) => readCssNumber(sourceElement, name, fallback);
+  const background = readRootThemeColor(
+    "--background",
+    ROOT_THEME_COLORS.background,
+  );
+  /**
+   * Reads one palette offset from the grid surface.
+   */
+  const getOffset = (name, fallback) =>
+    readCssNumber(sourceElement, name, fallback);
 
   return {
-    base: offsetThemeGray(background, getOffset("--note-grid-cell-base-offset", GRID_CELL_OFFSET_FALLBACKS.base)),
-    inKey: offsetThemeGray(background, getOffset("--note-grid-cell-in-key-offset", GRID_CELL_OFFSET_FALLBACKS.inKey)),
-    beat: offsetThemeGray(background, getOffset("--note-grid-cell-beat-offset", GRID_CELL_OFFSET_FALLBACKS.beat)),
-    beatInKey: offsetThemeGray(background, getOffset("--note-grid-cell-beat-in-key-offset", GRID_CELL_OFFSET_FALLBACKS.beatInKey)),
-    downBeat: offsetThemeGray(background, getOffset("--note-grid-cell-downbeat-offset", GRID_CELL_OFFSET_FALLBACKS.downBeat)),
+    base: offsetThemeGray(
+      background,
+      getOffset(
+        "--note-grid-cell-base-offset",
+        GRID_CELL_OFFSET_FALLBACKS.base,
+      ),
+    ),
+    inKey: offsetThemeGray(
+      background,
+      getOffset(
+        "--note-grid-cell-in-key-offset",
+        GRID_CELL_OFFSET_FALLBACKS.inKey,
+      ),
+    ),
+    beat: offsetThemeGray(
+      background,
+      getOffset(
+        "--note-grid-cell-beat-offset",
+        GRID_CELL_OFFSET_FALLBACKS.beat,
+      ),
+    ),
+    beatInKey: offsetThemeGray(
+      background,
+      getOffset(
+        "--note-grid-cell-beat-in-key-offset",
+        GRID_CELL_OFFSET_FALLBACKS.beatInKey,
+      ),
+    ),
+    downBeat: offsetThemeGray(
+      background,
+      getOffset(
+        "--note-grid-cell-downbeat-offset",
+        GRID_CELL_OFFSET_FALLBACKS.downBeat,
+      ),
+    ),
     downBeatInKey: offsetThemeGray(
       background,
-      getOffset("--note-grid-cell-downbeat-in-key-offset", GRID_CELL_OFFSET_FALLBACKS.downBeatInKey),
+      getOffset(
+        "--note-grid-cell-downbeat-in-key-offset",
+        GRID_CELL_OFFSET_FALLBACKS.downBeatInKey,
+      ),
     ),
   };
 }
 
-function getCellFill({ column, row, keyPitchClasses, beatLength, beatsPerMeasure, cellPalette }) {
+/**
+ * Chooses a cell fill from beat, downbeat, and in-key state.
+ */
+function getCellFill({
+  column,
+  row,
+  keyPitchClasses,
+  beatLength,
+  beatsPerMeasure,
+  cellPalette,
+}) {
   const beatSize = Math.max(1, Number(beatLength) || 1);
-  const measureSize = beatSize * Math.max(1, Number(beatsPerMeasure) || 1);
+  const measureSize = beatSize * Math.max(1, Number(beatsPerMeasure) || 1); // beats to measure cells
   const isBeatStart = positiveModulo(column, beatSize) === 0;
   const isDownBeat = positiveModulo(column, measureSize) === 0;
   const isInKey = keyPitchClasses.has(positiveModulo(row, 12));
@@ -261,6 +384,9 @@ function useFrameStats() {
     let lastSample = performance.now();
     let lastFrame = lastSample;
 
+    /**
+     * Samples frame timings and publishes aggregated stats twice per second.
+     */
     const tick = (time) => {
       const frameMs = time - lastFrame;
       lastFrame = time;
@@ -341,12 +467,22 @@ function createInteractionStats() {
 /**
  * Records a measured duration into a diagnostics bucket.
  */
-function recordTimedStat(stats, countKey, totalKey, averageKey, worstKey, duration) {
+function recordTimedStat(
+  stats,
+  countKey,
+  totalKey,
+  averageKey,
+  worstKey,
+  duration,
+) {
   stats[totalKey] += duration;
   stats[averageKey] = stats[totalKey] / Math.max(1, stats[countKey]);
   stats[worstKey] = Math.max(stats[worstKey], duration);
 }
 
+/**
+ * Converts an in-flight gesture into overlay ghost notes.
+ */
 function buildGhostNotes(gesture) {
   if (!gesture) return null;
 
@@ -369,29 +505,47 @@ function buildGhostNotes(gesture) {
     }));
   }
   if (gesture.kind === "draw") {
-    return [{
-      color: gesture.color,
-      pitch: gesture.pitch,
-      time: gesture.time,
-      duration: gesture.duration,
-      variant: "ghost",
-    }];
+    return [
+      {
+        color: gesture.color,
+        pitch: gesture.pitch,
+        time: gesture.time,
+        duration: gesture.duration,
+        variant: "ghost",
+      },
+    ];
   }
   return null;
 }
 
+/**
+ * Builds keys for original notes hidden while drag previews are visible.
+ */
 function buildHiddenKeys(gesture) {
-  if (gesture?.kind !== "resize-drag" && (gesture?.kind !== "move-drag" || gesture.duplicate)) {
+  if (
+    gesture?.kind !== "resize-drag" &&
+    (gesture?.kind !== "move-drag" || gesture.duplicate)
+  ) {
     return null;
   }
 
-  return new Set(gesture.originals.map((note) => noteKey(gesture.originalColor, note.time, note.pitch)));
+  return new Set(
+    gesture.originals.map((note) =>
+      noteKey(gesture.originalColor, note.time, note.pitch),
+    ),
+  );
 }
 
+/**
+ * Builds a position signature for commit-visual reconciliation.
+ */
 function notePositionSignature(color, note) {
   return `${color}:${note.time}:${note.pitch}:${note.duration}`;
 }
 
+/**
+ * Renders the interactive piano-roll note grid and gesture layer.
+ */
 export default function NoteGridSurface({
   beatLength = 4,
   beatsPerMeasure = 4,
@@ -406,6 +560,8 @@ export default function NoteGridSurface({
   tempo = 360,
   playheadArmed = false,
   onConsumePlayheadArm = null,
+  debugUiEnabled = false,
+  showDebugByDefault = false,
 }) {
   const surfaceRef = useRef(null);
   const viewportRef = useRef(null);
@@ -429,7 +585,10 @@ export default function NoteGridSurface({
     pixelRatio: 1,
   });
   const scrollbarThumbRef = useRef(null);
-  const scrollPositionRef = useRef({ x: DEFAULT_COLUMN * ZOOM_LEVELS[DEFAULT_ZOOM_INDEX], y: 0 });
+  const scrollPositionRef = useRef({
+    x: DEFAULT_COLUMN * ZOOM_LEVELS[DEFAULT_ZOOM_INDEX],
+    y: 0,
+  });
   const originRef = useRef({ row: DEFAULT_TOP_ROW, column: DEFAULT_COLUMN });
   const visualDirtyRef = useRef(true);
   const visualLoopRef = useRef(0);
@@ -447,11 +606,16 @@ export default function NoteGridSurface({
   const altDownRef = useRef(false);
   const activePointerIdRef = useRef(null);
   const boxSelectRecaptureRef = useRef(null);
+  const previousDebugUiEnabledRef = useRef(debugUiEnabled);
 
   const [zoomIndex, setZoomIndex] = useState(DEFAULT_ZOOM_INDEX);
   const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
-  const [showDebugStats, setShowDebugStats] = useState(true);
-  const [interactionStats, setInteractionStats] = useState(createInteractionStats);
+  const [showDebugStats, setShowDebugStats] = useState(
+    () => debugUiEnabled && showDebugByDefault,
+  );
+  const [interactionStats, setInteractionStats] = useState(
+    createInteractionStats,
+  );
   const [cursorOverride, setCursorOverride] = useState(null);
 
   const renderStart = performance.now();
@@ -476,20 +640,62 @@ export default function NoteGridSurface({
   }, []);
   const cellSize = ZOOM_LEVELS[zoomIndex];
   const tileSize = cellSize - TILE_GAP;
-  const cellRadius = Math.min(CELL_RADIUS, Math.max(2, Math.round(cellSize * 0.08)));
-  const projectMaxColumn = useMemo(() => getProjectMaxColumn(noteMap), [noteMap]);
-  const cellCounts = useMemo(() => getViewportCellCounts(viewportSize, cellSize), [cellSize, viewportSize]);
+  const cellRadius = Math.min(
+    CELL_RADIUS,
+    Math.max(2, Math.round(cellSize * 0.08)),
+  );
+  /**
+   * Computes the project width needed for the current notes.
+   */
+  const projectMaxColumn = useMemo(
+    () => getProjectMaxColumn(noteMap),
+    [noteMap],
+  );
+  /**
+   * Computes visible cell counts for canvas and diagnostics.
+   */
+  const cellCounts = useMemo(
+    () => getViewportCellCounts(viewportSize, cellSize),
+    [cellSize, viewportSize],
+  );
+  /**
+   * Computes the current horizontal scroll limit.
+   */
   const maxScrollX = useMemo(
     () => getMaxScrollX(viewportSize.width, cellSize, projectMaxColumn),
     [cellSize, projectMaxColumn, viewportSize.width],
   );
-  const maxScrollY = useMemo(() => getMaxScrollY(viewportSize.height, cellSize), [cellSize, viewportSize.height]);
-  const keyPitchClasses = useMemo(() => getKeyPitchClasses(keySignature, mode), [keySignature, mode]);
-  const getCellPalette = useCallback(() => getGridCellPalette(surfaceRef.current), []);
+  /**
+   * Computes the current vertical scroll limit.
+   */
+  const maxScrollY = useMemo(
+    () => getMaxScrollY(viewportSize.height, cellSize),
+    [cellSize, viewportSize.height],
+  );
+  /**
+   * Memoizes pitch classes highlighted by key and mode.
+   */
+  const keyPitchClasses = useMemo(
+    () => getKeyPitchClasses(keySignature, mode),
+    [keySignature, mode],
+  );
+  /**
+   * Provides the latest theme-derived grid palette to the canvas layer.
+   */
+  const getCellPalette = useCallback(
+    () => getGridCellPalette(surfaceRef.current),
+    [],
+  );
+  /**
+   * Normalizes backend note state into flat frontend note records.
+   */
   const normalizedNotes = useMemo(() => normalizeNoteMap(noteMap), [noteMap]);
   const activeChannel = getActiveChannelName(currentColorIdx);
   const isAllChannel = currentColorIdx === ALL_CHANNEL_INDEX;
   const interactionBlocked = isAllChannel;
+  /**
+   * Defines immutable world bounds for the current grid width.
+   */
   const gridBounds = useMemo(
     () => ({
       minColumn: MIN_COLUMN,
@@ -501,6 +707,9 @@ export default function NoteGridSurface({
 
   const objectCount = 1 + cellCounts.columns + cellCounts.rows;
   const visibleCellCount = cellCounts.columns * cellCounts.rows;
+  /**
+   * Packages sampled grid diagnostics for the navigator.
+   */
   const debugStats = useMemo(
     () => ({
       objectCount,
@@ -539,13 +748,23 @@ export default function NoteGridSurface({
       if (!thumb) return;
 
       const start = performance.now();
-      const trackWidth = Math.max(0, viewportSize.width - OVERLAY_SCROLLBAR_TRACK_INSET * 2);
+      const trackWidth = Math.max(
+        0,
+        viewportSize.width - OVERLAY_SCROLLBAR_TRACK_INSET * 2,
+      );
       const contentWidth = viewportSize.width + maxScrollX;
       const thumbWidth =
         trackWidth <= 0 || maxScrollX <= 0
           ? trackWidth
-          : clamp((viewportSize.width / contentWidth) * trackWidth, MIN_SCROLLBAR_THUMB_WIDTH, trackWidth);
-      const thumbLeft = maxScrollX <= 0 || trackWidth <= thumbWidth ? 0 : (scrollX / maxScrollX) * (trackWidth - thumbWidth);
+          : clamp(
+              (viewportSize.width / contentWidth) * trackWidth,
+              MIN_SCROLLBAR_THUMB_WIDTH,
+              trackWidth,
+            );
+      const thumbLeft =
+        maxScrollX <= 0 || trackWidth <= thumbWidth
+          ? 0
+          : (scrollX / maxScrollX) * (trackWidth - thumbWidth);
 
       interactionCountersRef.current.scrollbarUpdates += 1;
       thumb.style.transform = `translateX(${thumbLeft}px)`;
@@ -575,6 +794,9 @@ export default function NoteGridSurface({
     visualDirtyRef.current = true;
   }, []);
 
+  /**
+   * Clears a retained commit preview when the backend state catches up.
+   */
   const clearPendingCommitVisual = useCallback(
     (commitId = null) => {
       const pending = pendingCommitVisualRef.current;
@@ -590,6 +812,9 @@ export default function NoteGridSurface({
     [scheduleVisualUpdate],
   );
 
+  /**
+   * Keeps drag or resize previews visible while the async commit resolves.
+   */
   const retainCommitVisual = useCallback(
     ({ gesture, targetColor, proposed }) => {
       const hiddenKeys = buildHiddenKeys(gesture);
@@ -598,9 +823,15 @@ export default function NoteGridSurface({
 
       pendingCommitVisualRef.current = {
         id: commitId,
-        proposedSignatures: new Set(proposed.map((note) => notePositionSignature(targetColor, note))),
+        proposedSignatures: new Set(
+          proposed.map((note) => notePositionSignature(targetColor, note)), // proposed backend positions
+        ),
         hiddenOriginalSignatures: hiddenKeys
-          ? new Set(gesture.originals.map((note) => notePositionSignature(gesture.originalColor, note)))
+          ? new Set(
+              gesture.originals.map((note) =>
+                notePositionSignature(gesture.originalColor, note), // originals hidden until replaced
+              ),
+            )
           : null,
       };
       ghostNotesRef.current = buildGhostNotes(gesture);
@@ -618,12 +849,18 @@ export default function NoteGridSurface({
     const pending = pendingCommitVisualRef.current;
     if (!pending) return;
 
-    const visibleSignatures = new Set(normalizedNotes.map((note) => notePositionSignature(note.color, note)));
-    const proposedReady = [...pending.proposedSignatures].every((signature) => visibleSignatures.has(signature));
+    const visibleSignatures = new Set(
+      normalizedNotes.map((note) => notePositionSignature(note.color, note)),
+    );
+    const proposedReady = [...pending.proposedSignatures].every((signature) =>
+      visibleSignatures.has(signature),
+    );
     const originalsReplaced =
       !pending.hiddenOriginalSignatures ||
       [...pending.hiddenOriginalSignatures].every(
-        (signature) => !visibleSignatures.has(signature) || pending.proposedSignatures.has(signature),
+        (signature) =>
+          !visibleSignatures.has(signature) ||
+          pending.proposedSignatures.has(signature),
       );
 
     if (proposedReady && originalsReplaced) {
@@ -641,15 +878,20 @@ export default function NoteGridSurface({
       const clampedX = clamp(nextScrollX, 0, maxScrollX);
       const clampedY = clamp(nextScrollY, 0, maxScrollY);
       const nextOrigin = {
-        column: MIN_COLUMN + Math.floor(clampedX / cellSize),
-        row: MAX_ROW - Math.floor(clampedY / cellSize),
+        column: MIN_COLUMN + Math.floor(clampedX / cellSize), // scroll px to world column
+        row: MAX_ROW - Math.floor(clampedY / cellSize), // scroll px to world row
       };
 
       const previousScrollPosition = scrollPositionRef.current;
-      if (previousScrollPosition.x !== clampedX || previousScrollPosition.y !== clampedY) {
+      if (
+        previousScrollPosition.x !== clampedX ||
+        previousScrollPosition.y !== clampedY
+      ) {
         scrollPositionRef.current = { x: clampedX, y: clampedY };
       }
-      const originChanged = nextOrigin.row !== originRef.current.row || nextOrigin.column !== originRef.current.column;
+      const originChanged =
+        nextOrigin.row !== originRef.current.row ||
+        nextOrigin.column !== originRef.current.column;
 
       scheduleVisualUpdate();
 
@@ -707,7 +949,10 @@ export default function NoteGridSurface({
       previousCellSizeRef.current = cellSize;
     }
 
-    syncScrollPosition(scrollPositionRef.current.x, scrollPositionRef.current.y);
+    syncScrollPosition(
+      scrollPositionRef.current.x,
+      scrollPositionRef.current.y,
+    );
   }, [cellSize, syncScrollPosition, viewportSize.height, viewportSize.width]);
 
   useLayoutEffect(() => {
@@ -749,7 +994,10 @@ export default function NoteGridSurface({
         // that pass through the rectangle in addition to pointermove.
         const gesture = gestureRef.current;
         if (gesture?.kind === "box-select" && boxSelectRecaptureRef.current) {
-          boxSelectRecaptureRef.current(gesture.endViewportX, gesture.endViewportY);
+          boxSelectRecaptureRef.current(
+            gesture.endViewportX,
+            gesture.endViewportY,
+          );
         }
         notesApiRef.current?.update({ x, y });
         overlayApiRef.current?.update({ x, y });
@@ -771,20 +1019,26 @@ export default function NoteGridSurface({
   /**
    * Handles wheel input without storing the current scroll position in React state.
    */
-  const handleWheel = useCallback((event) => {
-    const start = performance.now();
-    event.preventDefault();
-    interactionCountersRef.current.wheelEvents += 1;
-    syncScrollPosition(scrollPositionRef.current.x + event.deltaX, scrollPositionRef.current.y + event.deltaY);
-    recordTimedStat(
-      interactionCountersRef.current,
-      "wheelEvents",
-      "wheelTotalMs",
-      "averageWheelMs",
-      "worstWheelMs",
-      performance.now() - start,
-    );
-  }, [syncScrollPosition]);
+  const handleWheel = useCallback(
+    (event) => {
+      const start = performance.now();
+      event.preventDefault();
+      interactionCountersRef.current.wheelEvents += 1;
+      syncScrollPosition(
+        scrollPositionRef.current.x + event.deltaX,
+        scrollPositionRef.current.y + event.deltaY,
+      );
+      recordTimedStat(
+        interactionCountersRef.current,
+        "wheelEvents",
+        "wheelTotalMs",
+        "averageWheelMs",
+        "worstWheelMs",
+        performance.now() - start,
+      );
+    },
+    [syncScrollPosition],
+  );
 
   /**
    * Reads viewport-relative pointer coordinates so gestures can translate them
@@ -805,21 +1059,29 @@ export default function NoteGridSurface({
    * every gesture (draw, erase, select, drag, resize) so the math lives in
    * exactly one place.
    */
-  const getPointerWorldPosition = useCallback((event) => {
-    const viewportPos = getPointerViewportPosition(event);
-    if (!viewportPos) return null;
-    const point = viewportToWorldPoint({
-      viewportX: viewportPos.viewportX,
-      viewportY: viewportPos.viewportY,
-      scrollPosition: scrollPositionRef.current,
-      cellSize,
-      bounds: gridBounds,
-    });
-    return { ...viewportPos, ...point };
-  }, [cellSize, getPointerViewportPosition, gridBounds]);
+  const getPointerWorldPosition = useCallback(
+    (event) => {
+      const viewportPos = getPointerViewportPosition(event);
+      if (!viewportPos) return null;
+      const point = viewportToWorldPoint({
+        viewportX: viewportPos.viewportX,
+        viewportY: viewportPos.viewportY,
+        scrollPosition: scrollPositionRef.current,
+        cellSize,
+        bounds: gridBounds,
+      });
+      return { ...viewportPos, ...point };
+    },
+    [cellSize, getPointerViewportPosition, gridBounds],
+  );
 
+  /**
+   * Plays a short note preview for hover and draw feedback.
+   */
   const previewPitch = useCallback((pitch, color = null) => {
-    editorAPI.playNotePreview(pitch, color, NOTE_PREVIEW_SECONDS).catch(() => {});
+    editorAPI
+      .playNotePreview(pitch, color, NOTE_PREVIEW_SECONDS)
+      .catch(() => {});
   }, []);
 
   /**
@@ -855,7 +1117,11 @@ export default function NoteGridSurface({
           (note) =>
             note.selected &&
             note.color === activeChannel &&
-            isPointNearNoteTail({ note, exactColumn: hover.exactColumn, exactRow: hover.exactRow }),
+            isPointNearNoteTail({
+              note,
+              exactColumn: hover.exactColumn,
+              exactRow: hover.exactRow,
+            }),
         );
         if (nearTail) {
           setCursorOverride("resize");
@@ -865,7 +1131,13 @@ export default function NoteGridSurface({
     }
 
     setCursorOverride(null);
-  }, [activeChannel, brush?.id, interactionBlocked, normalizedNotes, playheadArmed]);
+  }, [
+    activeChannel,
+    brush?.id,
+    interactionBlocked,
+    normalizedNotes,
+    playheadArmed,
+  ]);
 
   /**
    * Pushes the latest gesture-derived overlays (selection rectangle and ghost
@@ -883,6 +1155,9 @@ export default function NoteGridSurface({
     scheduleVisualUpdate();
   }, [scheduleVisualUpdate]);
 
+  /**
+   * Resets all transient gesture state and cancels backend temp notes.
+   */
   const cancelGesture = useCallback(() => {
     gestureRef.current = null;
     ghostNotesRef.current = null;
@@ -905,17 +1180,28 @@ export default function NoteGridSurface({
     if (!gesture || !hover) return;
 
     if (gesture.kind === "move-drag") {
-      const deltaColumn = snapDelta(hover.exactColumn - gesture.startExactColumn);
+      const deltaColumn = snapDelta(
+        hover.exactColumn - gesture.startExactColumn,
+      );
       const deltaRow = snapDelta(hover.exactRow - gesture.startExactRow);
       gesture.deltaColumn = deltaColumn;
       gesture.deltaRow = deltaRow;
       gesture.duplicate = altDownRef.current;
-      const { proposed } = buildMoveProposal({ originals: gesture.originals, deltaColumn, deltaRow });
+      const { proposed } = buildMoveProposal({
+        originals: gesture.originals,
+        deltaColumn,
+        deltaRow,
+      });
       gesture.proposed = proposed;
     } else if (gesture.kind === "resize-drag") {
-      const deltaDuration = snapDelta(hover.exactColumn - gesture.startExactColumn);
+      const deltaDuration = snapDelta(
+        hover.exactColumn - gesture.startExactColumn,
+      );
       gesture.deltaDuration = deltaDuration;
-      const { proposed } = buildResizeProposal({ originals: gesture.originals, deltaDuration });
+      const { proposed } = buildResizeProposal({
+        originals: gesture.originals,
+        deltaDuration,
+      });
       gesture.proposed = proposed;
     }
 
@@ -995,7 +1281,9 @@ export default function NoteGridSurface({
     } else if (gesture.kind === "box-select") {
       const draftKeys = new Set(gesture.capturedKeys);
       for (const key of gesture.preservedKeys) draftKeys.add(key);
-      const selectedNotes = normalizedNotes.filter((note) => draftKeys.has(note.key));
+      const selectedNotes = normalizedNotes.filter((note) =>
+        draftKeys.has(note.key),
+      );
       selectionOverrideRef.current = draftKeys;
       editorAPI
         .setSelection(serializeSelectionEntries(selectedNotes))
@@ -1014,8 +1302,17 @@ export default function NoteGridSurface({
         deltaColumn: gesture.deltaColumn,
         deltaRow: gesture.deltaRow,
       });
-      if (gesture.deltaColumn !== 0 || gesture.deltaRow !== 0 || gesture.duplicate || targetColor !== sourceColor) {
-        const commitVisualId = retainCommitVisual({ gesture, targetColor, proposed });
+      if (
+        gesture.deltaColumn !== 0 ||
+        gesture.deltaRow !== 0 ||
+        gesture.duplicate ||
+        targetColor !== sourceColor
+      ) {
+        const commitVisualId = retainCommitVisual({
+          gesture,
+          targetColor,
+          proposed,
+        });
         retainedCommitVisual = true;
         editorAPI
           .beginTempNotes(action, sourceColor, originals, targetColor)
@@ -1035,7 +1332,11 @@ export default function NoteGridSurface({
         deltaDuration: gesture.deltaDuration,
       });
       if (gesture.deltaDuration !== 0) {
-        const commitVisualId = retainCommitVisual({ gesture, targetColor: sourceColor, proposed });
+        const commitVisualId = retainCommitVisual({
+          gesture,
+          targetColor: sourceColor,
+          proposed,
+        });
         retainedCommitVisual = true;
         editorAPI
           .beginTempNotes("move", sourceColor, originals, sourceColor)
@@ -1136,15 +1437,30 @@ export default function NoteGridSurface({
       }
 
       if (brush?.id === "select") {
-        const currentSelection = normalizedNotes.filter((note) => note.selected);
+        const currentSelection = normalizedNotes.filter(
+          (note) => note.selected,
+        );
 
-        if (hit && hit.selected && hit.color === activeChannel && !event.shiftKey) {
-          if (isPointNearNoteTail({ note: hit, exactColumn: world.exactColumn, exactRow: world.exactRow })) {
+        if (
+          hit &&
+          hit.selected &&
+          hit.color === activeChannel &&
+          !event.shiftKey
+        ) {
+          if (
+            isPointNearNoteTail({
+              note: hit,
+              exactColumn: world.exactColumn,
+              exactRow: world.exactRow,
+            })
+          ) {
             gestureRef.current = {
               kind: "resize-drag",
               originalColor: activeChannel,
               targetColor: activeChannel,
-              originals: currentSelection.filter((note) => note.color === activeChannel),
+              originals: currentSelection.filter(
+                (note) => note.color === activeChannel,
+              ),
               proposed: [],
               startExactColumn: world.exactColumn,
               deltaDuration: 0,
@@ -1156,7 +1472,9 @@ export default function NoteGridSurface({
             kind: "move-drag",
             originalColor: activeChannel,
             targetColor: activeChannel,
-            originals: currentSelection.filter((note) => note.color === activeChannel),
+            originals: currentSelection.filter(
+              (note) => note.color === activeChannel,
+            ),
             proposed: [],
             startExactColumn: world.exactColumn,
             startExactRow: world.exactRow,
@@ -1176,14 +1494,18 @@ export default function NoteGridSurface({
             additive: event.shiftKey,
           });
           previewPitch(hit.pitch, hit.color);
-          editorAPI.setSelection(serializeSelectionEntries(nextSelection)).catch(() => {});
+          editorAPI
+            .setSelection(serializeSelectionEntries(nextSelection))
+            .catch(() => {});
           return;
         }
 
         if (!event.shiftKey && currentSelection.length > 0) {
           editorAPI.clearSelection().catch(() => {});
         }
-        const preservedKeys = event.shiftKey ? new Set(currentSelection.map((note) => note.key)) : new Set();
+        const preservedKeys = event.shiftKey
+          ? new Set(currentSelection.map((note) => note.key))
+          : new Set();
         gestureRef.current = {
           kind: "box-select",
           startViewportX: world.viewportX,
@@ -1217,6 +1539,9 @@ export default function NoteGridSurface({
     ],
   );
 
+  /**
+   * Updates hover state, cursor position, and the active gesture while moving.
+   */
   const handlePointerMove = useCallback(
     (event) => {
       const world = getPointerWorldPosition(event);
@@ -1242,7 +1567,10 @@ export default function NoteGridSurface({
       if (!gesture) return;
 
       if (gesture.kind === "draw") {
-        const extension = Math.max(0, snapDelta(world.exactColumn - gesture.startExactColumn));
+        const extension = Math.max(
+          0,
+          snapDelta(world.exactColumn - gesture.startExactColumn), // drag cells from note start
+        );
         const nextDuration = Math.max(1, extension + 1);
         if (nextDuration !== gesture.duration) {
           gesture.duration = nextDuration;
@@ -1266,9 +1594,10 @@ export default function NoteGridSurface({
       }
 
       if (gesture.kind === "box-select") {
-        const dx = Math.abs(world.viewportX - gesture.startViewportX);
-        const dy = Math.abs(world.viewportY - gesture.startViewportY);
-        if (dx < SELECT_RECT_MIN_DRAG_PX && dy < SELECT_RECT_MIN_DRAG_PX) return;
+      const dx = Math.abs(world.viewportX - gesture.startViewportX); // viewport drag threshold
+      const dy = Math.abs(world.viewportY - gesture.startViewportY); // viewport drag threshold
+        if (dx < SELECT_RECT_MIN_DRAG_PX && dy < SELECT_RECT_MIN_DRAG_PX)
+          return;
         updateBoxSelect(world.viewportX, world.viewportY);
         return;
       }
@@ -1277,12 +1606,26 @@ export default function NoteGridSurface({
         updateDragProposal();
       }
     },
-    [activeChannel, getPointerWorldPosition, normalizedNotes, refreshCursor, updateBoxSelect, updateDragProposal],
+    [
+      activeChannel,
+      getPointerWorldPosition,
+      normalizedNotes,
+      refreshCursor,
+      updateBoxSelect,
+      updateDragProposal,
+    ],
   );
 
+  /**
+   * Finalizes the active gesture and releases pointer capture.
+   */
   const handlePointerUp = useCallback(
     (event) => {
-      if (activePointerIdRef.current !== null && event.pointerId !== activePointerIdRef.current) return;
+      if (
+        activePointerIdRef.current !== null &&
+        event.pointerId !== activePointerIdRef.current
+      )
+        return;
       const world = getPointerWorldPosition(event);
       if (world) {
         pointerHoverRef.current = {
@@ -1295,7 +1638,10 @@ export default function NoteGridSurface({
         if (gesture?.kind === "move-drag" || gesture?.kind === "resize-drag") {
           updateDragProposal();
         } else if (gesture?.kind === "draw") {
-          const extension = Math.max(0, snapDelta(world.exactColumn - gesture.startExactColumn));
+          const extension = Math.max(
+            0,
+            snapDelta(world.exactColumn - gesture.startExactColumn), // drag cells from note start
+          );
           gesture.duration = Math.max(1, extension + 1);
         }
       }
@@ -1306,14 +1652,24 @@ export default function NoteGridSurface({
     [commitGesture, getPointerWorldPosition, updateDragProposal],
   );
 
+  /**
+   * Cancels the active gesture when pointer capture is lost.
+   */
   const handlePointerCancel = useCallback(
     (event) => {
-      if (activePointerIdRef.current !== null && event.pointerId !== activePointerIdRef.current) return;
+      if (
+        activePointerIdRef.current !== null &&
+        event.pointerId !== activePointerIdRef.current
+      )
+        return;
       cancelGesture();
     },
     [cancelGesture],
   );
 
+  /**
+   * Hides the custom cursor when the pointer leaves the viewport.
+   */
   const handlePointerLeave = useCallback(() => {
     if (customCursorRef.current) {
       customCursorRef.current.dataset.visible = "false";
@@ -1330,7 +1686,10 @@ export default function NoteGridSurface({
   }, [handleWheel]);
 
   useEffect(() => {
-    if (typeof PerformanceObserver === "undefined" || !PerformanceObserver.supportedEntryTypes?.includes("longtask")) {
+    if (
+      typeof PerformanceObserver === "undefined" ||
+      !PerformanceObserver.supportedEntryTypes?.includes("longtask")
+    ) {
       return undefined;
     }
 
@@ -1339,8 +1698,12 @@ export default function NoteGridSurface({
         const counters = interactionCountersRef.current;
         counters.longTasks += 1;
         counters.longTaskTotalMs += entry.duration;
-        counters.averageLongTaskMs = counters.longTaskTotalMs / Math.max(1, counters.longTasks);
-        counters.worstLongTaskMs = Math.max(counters.worstLongTaskMs, entry.duration);
+        counters.averageLongTaskMs =
+          counters.longTaskTotalMs / Math.max(1, counters.longTasks);
+        counters.worstLongTaskMs = Math.max(
+          counters.worstLongTaskMs,
+          entry.duration,
+        );
       });
     });
 
@@ -1355,7 +1718,8 @@ export default function NoteGridSurface({
       setSampledCanvasStats(canvasStatsRef.current);
       setInteractionStats({
         ...counters,
-        averageCommitMs: counters.averageCommitMs / Math.max(1, counters.commits),
+        averageCommitMs:
+          counters.averageCommitMs / Math.max(1, counters.commits),
       });
       interactionCountersRef.current = createInteractionStats();
     }, 500);
@@ -1364,10 +1728,28 @@ export default function NoteGridSurface({
   }, []);
 
   useEffect(() => {
+    if (!debugUiEnabled) {
+      setShowDebugStats(false);
+    } else if (!previousDebugUiEnabledRef.current) {
+      setShowDebugStats(Boolean(showDebugByDefault));
+    }
+    previousDebugUiEnabledRef.current = debugUiEnabled;
+  }, [debugUiEnabled, showDebugByDefault]);
+
+  useEffect(() => {
+    /**
+     * Handles zoom and debug shortcuts before global editor shortcuts run.
+     */
     const handleZoomShortcut = (event) => {
       if (isTextEditingTarget(event.target)) return;
 
-      if (!event.ctrlKey && !event.metaKey && !event.altKey && event.key.toLowerCase() === "i") {
+      if (
+        debugUiEnabled &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey &&
+        event.key.toLowerCase() === "i"
+      ) {
         event.preventDefault();
         setShowDebugStats((current) => !current);
         return;
@@ -1383,13 +1765,20 @@ export default function NoteGridSurface({
       event.preventDefault();
       event.stopPropagation();
       setZoomIndex((currentZoomIndex) =>
-        clamp(currentZoomIndex + (isZoomIn ? 1 : -1), 0, ZOOM_LEVELS.length - 1),
+        clamp(
+          currentZoomIndex + (isZoomIn ? 1 : -1),
+          0,
+          ZOOM_LEVELS.length - 1,
+        ),
       );
     };
 
     window.addEventListener("keydown", handleZoomShortcut, { capture: true });
-    return () => window.removeEventListener("keydown", handleZoomShortcut, { capture: true });
-  }, []);
+    return () =>
+      window.removeEventListener("keydown", handleZoomShortcut, {
+        capture: true,
+      });
+  }, [debugUiEnabled]);
 
   /**
    * Captures number keys 1-6 in capture phase during an active move/duplicate
@@ -1397,6 +1786,9 @@ export default function NoteGridSurface({
    * global handler (which switches the active channel) firing.
    */
   useEffect(() => {
+    /**
+     * Captures modifier and channel hotkeys while a gesture is active.
+     */
     const handleHotkey = (event) => {
       if (isTextEditingTarget(event.target)) return;
 
@@ -1435,6 +1827,9 @@ export default function NoteGridSurface({
       }
     };
 
+    /**
+     * Clears transient duplicate-drag state when Alt is released.
+     */
     const handleKeyUp = (event) => {
       if (event.key === "Alt" || event.key === "AltGraph") {
         altDownRef.current = false;
@@ -1461,18 +1856,31 @@ export default function NoteGridSurface({
     refreshCursor();
     notesApiRef.current?.invalidate();
     scheduleVisualUpdate();
-  }, [brush?.id, activeChannel, interactionBlocked, playheadArmed, refreshCursor, scheduleVisualUpdate]);
+  }, [
+    brush?.id,
+    activeChannel,
+    interactionBlocked,
+    playheadArmed,
+    refreshCursor,
+    scheduleVisualUpdate,
+  ]);
 
   // Resolve the cursor icon and CSS variant for the custom cursor div. We
   // override the brush icon for resize/playhead states; disabled uses the
   // native cursor instead.
   const BrushCursorIcon = brush?.Icon;
+  /**
+   * Chooses the cursor icon for the current brush override state.
+   */
   const cursorIcon = (() => {
     if (cursorOverride === "disabled") return null;
     if (cursorOverride === "resize") return MoveHorizontal;
     if (cursorOverride === "playhead") return ArrowRightFromLine;
     return BrushCursorIcon;
   })();
+  /**
+   * Chooses the cursor style variant for the current brush override state.
+   */
   const cursorVariant = (() => {
     if (cursorOverride === "resize") return "resize";
     if (cursorOverride === "playhead") return "playhead";
@@ -1535,7 +1943,7 @@ export default function NoteGridSurface({
           initialScrollPosition={scrollPositionRef.current}
           bounds={gridBounds}
         />
-        <NoteGridNotes
+        <Notes
           notes={normalizedNotes}
           viewportSize={viewportSize}
           cellSize={cellSize}
@@ -1549,7 +1957,7 @@ export default function NoteGridSurface({
           hiddenKeysRef={hiddenKeysRef}
           selectMode={brush?.id === "select"}
         />
-        <NoteGridOverlay
+        <Overlay
           viewportSize={viewportSize}
           cellSize={cellSize}
           tileSize={tileSize}
@@ -1560,7 +1968,7 @@ export default function NoteGridSurface({
           ghostNotesRef={ghostNotesRef}
           selectionRectRef={selectionRectRef}
         />
-        <NoteGridPlayhead
+        <Playhead
           viewportSize={viewportSize}
           cellSize={cellSize}
           bounds={gridBounds}
@@ -1593,7 +2001,9 @@ export default function NoteGridSurface({
           viewportWidth={viewportSize.width}
           scrollX={scrollPositionRef.current.x}
           maxScrollX={maxScrollX}
-          onScrollXChange={(nextScrollX) => syncScrollPosition(nextScrollX, scrollPositionRef.current.y)}
+          onScrollXChange={(nextScrollX) =>
+            syncScrollPosition(nextScrollX, scrollPositionRef.current.y)
+          }
           thumbRef={scrollbarThumbRef}
         />
       </div>
@@ -1602,7 +2012,7 @@ export default function NoteGridSurface({
         zoomLevels={ZOOM_LEVELS}
         onZoomChange={setZoomIndex}
         debugStats={debugStats}
-        showDebugStats={showDebugStats}
+        showDebugStats={debugUiEnabled && showDebugStats}
       />
     </div>
   );

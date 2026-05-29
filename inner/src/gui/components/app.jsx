@@ -11,25 +11,46 @@ import {
   SELECT_BRUSH_INDEX,
 } from "./toolbar-options.jsx";
 import EditorSurface from "./content.jsx";
-import "./components-styling/index.css";
+import "./universal-styling/index.css";
 
-// Temporary API inspection surface. This is not the real editor UI; it only
-// confirms that the inner pywebview window mounted React and can reach the
-// backend handler surface registered on ``window.pywebview.api``. Press
-// Alt/Option + I to toggle between this inspector and the placeholder editor.
-const SHOW_API_INSPECTOR_BY_DEFAULT = true;
+// Temporary API inspection surface. Packaged builds keep this hidden and
+// untoggleable; dev runs receive the startup preference from config.yaml.
+/**
+ * Reads debug visibility flags from the backend document state.
+ */
+function readDebugConfig(state) {
+  const debug = state?.debug ?? {};
+  return {
+    enabled: Boolean(debug.enabled),
+    showDebugByDefault: Boolean(debug.enabled && debug.showDebugByDefault),
+  };
+}
 
+/**
+ * Detects editable targets so global shortcuts do not steal text input.
+ */
 function isTextEditingTarget(target) {
   if (!target) return false;
   const tagName = target.tagName?.toLowerCase();
-  return tagName === "input" || tagName === "textarea" || tagName === "select" || target.isContentEditable;
+  return (
+    tagName === "input" ||
+    tagName === "textarea" ||
+    tagName === "select" ||
+    target.isContentEditable
+  );
 }
 
+/**
+ * Finds the last playable note end for the current channel scope.
+ */
 function getPlaybackEndTime(noteMap, currentColorIdx) {
   if (!noteMap || typeof noteMap !== "object") return 0;
 
   const channelName = CHANNELS[currentColorIdx]?.name;
-  const noteLists = channelName && channelName !== "all" ? [noteMap[channelName]] : Object.values(noteMap);
+  const noteLists =
+    channelName && channelName !== "all"
+      ? [noteMap[channelName]]
+      : Object.values(noteMap);
   let latestEnd = 0;
 
   for (const notes of noteLists) {
@@ -37,7 +58,8 @@ function getPlaybackEndTime(noteMap, currentColorIdx) {
     for (const note of notes) {
       const time = Number(note?.time);
       const duration = Number(note?.duration);
-      if (!Number.isFinite(time) || !Number.isFinite(duration) || duration <= 0) continue;
+      if (!Number.isFinite(time) || !Number.isFinite(duration) || duration <= 0)
+        continue;
       latestEnd = Math.max(latestEnd, time + duration);
     }
   }
@@ -45,8 +67,15 @@ function getPlaybackEndTime(noteMap, currentColorIdx) {
   return latestEnd;
 }
 
+/**
+ * Owns editor document state, shortcuts, playback, and top-level view routing.
+ */
 export default function EditorApp() {
-  const [showApiInspector, setShowApiInspector] = useState(SHOW_API_INSPECTOR_BY_DEFAULT);
+  const [debugConfig, setDebugConfig] = useState({
+    enabled: false,
+    showDebugByDefault: false,
+  });
+  const [showApiInspector, setShowApiInspector] = useState(false);
   const [bridgeReady, setBridgeReady] = useState(false);
   const [docState, setDocState] = useState(null);
   const [error, setError] = useState(null);
@@ -59,16 +88,35 @@ export default function EditorApp() {
   const [beatsPerMeasure, setBeatsPerMeasure] = useState(4);
   const playbackRequestIdRef = useRef(0);
   const playbackEndTimerRef = useRef(0);
+  const initialDebugConfigAppliedRef = useRef(false);
 
   const brush = BRUSHES[brushIndex];
+  /**
+   * Builds the browser window title from the current document title.
+   */
   const editorTitle = useMemo(() => {
     const title = docState?.title || "Symphony Editor";
     return `${title} - Symphony`;
   }, [docState?.title]);
 
+  /**
+   * Applies a shallow optimistic document-state patch.
+   */
   const updateDocState = (patch) => {
     setDocState((current) => (current ? { ...current, ...patch } : current));
   };
+
+  /**
+   * Synchronizes debug visibility with the current backend configuration.
+   */
+  const applyDebugConfig = useCallback((state) => {
+    const nextDebugConfig = readDebugConfig(state);
+    setDebugConfig(nextDebugConfig);
+    if (!initialDebugConfigAppliedRef.current) {
+      setShowApiInspector(nextDebugConfig.showDebugByDefault);
+      initialDebugConfigAppliedRef.current = true;
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -78,6 +126,7 @@ export default function EditorApp() {
         if (cancelled) return;
         setBridgeReady(true);
         setDocState(state);
+        applyDebugConfig(state);
         setTempo(Number(state?.tempo ?? 360));
         setBeatLength(Number(state?.beatLength ?? 4));
         setBeatsPerMeasure(Number(state?.beatsPerMeasure ?? 4));
@@ -90,6 +139,7 @@ export default function EditorApp() {
     const off = editorAPI.onEditorStateChange((state) => {
       if (!cancelled) {
         setDocState(state);
+        applyDebugConfig(state);
         setTempo(Number(state?.tempo ?? 360));
         setBeatLength(Number(state?.beatLength ?? 4));
         setBeatsPerMeasure(Number(state?.beatsPerMeasure ?? 4));
@@ -100,8 +150,11 @@ export default function EditorApp() {
       cancelled = true;
       off?.();
     };
-  }, []);
+  }, [applyDebugConfig]);
 
+  /**
+   * Starts or stops full-project playback from the current playhead time.
+   */
   const handleTogglePlayback = useCallback(() => {
     if (isPlaying) {
       playbackRequestIdRef.current += 1;
@@ -117,23 +170,33 @@ export default function EditorApp() {
     window.clearTimeout(playbackEndTimerRef.current);
     setIsPlaying(true);
     const fromTime = Number(docState?.playheadHomeTime ?? 0);
-    const endTime = getPlaybackEndTime(docState?.noteMap, Number(docState?.currentColorIdx ?? 0));
+    const endTime = getPlaybackEndTime(
+      docState?.noteMap,
+      Number(docState?.currentColorIdx ?? 0),
+    );
     editorAPI
       .playFull({ fromTime })
       .then((result) => {
         if (playbackRequestIdRef.current !== requestId) return;
-        if (result?.ok === false) throw new Error(result.error || "Playback failed");
+        if (result?.ok === false)
+          throw new Error(result.error || "Playback failed");
         const startedAtMs = performance.now();
         setPlaybackClock({
           fromTime,
           startedAtMs,
         });
-        const remainingMs = Math.max(0, ((endTime - fromTime) * 60_000) / Math.max(1, Number(tempo) || 1));
-        playbackEndTimerRef.current = window.setTimeout(() => {
-          if (playbackRequestIdRef.current !== requestId) return;
-          setIsPlaying(false);
-          setPlaybackClock(null);
-        }, Math.max(80, remainingMs));
+        const remainingMs = Math.max(
+          0,
+          ((endTime - fromTime) * 60_000) / Math.max(1, Number(tempo) || 1), // tiles to ms
+        );
+        playbackEndTimerRef.current = window.setTimeout(
+          () => {
+            if (playbackRequestIdRef.current !== requestId) return;
+            setIsPlaying(false);
+            setPlaybackClock(null);
+          },
+          Math.max(80, remainingMs),
+        );
       })
       .catch((err) => {
         if (playbackRequestIdRef.current !== requestId) return;
@@ -141,37 +204,58 @@ export default function EditorApp() {
         setPlaybackClock(null);
         setError(String(err));
       });
-  }, [docState?.currentColorIdx, docState?.noteMap, docState?.playheadHomeTime, isPlaying, tempo]);
+  }, [
+    docState?.currentColorIdx,
+    docState?.noteMap,
+    docState?.playheadHomeTime,
+    isPlaying,
+    tempo,
+  ]);
 
   useEffect(() => () => window.clearTimeout(playbackEndTimerRef.current), []);
 
+  /**
+   * Selects every note visible in the active channel scope.
+   */
   const handleSelectActiveChannelNotes = useCallback(() => {
     const activeChannel = CHANNELS[docState?.currentColorIdx ?? 0]?.name;
-    const entries = Object.entries(docState?.noteMap ?? {}).flatMap(([color, notes]) => {
-      if (activeChannel && activeChannel !== "all" && color !== activeChannel) return [];
-      if (!Array.isArray(notes)) return [];
-      return notes.map((note) => ({
-        color,
-        time: note.time,
-        pitch: note.pitch,
-      }));
-    });
+    const entries = Object.entries(docState?.noteMap ?? {}).flatMap(
+      ([color, notes]) => {
+        if (activeChannel && activeChannel !== "all" && color !== activeChannel)
+          return [];
+        if (!Array.isArray(notes)) return [];
+        return notes.map((note) => ({
+          color,
+          time: note.time,
+          pitch: note.pitch,
+        }));
+      },
+    );
 
     editorAPI.setSelection(entries).catch((err) => setError(String(err)));
   }, [docState?.currentColorIdx, docState?.noteMap]);
 
+  /**
+   * Commits numeric toolbar values locally and through the editor API.
+   */
   const commitDocumentNumber = (key, value, setter, apiCall) => {
     setter(value);
     updateDocState({ [key]: value });
     apiCall(value).catch((err) => setError(String(err)));
   };
 
+  /**
+   * Switches note naming between flats and sharps.
+   */
   const handleToggleAccidentals = () => {
     const next = docState?.accidentals === "flats" ? "sharps" : "flats";
     updateDocState({ accidentals: next });
     editorAPI.setAccidentals(next).catch((err) => setError(String(err)));
   };
 
+  /**
+   * Advances to the next drawing brush.
+   */
   const handleCycleBrush = () => {
     setBrushIndex((current) => (current + 1) % BRUSHES.length);
   };
@@ -189,37 +273,62 @@ export default function EditorApp() {
     previousBrushIndexRef.current = brushIndex;
   }, [brushIndex]);
 
+  /**
+   * Updates the active color channel.
+   */
   const handleSetActiveColor = (index) => {
     updateDocState({ currentColorIdx: index });
     editorAPI.setActiveColor(index).catch((err) => setError(String(err)));
   };
 
+  /**
+   * Advances to the next color channel.
+   */
   const handleCycleColor = () => {
     const nextIndex = ((docState?.currentColorIdx ?? 0) + 1) % CHANNELS.length;
     handleSetActiveColor(nextIndex);
   };
 
+  /**
+   * Updates the instrument assigned to a channel.
+   */
   const handleSetInstrument = (colorName, value) => {
-    const instrumentMap = { ...(docState?.instrumentMap ?? {}), [colorName]: value };
+    const instrumentMap = {
+      ...(docState?.instrumentMap ?? {}),
+      [colorName]: value,
+    };
     updateDocState({ instrumentMap });
-    editorAPI.setWaveType(colorName, value).catch((err) => setError(String(err)));
+    editorAPI
+      .setWaveType(colorName, value)
+      .catch((err) => setError(String(err)));
   };
 
+  /**
+   * Updates the current key signature.
+   */
   const handleSetKey = (key) => {
     updateDocState({ key });
     editorAPI.setKey(key).catch((err) => setError(String(err)));
   };
 
+  /**
+   * Updates the current mode.
+   */
   const handleSetMode = (mode) => {
     updateDocState({ mode });
     editorAPI.setMode(mode).catch((err) => setError(String(err)));
   };
 
   useEffect(() => {
+    /**
+     * Routes global keydown shortcuts for editor tools and playback.
+     */
     const handleKeyDown = (event) => {
       const isInspectorShortcut =
-        event.altKey && !event.repeat && (event.code === "KeyI" || event.key.toLowerCase() === "i");
-      if (isInspectorShortcut) {
+        event.altKey &&
+        !event.repeat &&
+        (event.code === "KeyI" || event.key.toLowerCase() === "i");
+      if (debugConfig.enabled && isInspectorShortcut) {
         event.preventDefault();
         setShowApiInspector((current) => !current);
         return;
@@ -243,7 +352,12 @@ export default function EditorApp() {
         return;
       }
 
-      if (!event.ctrlKey && !event.metaKey && !event.altKey && event.key.toLowerCase() === "a") {
+      if (
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey &&
+        event.key.toLowerCase() === "a"
+      ) {
         event.preventDefault();
         handleSelectActiveChannelNotes();
         return;
@@ -261,6 +375,9 @@ export default function EditorApp() {
       }
     };
 
+    /**
+     * Restores transient keyboard tool state on key release.
+     */
     const handleKeyUp = (event) => {
       if (isTextEditingTarget(event.target)) return;
 
@@ -275,13 +392,22 @@ export default function EditorApp() {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [handleSelectActiveChannelNotes, handleSetActiveColor, handleTogglePlayback]);
+  }, [
+    debugConfig.enabled,
+    handleSelectActiveChannelNotes,
+    handleSetActiveColor,
+    handleTogglePlayback,
+  ]);
 
   return (
     <>
       <TitleBar title={editorTitle} icon={appIcon} api={editorAPI} />
-      {showApiInspector ? (
-        <ApiInspector bridgeReady={bridgeReady} docState={docState} error={error} />
+      {debugConfig.enabled && showApiInspector ? (
+        <ApiInspector
+          bridgeReady={bridgeReady}
+          docState={docState}
+          error={error}
+        />
       ) : (
         <EditorSurface
           docState={docState}
@@ -296,16 +422,32 @@ export default function EditorApp() {
           onToggleAccidentals={handleToggleAccidentals}
           onTogglePlayhead={() => setPlayheadArmed((current) => !current)}
           onCycleBrush={handleCycleBrush}
-          onSetTempo={(value) => commitDocumentNumber("tempo", value, setTempo, editorAPI.setTempo)}
-          onSetBeatLength={(value) => commitDocumentNumber("beatLength", value, setBeatLength, editorAPI.setBeatLength)}
+          onSetTempo={(value) =>
+            commitDocumentNumber("tempo", value, setTempo, editorAPI.setTempo)
+          }
+          onSetBeatLength={(value) =>
+            commitDocumentNumber(
+              "beatLength",
+              value,
+              setBeatLength,
+              editorAPI.setBeatLength,
+            )
+          }
           onSetBeatsPerMeasure={(value) =>
-            commitDocumentNumber("beatsPerMeasure", value, setBeatsPerMeasure, editorAPI.setBeatsPerMeasure)
+            commitDocumentNumber(
+              "beatsPerMeasure",
+              value,
+              setBeatsPerMeasure,
+              editorAPI.setBeatsPerMeasure,
+            )
           }
           onCycleColor={handleCycleColor}
           onSetInstrument={handleSetInstrument}
           onSetKey={handleSetKey}
           onSetMode={handleSetMode}
           onConsumePlayheadArm={() => setPlayheadArmed(false)}
+          debugUiEnabled={debugConfig.enabled}
+          showDebugByDefault={debugConfig.showDebugByDefault}
         />
       )}
     </>

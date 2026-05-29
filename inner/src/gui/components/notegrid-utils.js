@@ -20,21 +20,33 @@ export const INACTIVE_NOTE_COLOR = "#5a5a5a";
 export const TAIL_TOLERANCE_COLUMNS = 0.28;
 export const SELECT_RECT_MIN_DRAG_PX = 2;
 
+/**
+ * Resolves a channel name to its display color.
+ */
 export function getChannelColor(name) {
   return NOTE_CHANNEL_COLORS[name] ?? name;
 }
 
+/**
+ * Returns the active channel name, or null when all channels are active.
+ */
 export function getActiveChannelName(currentColorIdx) {
   const idx = Math.max(0, Math.min(ALL_CHANNEL_INDEX, Number(currentColorIdx) || 0));
   if (idx === ALL_CHANNEL_INDEX) return null;
   return CHANNEL_NAMES[idx];
 }
 
+/**
+ * Maps number-row hotkeys to editable channel names.
+ */
 export function getChannelNameFromHotkey(key) {
   if (!/^[1-6]$/.test(key)) return null;
   return CHANNEL_NAMES[Number(key) - 1];
 }
 
+/**
+ * Builds the stable frontend identity for a note.
+ */
 export function noteKey(color, time, pitch) {
   return `${color}:${time}:${pitch}`;
 }
@@ -82,8 +94,8 @@ export function normalizeNoteMap(noteMap) {
  * are floats that callers can use for tail-proximity and rectangle math.
  */
 export function viewportToWorldPoint({ viewportX, viewportY, scrollPosition, cellSize, bounds }) {
-  const exactColumn = bounds.minColumn + (scrollPosition.x + viewportX) / cellSize;
-  const exactRow = bounds.maxRow - (scrollPosition.y + viewportY) / cellSize;
+  const exactColumn = bounds.minColumn + (scrollPosition.x + viewportX) / cellSize; // viewport px to world column
+  const exactRow = bounds.maxRow - (scrollPosition.y + viewportY) / cellSize; // viewport px to world row
 
   return {
     exactColumn,
@@ -99,11 +111,14 @@ export function viewportToWorldPoint({ viewportX, viewportY, scrollPosition, cel
  * coordinates while reasoning in world cells.
  */
 export function worldCellToViewportPoint({ column, gridRow, scrollPosition, cellSize, bounds }) {
-  const x = (column - bounds.minColumn) * cellSize - scrollPosition.x;
-  const y = (bounds.maxRow - gridRow) * cellSize - scrollPosition.y;
+  const x = (column - bounds.minColumn) * cellSize - scrollPosition.x; // world column to viewport px
+  const y = (bounds.maxRow - gridRow) * cellSize - scrollPosition.y; // world row to viewport px
   return { x, y };
 }
 
+/**
+ * Checks whether a world point falls inside a note body.
+ */
 function pointInNote(note, exactColumn, exactRow) {
   if (exactColumn < note.time || exactColumn >= note.time + note.duration) return false;
   if (exactRow > note.gridRow) return false;
@@ -143,6 +158,9 @@ export function isPointNearNoteTail({ note, exactColumn, exactRow, tolerance = T
   return exactColumn >= note.time && exactColumn <= end && end - exactColumn <= tolerance;
 }
 
+/**
+ * Checks whether two world-space rectangles intersect.
+ */
 function rectsOverlap(aMinCol, aMaxCol, aMinRow, aMaxRow, bMinCol, bMaxCol, bMinRow, bMaxRow) {
   if (aMaxCol < bMinCol || aMinCol > bMaxCol) return false;
   if (aMaxRow < bMinRow || aMinRow > bMaxRow) return false;
@@ -170,6 +188,9 @@ export function findNotesInWorldRect({ notes, rect, activeChannel }) {
   return result;
 }
 
+/**
+ * Snaps raw drag deltas to whole grid cells.
+ */
 export function snapDelta(rawCells) {
   return Math.round(rawCells);
 }

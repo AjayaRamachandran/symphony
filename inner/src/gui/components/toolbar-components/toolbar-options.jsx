@@ -4,7 +4,7 @@ import sharpIcon from "@/assets/editor-icons/sharp.svg?raw";
 import squareWaveIcon from "@/assets/editor-icons/square-wave.svg?raw";
 import triangleWaveIcon from "@/assets/editor-icons/triangle-wave.svg?raw";
 import sawtoothWaveIcon from "@/assets/editor-icons/sawtooth-wave.svg?raw";
-import { SvgAssetIcon } from "./ui-elements.jsx";
+import { SvgAssetIcon } from "./svg-asset-icon.jsx";
 
 export const HELP_URL = "https://docs.nimbial.com/symphony/4";
 
@@ -29,11 +29,30 @@ export const BRUSHES = [
   { id: "select", label: "Select", color: "#5d8cff", Icon: MousePointer2 },
 ];
 
-export const DRAW_BRUSH_INDEX = BRUSHES.findIndex((brush) => brush.id === "pencil");
-export const ERASER_BRUSH_INDEX = BRUSHES.findIndex((brush) => brush.id === "eraser");
-export const SELECT_BRUSH_INDEX = BRUSHES.findIndex((brush) => brush.id === "select");
+export const DRAW_BRUSH_INDEX = BRUSHES.findIndex(
+  (brush) => brush.id === "pencil",
+);
+export const ERASER_BRUSH_INDEX = BRUSHES.findIndex(
+  (brush) => brush.id === "eraser",
+);
+export const SELECT_BRUSH_INDEX = BRUSHES.findIndex(
+  (brush) => brush.id === "select",
+);
 
-export const KEY_OPTIONS = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"].map((key) => ({
+export const KEY_OPTIONS = [
+  "C",
+  "Db",
+  "D",
+  "Eb",
+  "E",
+  "F",
+  "Gb",
+  "G",
+  "Ab",
+  "A",
+  "Bb",
+  "B",
+].map((key) => ({
   label: key,
   value: key,
 }));

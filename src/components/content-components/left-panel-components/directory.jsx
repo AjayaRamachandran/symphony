@@ -19,7 +19,7 @@ import {
   moveInAppFileToDirectory,
 } from "@/utils/move-in-app-file";
 
-import "@/components/components-styling/directory.css";
+import "@/components/universal-styling/directory.css";
 import ProgramData from "@/assets/program-data.json";
 
 function Directory() {

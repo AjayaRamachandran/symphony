@@ -439,6 +439,28 @@ def loadConfig() -> dict:
 
 CONFIG = loadConfig()
 
+
+def readConfigBool(config: dict, key: str, default: bool = False) -> bool:
+    '''
+    fields:
+        config (dict) - loaded config.yaml values
+        key (string) - config key to read
+        default (boolean) - fallback value when the key is absent
+    outputs: boolean
+
+    Reads a YAML boolean-like value without treating strings such as "false"
+    as truthy.
+    '''
+    value = config.get(key, default) if isinstance(config, dict) else default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in ("1", "true", "yes", "on")
+    return bool(value)
+
+
+SHOW_DEBUG_BY_DEFAULT = (not IS_FROZEN) and readConfigBool(CONFIG, "showDebugByDefault", True)
+
 EXECUTABLE_NAME = "main.exe" if sys.platform == "win32" else "main"
 if IS_FROZEN:
     # Packaged builds always run the bundled PyInstaller editor executable from
@@ -680,6 +702,7 @@ def spawnEditor() -> None:
         "env": {
             **os.environ,
             "SYMPHONY_PROCESS_COMMAND_PORT": str(PROCESS_COMMAND_PORT),
+            "SYMPHONY_SHOW_DEBUG_BY_DEFAULT": "1" if SHOW_DEBUG_BY_DEFAULT else "0",
         },
     }
     if sys.platform == "win32":

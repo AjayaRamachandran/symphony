@@ -51,6 +51,9 @@ const HANDLER_GROUPS = [
   },
 ];
 
+/**
+ * Displays bridge state, document state, and available editor API handlers.
+ */
 export default function ApiInspector({ bridgeReady, docState, error }) {
   return (
     <div

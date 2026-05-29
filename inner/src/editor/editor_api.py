@@ -106,6 +106,8 @@ class EditorApi:
         fields: none
         outputs: nothing
         '''
+        if getattr(sys, "frozen", False):
+            return
         window = self._getWindow()
         if not window:
             return

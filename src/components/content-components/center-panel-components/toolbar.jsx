@@ -21,7 +21,7 @@ import ShowInfoModal from "@/modals/show-info-modal";
 import ExportModal from "@/modals/export-modal";
 import ConvertModal from "@/modals/convert-modal";
 
-import "@/components/components-styling/toolbar.css";
+import "@/components/universal-styling/toolbar.css";
 import { useDirectory } from "@/contexts/directory-context";
 
 function Toolbar() {

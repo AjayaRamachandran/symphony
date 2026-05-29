@@ -110,7 +110,9 @@ class EditorSession:
                  sessionID: str,
                  autoSaveDirectory: str = None,
                  stateChangeCallback=None,
-                 autoSaveInterval: float = AutoSave.DEFAULT_INTERVAL_SECONDS):
+                 autoSaveInterval: float = AutoSave.DEFAULT_INTERVAL_SECONDS,
+                 debugUiEnabled: bool = False,
+                 showDebugByDefault: bool = False):
         '''
         fields:
             workingFilePath (string) - absolute .symphony path
@@ -119,6 +121,8 @@ class EditorSession:
             autoSaveDirectory (string | None) - directory to write autosave backups
             stateChangeCallback (callable | None) - notified after every state mutation
             autoSaveInterval (float) - autosave cadence in seconds
+            debugUiEnabled (boolean) - whether developer debug UI can be shown
+            showDebugByDefault (boolean) - whether debug UI opens on launch
         outputs: nothing
         '''
         self.workingFilePath = workingFilePath
@@ -126,6 +130,8 @@ class EditorSession:
         self.sessionID = sessionID
         self.autoSaveDirectory = autoSaveDirectory
         self._stateChangeCallback = stateChangeCallback
+        self.debugUiEnabled = bool(debugUiEnabled)
+        self.showDebugByDefault = self.debugUiEnabled and bool(showDebugByDefault)
 
         self.lock = threading.RLock()
         self.suspendTransactionCapture = False
@@ -260,6 +266,10 @@ class EditorSession:
                 "projectMeta": copy.deepcopy(self.projectMeta),
                 "playheadHomeTime": float(self.playheadHomeTime),
                 "tempDrag": copy.deepcopy(self.tempDragState),
+                "debug": {
+                    "enabled": self.debugUiEnabled,
+                    "showDebugByDefault": self.showDebugByDefault,
+                },
             }
 
     def setStateChangeCallback(self, callback):
