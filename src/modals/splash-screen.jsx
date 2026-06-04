@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import path from "path-browserify";
 
-import "@/components/universal-styling/recently-viewed.css";
+import "@/components/components-styling/recently-viewed.css";
 import GenericModal from "@/modals/generic-modal";
 import FileNotExist from "@/modals/file-not-exist";
 import "@/modals/modals-styling/splash-screen.css";

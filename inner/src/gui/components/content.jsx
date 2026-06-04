@@ -13,7 +13,7 @@ import {
   MODE_OPTIONS,
   flatIcon,
   sharpIcon,
-} from "./toolbar-options.jsx";
+} from "./toolbar-components/toolbar-options.jsx";
 import NoteGrid from "./notegrid.jsx";
 
 /**

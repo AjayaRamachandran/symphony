@@ -130,12 +130,11 @@ export function OverlayScrollbar({
       ref={trackRef}
       className="note-grid-overlay-scrollbar"
       aria-hidden="true"
+      onPointerDown={(event) => event.stopPropagation()}
       onPointerEnter={syncCursor}
       onPointerMove={syncCursor}
       onPointerLeave={() => {
-        setCursorState((current) =>
-          current.grabbing ? current : { ...current, visible: false },
-        );
+        setCursorState((current) => ({ ...current, visible: false }));
       }}
     >
       <div

@@ -1549,9 +1549,15 @@ export default function NoteGridSurface({
       const viewport = viewportRef.current;
       if (!world || !viewport) return;
 
+      const overScrollbar =
+        event.target.closest(".note-grid-overlay-scrollbar") !== null;
       if (customCursor) {
-        customCursor.style.transform = `translate3d(${world.viewportX}px, ${world.viewportY}px, 0)`;
-        customCursor.dataset.visible = "true";
+        if (overScrollbar) {
+          customCursor.dataset.visible = "false";
+        } else {
+          customCursor.style.transform = `translate3d(${world.viewportX}px, ${world.viewportY}px, 0)`;
+          customCursor.dataset.visible = "true";
+        }
       }
 
       pointerHoverRef.current = {

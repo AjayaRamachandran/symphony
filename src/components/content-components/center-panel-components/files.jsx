@@ -7,7 +7,7 @@ import {
   moveInAppFileToDirectory,
 } from "@/utils/move-in-app-file";
 
-import "@/components/universal-styling/files.css";
+import "@/components/components-styling/files.css";
 import NewFile from "@/components/content-components/center-panel-components/files-components/new-file";
 import File from "@/components/content-components/center-panel-components/files-components/file";
 

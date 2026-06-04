@@ -5,7 +5,7 @@ import path from "path-browserify";
 import Field from "@/ui/field";
 import SearchResults from "@/components/content-components/center-panel-components/search-results";
 
-import "@/components/universal-styling/search-bar.css";
+import "@/components/components-styling/search-bar.css";
 
 function SearchBar() {
   const [searchContent, setSearchContent] = useState("");

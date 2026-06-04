@@ -363,7 +363,7 @@
   color: #000;
   opacity: 0;
   pointer-events: none;
-  transform: translate(-2px, -2px);
+  transform: translate(-10px, -10px);
   transition: opacity 80ms ease;
 }
 

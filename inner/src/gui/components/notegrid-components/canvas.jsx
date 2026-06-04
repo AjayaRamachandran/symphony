@@ -16,6 +16,7 @@ import {
 } from "../notegrid-utils.js";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
+const DEBUG_STATS_ENABLED = false;
 
 const PITCH_CLASS_LABELS = [
   { note: "C" },
@@ -435,6 +436,77 @@ export function Ticker({
 }
 
 /**
+ * Renders fixed pitch labels that update as the grid scrolls vertically.
+ */
+export function PitchList({
+  slotCount,
+  cellSize,
+  bounds,
+  initialScrollPosition,
+  layerRef,
+  pitchApiRef,
+  onPreviewPitch,
+}) {
+  const slotsRef = useRef([]);
+
+  useLayoutEffect(() => {
+    if (!pitchApiRef) return undefined;
+
+    slotsRef.current.length = slotCount;
+    slotsRef.baseRow = undefined;
+    slotsRef.cellSize = undefined;
+
+    pitchApiRef.current = {
+      update: (scrollPosition) =>
+        updatePitchSlots({
+          slots: slotsRef,
+          layer: layerRef,
+          scrollPosition,
+          bounds,
+          cellSize,
+        }),
+    };
+    pitchApiRef.current.update(initialScrollPosition);
+
+    return () => {
+      if (pitchApiRef.current?.update) {
+        pitchApiRef.current = null;
+      }
+    };
+  }, [bounds, cellSize, initialScrollPosition, pitchApiRef, slotCount]);
+
+  return (
+    <div className="note-grid-pitch-list" aria-label="Pitches">
+      <div ref={layerRef} className="note-grid-pitch-list-layer">
+        {Array.from({ length: slotCount }, (_, index) => (
+          <div
+            key={index}
+            ref={(node) => {
+              slotsRef.current[index] = node;
+            }}
+            className="note-grid-pitch-row"
+            onPointerEnter={(e) => {
+              const pitch = Number(e.currentTarget.dataset.pitch);
+              if (Number.isFinite(pitch)) onPreviewPitch?.(pitch);
+            }}
+          >
+            <span className="note-grid-pitch-label">
+              <span data-pitch-note />
+              <span
+                className="note-grid-pitch-flat"
+                data-pitch-flat
+                dangerouslySetInnerHTML={{ __html: flatIcon }}
+              />
+            </span>
+            <span className="note-grid-pitch-octave" data-pitch-octave />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
  * Formats optional diagnostic numbers without leaking NaN into the debug strip.
  */
 function formatNumber(value, digits = 0) {
@@ -452,6 +524,7 @@ export function Navigator({
   showDebugStats = true,
 }) {
   const { frameStats, canvasStats, interactionStats } = debugStats;
+  const showStats = DEBUG_STATS_ENABLED && showDebugStats;
 
   return (
     <div className="note-grid-navigator">
@@ -482,7 +555,7 @@ export function Navigator({
         </div>
         <ZoomIn size={16} strokeWidth={2.1} aria-hidden="true" />
       </div>
-      {showDebugStats ? (
+      {showStats ? (
         <div className="note-grid-debug" aria-label="Grid debug information">
           <span>{frameStats.fps} fps</span>
           <span>{formatNumber(frameStats.averageFrameMs, 1)} ms avg</span>

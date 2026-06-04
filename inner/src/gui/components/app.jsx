@@ -9,7 +9,7 @@ import {
   DRAW_BRUSH_INDEX,
   ERASER_BRUSH_INDEX,
   SELECT_BRUSH_INDEX,
-} from "./toolbar-options.jsx";
+} from "./toolbar-components/toolbar-options.jsx";
 import EditorSurface from "./content.jsx";
 import "./universal-styling/index.css";
 
