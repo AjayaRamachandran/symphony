@@ -48,8 +48,7 @@
 }
 
 .note-grid-ticker-layer,
-.note-grid-pitch-list-layer,
-.note-grid-layer {
+.note-grid-pitch-list-layer {
   transform: translate3d(var(--note-grid-offset-x), var(--note-grid-offset-y), 0);
   will-change: transform;
 }
@@ -179,70 +178,11 @@
   cursor: not-allowed;
 }
 
-.note-grid {
+.note-grid-canvas {
   position: absolute;
   inset: 0;
-  overflow: hidden;
-  background: var(--note-grid-gap-surface);
-}
-
-.note-grid-canvas {
   display: block;
   background: transparent;
-}
-
-.note-grid-notes,
-.note-grid-ghosts {
-  position: absolute;
-  left: 0;
-  top: 0;
-  display: block;
-  pointer-events: none;
-  overflow: visible;
-}
-
-.note-grid-notes {
-  z-index: 1;
-}
-
-.note-grid-ghosts {
-  z-index: 2;
-}
-
-.note-grid-note {
-  opacity: 0.96;
-  shape-rendering: geometricPrecision;
-}
-
-.note-grid-note-inactive {
-  opacity: 0.4;
-}
-
-.note-grid-note-selected {
-  stroke: #ffffff;
-  stroke-width: 3px;
-  paint-order: stroke fill;
-}
-
-.note-grid-note-ghost {
-  opacity: 0.35;
-  stroke: #ffffff;
-  stroke-width: 1.5px;
-  stroke-dasharray: 4 3;
-  pointer-events: none;
-}
-
-.note-grid-note-drag-preview {
-  opacity: 0.96;
-  stroke: #ffffff;
-  stroke-width: 2px;
-  paint-order: stroke fill;
-  pointer-events: none;
-}
-
-.note-grid-note-tail-affordance {
-  fill: rgba(0, 0, 0, 0.3);
-  pointer-events: none;
 }
 
 .note-grid-playhead {
@@ -261,20 +201,6 @@
 
 .note-grid-playhead[data-visible="true"] {
   opacity: 0.9;
-}
-
-.note-grid-selection-rect {
-  position: absolute;
-  left: 0;
-  top: 0;
-  z-index: 2;
-  width: 0;
-  height: 0;
-  border: 1px solid var(--tinted-foreground);
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 2px;
-  pointer-events: none;
-  transform: translate3d(0, 0, 0);
 }
 
 .note-grid-custom-cursor {

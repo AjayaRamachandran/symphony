@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import TitleBar from "@/ui/title-bar";
 import appIcon from "@/assets/icon-light.svg";
-import ApiInspector from "./api-inspector.jsx";
-import editorAPI from "../editor-bridge.js";
+import ApiInspector from "./components/api-inspector.jsx";
+import editorAPI from "./editor-bridge.js";
 import {
   BRUSHES,
   CHANNELS,
   DRAW_BRUSH_INDEX,
   ERASER_BRUSH_INDEX,
   SELECT_BRUSH_INDEX,
-} from "./toolbar-components/toolbar-options.jsx";
-import EditorSurface from "./content.jsx";
+} from "./components/toolbar-components/toolbar-options.jsx";
+import EditorSurface from "./components/content.jsx";
 import "./universal-styling/index.css";
 
 // Temporary API inspection surface. Packaged builds keep this hidden and

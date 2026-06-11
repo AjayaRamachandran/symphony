@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -17,7 +18,11 @@ RESIZE_HANDLE_W = 6   # invisible resize handle width in screen pixels
 WINDOW_BORDER_COLOR = 0x00404040  # COLORREF for a neutral gray DWM border
 
 _win_hook_refs: list = []       # prevent GC of ctypes WndProc callbacks
-_win_proc_installed: bool = False
+_win_proc_ptrs: dict[int, int] = {}  # hwnd -> our installed WndProc pointer
+
+# TEMP DEBUG: set SYMPHONY_WINMAN_DEBUG=1 to trace NC routing messages.
+_WINMAN_DEBUG = os.environ.get("SYMPHONY_WINMAN_DEBUG") == "1"
+_dbg_counts: dict = {}
 _manual_resize_start: dict | None = None
 _drag_refs: list = []           # keep COM drag-source callbacks alive
 _drop_target_refs: list = []    # keep COM drop-target callbacks alive
@@ -1077,7 +1082,6 @@ def install_aero_and_resize(main_window, on_maximize) -> None:
                           maximize transition.
       All other messages  Forwarded to the original WinForms WndProc.
     """
-    global _win_proc_installed
     if sys.platform != "win32" or not main_window:
         return
 
@@ -1139,6 +1143,8 @@ def install_aero_and_resize(main_window, on_maximize) -> None:
     _u32.SetWindowLongW.argtypes = [wt.HWND, ctypes.c_int, ctypes.c_long]
     _u32.SetWindowLongPtrW.restype  = ctypes.c_ssize_t
     _u32.SetWindowLongPtrW.argtypes = [wt.HWND, ctypes.c_int, ctypes.c_ssize_t]
+    _u32.GetWindowLongPtrW.restype  = ctypes.c_ssize_t
+    _u32.GetWindowLongPtrW.argtypes = [wt.HWND, ctypes.c_int]
     _u32.CallWindowProcW.restype  = ctypes.c_ssize_t
     _u32.CallWindowProcW.argtypes = [ctypes.c_ssize_t, wt.HWND, wt.UINT, wt.WPARAM, wt.LPARAM]
     _u32.DefWindowProcW.restype  = ctypes.c_ssize_t
@@ -1241,6 +1247,13 @@ def install_aero_and_resize(main_window, on_maximize) -> None:
 
     def _proc(h: int, msg: int, wp: int, lp: int) -> int:
         try:
+            # TEMP DEBUG: trace NC routing messages (hit test, set cursor,
+            # NC mouse move / button down) to diagnose resize routing.
+            if _WINMAN_DEBUG and msg in (0x0084, 0x0020, 0x00A0, 0x00A1):
+                n = _dbg_counts.get(msg, 0)
+                if n < 25:
+                    _dbg_counts[msg] = n + 1
+                    console.log(f"dbg _proc hwnd={h:#x} msg={msg:#06x} wp={wp:#x} lp={lp:#x}")
             if msg == WM_GETMINMAXINFO:
                 monitor = _u32.MonitorFromWindow(h, MONITOR_DEFAULTTONEAREST)
                 if monitor:
@@ -1342,7 +1355,16 @@ def install_aero_and_resize(main_window, on_maximize) -> None:
 
         return _u32.CallWindowProcW(old_proc[0], h, msg, wp, lp)
 
-    if not _win_proc_installed:
+    # Re-subclass whenever the current WndProc is no longer ours. WebView2's
+    # non-client-region support (IsNonClientRegionSupportEnabled, enabled by
+    # patch_webview_nonclient) subclasses this same HWND when the page
+    # initializes and answers WM_NCHITTEST itself, burying any subclass that
+    # was installed before it. Comparing against the live GWLP_WNDPROC lets a
+    # later install call (loaded event / deferred thread) land back on top of
+    # WebView2's hook; we forward unhandled messages to whatever was current,
+    # so its drag-region handling keeps working underneath.
+    current_proc = _u32.GetWindowLongPtrW(hwnd, GWLP_WNDPROC)
+    if current_proc != _win_proc_ptrs.get(hwnd):
         cb = WndProcT(_proc)
         cb_ptr = ctypes.cast(cb, ctypes.c_void_p).value or 0
         old_proc[0] = _u32.SetWindowLongPtrW(hwnd, GWLP_WNDPROC, cb_ptr)
@@ -1350,11 +1372,11 @@ def install_aero_and_resize(main_window, on_maximize) -> None:
             err = ctypes.windll.kernel32.GetLastError()
             console.log(f"install_aero_and_resize: SetWindowLongPtrW failed, GetLastError={err}")
         else:
-            _win_proc_installed = True
+            _win_proc_ptrs[hwnd] = cb_ptr
             console.log(f"install_aero_and_resize: WndProc installed, old={old_proc[0]:#018x}")
         _win_hook_refs.extend([cb, old_proc, _u32])
     else:
-        console.log("install_aero_and_resize: WndProc already installed, refreshing frame only")
+        console.log("install_aero_and_resize: WndProc still current on this HWND, refreshing frame only")
 
     # Nudge the window by 1px then back so Windows fires WM_SIZE, which
     # activates the resize grip zones.  SetWindowPos with the same rect (even
@@ -1385,6 +1407,7 @@ def focus_main_window(main_window) -> bool:
     if sys.platform != "win32" or main_window is None:
         return False
     import ctypes
+    import ctypes.wintypes as wt
 
     hwnd = _get_hwnd(main_window)
     if not hwnd:

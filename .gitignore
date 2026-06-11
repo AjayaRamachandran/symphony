@@ -12,3 +12,6 @@ target/
 **/target/
 **/target/**
 src-tauri/binaries/
+
+handoff.md
+handoff.md.loaded

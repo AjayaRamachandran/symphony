@@ -1,7 +1,6 @@
-// Pure helpers for note-grid pointer behavior. Keeps coordinate math, hit
-// testing, selection bookkeeping, drag/duplicate/resize proposal shapes, and
-// channel filtering out of the React surface so the surface can stay focused
-// on event wiring and rendering.
+// Pure helpers for note-grid pointer behavior: hit testing, selection
+// bookkeeping, drag/duplicate/resize proposal shapes, and channel filtering.
+// Coordinate conversion lives in camera.js.
 
 export const NOTE_PITCH_TO_GRID_ROW_OFFSET = 35;
 
@@ -86,34 +85,6 @@ export function normalizeNoteMap(noteMap) {
     }
   }
   return result;
-}
-
-/**
- * Translates a viewport-relative pointer position into grid world coordinates.
- * `column` and `row` are integer cell indices; `exactColumn` and `exactRow`
- * are floats that callers can use for tail-proximity and rectangle math.
- */
-export function viewportToWorldPoint({ viewportX, viewportY, scrollPosition, cellSize, bounds }) {
-  const exactColumn = bounds.minColumn + (scrollPosition.x + viewportX) / cellSize; // viewport px to world column
-  const exactRow = bounds.maxRow - (scrollPosition.y + viewportY) / cellSize; // viewport px to world row
-
-  return {
-    exactColumn,
-    exactRow,
-    column: Math.floor(exactColumn),
-    row: Math.ceil(exactRow),
-  };
-}
-
-/**
- * Translates a world cell position back into a viewport pixel position. Used
- * by overlays (selection rect ghosts, drag ghost notes) that draw in viewport
- * coordinates while reasoning in world cells.
- */
-export function worldCellToViewportPoint({ column, gridRow, scrollPosition, cellSize, bounds }) {
-  const x = (column - bounds.minColumn) * cellSize - scrollPosition.x; // world column to viewport px
-  const y = (bounds.maxRow - gridRow) * cellSize - scrollPosition.y; // world row to viewport px
-  return { x, y };
 }
 
 /**
@@ -237,49 +208,6 @@ export function buildResizeProposal({ originals, deltaDuration }) {
       duration: Math.max(1, note.duration + deltaDuration),
       data_fields: note.dataFields ?? {},
     })),
-  };
-}
-
-/**
- * Computes the world rectangle for a viewport-anchored selection box given
- * the current scroll position. Both corners are anchored to the viewport so
- * the box appears to stay put on screen; as the user scrolls, the underlying
- * world coordinates shift, letting notes scroll into or out of the box.
- */
-export function selectionRectToWorldRect({ startViewportX, startViewportY, endViewportX, endViewportY, currentScroll, cellSize, bounds }) {
-  const start = viewportToWorldPoint({
-    viewportX: startViewportX,
-    viewportY: startViewportY,
-    scrollPosition: currentScroll,
-    cellSize,
-    bounds,
-  });
-  const end = viewportToWorldPoint({
-    viewportX: endViewportX,
-    viewportY: endViewportY,
-    scrollPosition: currentScroll,
-    cellSize,
-    bounds,
-  });
-  return {
-    startColumn: start.exactColumn,
-    endColumn: end.exactColumn,
-    startRow: start.exactRow,
-    endRow: end.exactRow,
-  };
-}
-
-/**
- * Returns the viewport pixel rectangle for a viewport-anchored selection
- * box. The rectangle stays in viewport space even as the user scrolls, so
- * the overlay can render with a fixed transform.
- */
-export function selectionRectViewportPixels({ startViewportX, startViewportY, endViewportX, endViewportY }) {
-  return {
-    left: Math.min(startViewportX, endViewportX),
-    top: Math.min(startViewportY, endViewportY),
-    width: Math.abs(endViewportX - startViewportX),
-    height: Math.abs(endViewportY - startViewportY),
   };
 }
 
