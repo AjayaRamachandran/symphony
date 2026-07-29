@@ -1,7 +1,7 @@
 {
     "name": "symphony",
     "private": true,
-    "version": "1.1.0",
+    "version": "1.1.5",
     "scripts": {
         "dev": "node scripts/dev.mjs",
         "package-app": "node scripts/package-app.mjs",

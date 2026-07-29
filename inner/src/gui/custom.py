@@ -93,8 +93,8 @@ class PitchList(gui.Interactive):
     '''
     Class that manages the Pitch list on the left side of the screen, and how it plays back notes.
     '''
-    def __init__(self, pos, width, height, notes):
-        super().__init__(pos, width, height)
+    def __init__(self, width, height, notes, name):
+        super().__init__(width, height, name)
         self.notes = notes
         self.mode = [0, 2, 4, 6, 7, 9, 11]
         self.key = 3
@@ -121,6 +121,12 @@ class PitchList(gui.Interactive):
         self.wave = wave
 
     def setLinkedPanels(self, panel: frame.Panel):
+        '''
+        fields:
+            panel (Panel) - linked Panel
+        
+        Sets the linked NotePanel to render with the PitchList is updated.
+        '''
         self.panel = panel
 
     def onPitchListClick(self):
@@ -175,8 +181,8 @@ class NoteGrid(gui.Interactive):
     '''
     Class that manages interactivity of the note grid, and renders the note elements.
     '''
-    def __init__(self, pos, width, height):
-        super().__init__(pos, width, height)
+    def __init__(self, width, height, name):
+        super().__init__(width, height, name)
         self.noteMap = {}
         self.color = 0
         self.colorNames = []  # List of color names in order: ["orange", "purple", "cyan", "lime", "blue", "pink", "all"]
@@ -250,6 +256,13 @@ class NoteGrid(gui.Interactive):
         self.key = key if key != None else self.key
 
     def setLinkedPanels(self, panel: frame.Panel, notes: frame.Panel):
+        '''
+        fields:
+            panel (Panel) - the linked NotePanel
+            notes (Panel) - the linked PitchPanel
+        
+        Sets the linked panels to be rendered with the NoteGrid is updated.
+        '''
         self.panel = panel
         self.notes = notes
 

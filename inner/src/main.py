@@ -37,6 +37,7 @@ import process_command.read_write as pcrw
 import utils.state_loading as sl
 import utils.file_io as fio
 import utils.platform_controller as plat
+import utils.sdl_resize_watch as sdl
 import sound.sound_processing as sp
 import sound.instruments as ins
 import utils.project_state as pst
@@ -153,8 +154,8 @@ saveFrame = 0
 
 suspendTransactionCapture = False
 
-NOTES_SHARP = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
-NOTES_FLAT =  ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"]
+NOTES_SHARP =     ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+NOTES_FLAT =      ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"]
 NOTES_FLAT_NEW =  ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"]
 keyIndex = 0
 
@@ -177,21 +178,21 @@ for modeInt in modesIntervals:
 
 colors = {
     "orange" : (168, 136, 49),
-    "purple" : (134, 48, 156),
-    "cyan" : (20, 128, 150),
-    "lime" : (102, 150, 20),
-    "blue" : (61, 80, 156),
-    "pink" : (168, 49, 94),
-    "all" : (255, 255, 255)
+    "purple" : (134, 48,  156),
+    "cyan"   : (20,  128, 150),
+    "lime"   : (102, 150, 20),
+    "blue"   : (61,  80,  156),
+    "pink"   : (168, 49,  94),
+    "all"    : (255, 255, 255)
 }
 colorsInd = {
     "orange" : 0,
     "purple" : 1,
-    "cyan" : 2,
-    "lime" : 3,
-    "blue" : 4,
-    "pink" : 5,
-    "all" : 6
+    "cyan"   : 2,
+    "lime"   : 3,
+    "blue"   : 4,
+    "pink"   : 5,
+    "all"    : 6
 }
 colorsList = list[tuple[str, tuple[int, int, int]]](colors.items())
 justColors = [n[1] for n in colorsList]
@@ -217,78 +218,120 @@ gui.init(source_path)
 ins.init(source_path)
 
 zoomDimensions = [
-    (18, 24),
-    (22, 26),
-    (26, 28),
-    (30, 30),
-    (40, 40),
-    (60, 48),
-    (80, 54),
+    (18,  24),
+    (22,  26),
+    (26,  28),
+    (30,  30),
+    (40,  40),
+    (60,  48),
+    (80,  54),
     (100, 56)
 ]
 
 ###### ASSETS ######
 
-LARGE_SPACE = 24
-SMALL_SPACE = 6
+# LARGE_SPACE = 24
+# SMALL_SPACE = 6
+# PADDING = 26
 
-PlayPauseButton = gui.Button(pos=(26, 26), width=28, height=28, states=[playImage, pauseImage])
-AccidentalsButton = gui.Button(pos=(PlayPauseButton.x + PlayPauseButton.width + SMALL_SPACE, 26), width=28, height=28, states=[flatsImage, sharpsImage])
-PlayheadButton = gui.Button(pos=(AccidentalsButton.x + AccidentalsButton.width + SMALL_SPACE, 26), width=28, height=28, states=[headImage, headAltImage])
-BrushButton = gui.Button(pos=(PlayheadButton.x + PlayheadButton.width + SMALL_SPACE, 26), width=28, height=28, states=[brushImage, eraserImage, selectImage])
-LeftToolbar = frame.Panel((0, 0, width, height), gui.EMPTY_COLOR,
-                           [PlayPauseButton, AccidentalsButton, PlayheadButton, BrushButton],
-                           name="LeftToolbar")
+PlayPauseButton = gui.Button(width=28, height=28, states=[playImage, pauseImage], name='PlayPauseButton')
+AccidentalsButton = gui.Button(width=28, height=28, states=[flatsImage, sharpsImage], name='AccidentalsButton')
+PlayheadButton = gui.Button(width=28, height=28, states=[headImage, headAltImage], name='PlayheadButton')
+BrushButton = gui.Button(width=28, height=28, states=[brushImage, eraserImage, selectImage], name='BrushButton')
 
-TempoDownButton = gui.Button(pos=(BrushButton.x + BrushButton.width + LARGE_SPACE, 26), width=20, height=28, states=[downChevronImage])
-TempoTextBox = gui.TextBox(pos=(TempoDownButton.x + TempoDownButton.width + SMALL_SPACE, 26), width=105, height=28, text='360')
-TempoUpButton = gui.Button(pos=(TempoTextBox.x + TempoTextBox.width + SMALL_SPACE, 26), width=20, height=28, states=[upChevronImage])
-TempoControls = frame.Panel((0, 0, width, height), gui.EMPTY_COLOR,
-                            [TempoDownButton, TempoTextBox, TempoUpButton],
-                            name="TempoControls")
+BeatLengthDownButton = gui.Button(width=20, height=28, states=[downChevronImage], name='BeatLengthDownButton')
+BeatLengthTextBox = gui.TextBox(width=30, height=28, text='4', name='BeatLengthTextBox')
+BeatLengthUpButton = gui.Button(width=20, height=28, states=[upChevronImage], name='BeatLengthUpButton')
+BeatLengthControls = frame.Panel(
+    [BeatLengthDownButton, BeatLengthTextBox, BeatLengthUpButton],
+    style={
+        "background" : gui.BORDER_COLOR,
+        "gap" : 1,
+        "border" : 1,
+    },
+    name="BeatLengthControls"
+)
 
-BeatLengthDownButton = gui.Button(pos=(TempoUpButton.x + TempoUpButton.width + LARGE_SPACE, 26), width=20, height=28, states=[downChevronImage])
-BeatLengthTextBox = gui.TextBox(pos=(BeatLengthDownButton.x + BeatLengthDownButton.width + SMALL_SPACE, 26), width=30, height=28, text='4')
-BeatLengthUpButton = gui.Button(pos=(BeatLengthTextBox.x + BeatLengthTextBox.width + SMALL_SPACE, 26), width=20, height=28, states=[upChevronImage])
-BeatLengthControls = frame.Panel((0, 0, width, height), gui.EMPTY_COLOR,
-                                    [BeatLengthDownButton, BeatLengthTextBox, BeatLengthUpButton],
-                                    name="BeatLengthControls")
+BeatsPerMeasureUpButton = gui.Button(width=20, height=28, states=[upChevronImage], name='BeatsPerMeasureUpButton')
+BeatsPerMeasureTextBox = gui.TextBox(width=30, height=28, text='4', name='BeatsPerMeasureTextBox')
+BeatsPerMeasureDownButton = gui.Button(width=20, height=28, states=[downChevronImage], name='BeatsPerMeasureDownButton')
+BeatsPerMeasureControls = frame.Panel(
+    [BeatsPerMeasureDownButton, BeatsPerMeasureTextBox, BeatsPerMeasureUpButton],
+    style={
+        "background" : gui.BORDER_COLOR,
+        "gap" : 1,
+        "border" : 1,
+    },
+    name="BeatsPerMeasureControls"
+)
 
-QuestionButton = gui.Button(pos=(width - 54, 26), width=28, height=28, states=[questionImage])
+LeftToolbar = frame.Panel(
+    elements=[PlayPauseButton, PlayheadButton, AccidentalsButton, BrushButton, BeatLengthControls, BeatsPerMeasureControls],
+    style={
+        "gap" : 24,
+    },
+    name="LeftToolbar"
+)
 
-ModeDropdown = gui.Dropdown(pos=(QuestionButton.x - 140 - LARGE_SPACE, 26), width=140, height=28, states=modes, image=upDownChevronImage)
-KeyDropdown = gui.Dropdown(pos=(ModeDropdown.x - 60 - SMALL_SPACE, 26), width=60, height=28, states=NOTES_FLAT, image=upDownChevronImage)
+TempoDownButton = gui.Button(width=20, height=28, states=[downChevronImage], name='TempoDownButton')
+TempoTextBox = gui.TextBox(width=105, height=28, text='360', name='TempoTextBox')
+TempoUpButton = gui.Button(width=20, height=28, states=[upChevronImage], name='TempoUpButton')
+TempoControls = frame.Panel(
+    elements=[TempoDownButton, TempoTextBox, TempoUpButton],
+    style={
+        "background" : gui.BORDER_COLOR,
+        "gap" : 1,
+        "border" : 1,
+    },
+    name="TempoControls"
+)
 
-WaveDropdown = gui.Dropdown(pos=(KeyDropdown.x - 64 - LARGE_SPACE, 26), width=64, height=28, states=instrumentImages, image=upDownChevronImage)
-colorStates = custom.getColorStates(28, 28, source_path)
-ColorButton = gui.Button(pos=(WaveDropdown.x - 28 - SMALL_SPACE, 26), width=28, height=28, states=colorStates)
+ColorButton = gui.Button(width=28, height=28, states=custom.getColorStates(28, 28, source_path), name='ColorButton')
+WaveDropdown = gui.Dropdown(width=64, height=28, states=instrumentImages, image=upDownChevronImage, name='WaveDropdown')
+KeyDropdown = gui.Dropdown(width=60, height=28, states=NOTES_FLAT, image=upDownChevronImage, name='KeyDropdown')
+ModeDropdown = gui.Dropdown(width=140, height=28, states=modes, image=upDownChevronImage, name='ModeDropdown')
+QuestionButton = gui.Button(width=28, height=28, states=[questionImage], name='QuestionButton')
 
-BeatsPerMeasureUpButton = gui.Button(pos=(ColorButton.x - 20 - LARGE_SPACE, 26), width=20, height=28, states=[upChevronImage])
-BeatsPerMeasureTextBox = gui.TextBox(pos=(BeatsPerMeasureUpButton.x - 30 - SMALL_SPACE, 26), width=30, height=28, text='4')
-BeatsPerMeasureDownButton = gui.Button(pos=(BeatsPerMeasureTextBox.x - 20 - SMALL_SPACE, 26), width=20, height=28, states=[downChevronImage])
-BeatsPerMeasureControls = frame.Panel((0, 0, width, height), gui.EMPTY_COLOR,
-                                    [BeatsPerMeasureDownButton, BeatsPerMeasureTextBox, BeatsPerMeasureUpButton],
-                                    name="BeatsPerMeasureControls")
+RightToolbar = frame.Panel(
+    [KeyDropdown, ModeDropdown, WaveDropdown, ColorButton, QuestionButton],
+    style={
+        "gap" : 24,
+    },
+    name="RightToolbar"
+)
 
-RightToolbar = frame.Panel((0, 0, width, height), gui.EMPTY_COLOR,
-                           [KeyDropdown, ModeDropdown, WaveDropdown, ColorButton, QuestionButton],
-                           name="RightToolbar")
+WorldMessage = gui.Label(width=width, height=20, text=worldMessage, name='WorldMessage')
+MessagePanel = frame.Panel(
+    [WorldMessage],
+    style={
+        "display" : "fixed"
+    },
+    name="MessagePanel"
+)
 
-WorldMessage = gui.Label(pos=(0, 1), width=width, height=20, text=worldMessage)
+ToolBar = frame.Panel(
+    [LeftToolbar, RightToolbar, WorldMessage],
+    style={
+        "background" : gui.BG_COLOR,
+        "display" : "fixed",
+        "offset" : [0, 0],
+        "align" : "center",
+        "justify" : "spread",
+        "sizing" : ("fill", 80),
+        "border" : (0, 0, 1, 0),
+    },
+    name="ToolBar"
+)
 
-ToolBar = frame.Panel((0, 0, width, height), (0, 0, 0, 0),
-                          [RightToolbar, LeftToolbar, BeatLengthControls, BeatsPerMeasureControls, TempoControls, WorldMessage],
-                          name="ToolBar")
+# def toolBarGraphics(screen):
+#     pygame.draw.rect(screen, gui.BG_COLOR, (0, 0, width, 80))
+#     pygame.draw.line(screen, gui.BORDER_COLOR, (0, 79), (width, 79), 1)
 
-def toolBarGraphics(screen):
-    pygame.draw.rect(screen, gui.BG_COLOR, (0, 0, width, 80))
-    pygame.draw.line(screen, gui.BORDER_COLOR, (0, 79), (width, 79), 1)
+# ToolBar.onSelfRender(toolBarGraphics)
 
-ToolBar.onSelfRender(toolBarGraphics)
+NoteGrid = custom.NoteGrid(width=width, height=height, name='NoteGrid')
 
-NoteGrid = custom.NoteGrid(pos=(0, 0), width=width, height=height)
-
-PitchList = custom.PitchList(pos=(0, 80), width=80, height=height-80, notes=NOTES_FLAT)
+PitchList = custom.PitchList(width=80, height=height-80, notes=NOTES_FLAT, name='PitchList')
 PlayHead = custom.PlayHead()
 
 def bumpRight():
@@ -296,22 +339,43 @@ def bumpRight():
 
 PlayHead.onExitView(bumpRight)
 
-NotePanel = frame.Panel(rect=(80, 80, width-80, height-80), bgColor=gui.BG_COLOR, elements=[NoteGrid, PlayHead],
-                        name="NotePanel")
+NotePanel = frame.Panel(
+    elements=[NoteGrid, PlayHead],
+    style={
+        "background" : gui.BG_COLOR,
+    },
+    name="NotePanel"
+)
 PlayHead.setLinkedPanel(NotePanel)
-PitchPanel = frame.Panel(rect=(0, 80, 80, height-80), bgColor=gui.BG_COLOR, elements=[PitchList],
-                         name="PitchPanel")
+PitchPanel = frame.Panel(
+    elements=[PitchList],
+    style={
+        "background" : gui.BG_COLOR,
+    },
+    name="PitchPanel"
+)
 
 NoteGrid.setLinkedPanels(NotePanel, PitchPanel)
 PitchList.setLinkedPanels(PitchPanel)
 
-GridPanel = frame.Panel((0, 80, width, height-80), (0, 0, 0, 0), [NotePanel, PitchPanel],
-                        name="GridPanel")
+GridPanel = frame.Panel(
+    [NotePanel, PitchPanel],
+    name="GridPanel"
+)
 NoteGrid.setNoteMap(noteMap)
 NoteGrid.setColorNames(justColorNames)
 
-MasterPanel = frame.Panel((0, 0, width, height), gui.BG_COLOR, [GridPanel, ToolBar],
-                          name="MasterPanel")
+MasterPanel = frame.Panel(
+    [GridPanel, ToolBar],
+    style={
+        "background" : gui.BG_COLOR,
+    },
+    name="MasterPanel"
+)
+
+MasterPanel.visualizeHierarchy()
+MasterPanel.calculateDimensions([width, height])
+MasterPanel.relativeToScreenSpace([0, 0])
 
 NoteGrid.setModeKey(key = NOTES_SHARP.index(key) if ('#' in key) else NOTES_FLAT.index(key),
                     mode = modesMap[mode])
@@ -530,19 +594,9 @@ def colorSync():
     if ColorButton.currentStateIdx != 6:
         WaveDropdown.setCurrentState(instrumentMap[justColorNames[ColorButton.currentStateIdx]])
         PitchList.setWave(WaveDropdown.currentStateIdx)
-        WaveDropdown.setPosition((KeyDropdown.x - WaveDropdown.width - LARGE_SPACE, 26))
-        ColorButton.setPosition((WaveDropdown.x - ColorButton.width - SMALL_SPACE, 26))
-        BeatsPerMeasureDownButton.setPosition((ColorButton.x - BeatsPerMeasureDownButton.width - LARGE_SPACE, 26))
-        BeatsPerMeasureTextBox.setPosition((BeatsPerMeasureDownButton.x - BeatsPerMeasureTextBox.width - SMALL_SPACE, 26))
-        BeatsPerMeasureUpButton.setPosition((BeatsPerMeasureTextBox.x - BeatsPerMeasureUpButton.width - SMALL_SPACE, 26))
     else:
         if WaveDropdown.expanded:
             WaveDropdown.handleClickOut()
-        WaveDropdown.setPosition((-300, 26))
-        ColorButton.setPosition((KeyDropdown.x - ColorButton.width - LARGE_SPACE, 26))
-        BeatsPerMeasureDownButton.setPosition((ColorButton.x - BeatsPerMeasureDownButton.width - LARGE_SPACE, 26))
-        BeatsPerMeasureTextBox.setPosition((BeatsPerMeasureDownButton.x - BeatsPerMeasureTextBox.width - SMALL_SPACE, 26))
-        BeatsPerMeasureUpButton.setPosition((BeatsPerMeasureTextBox.x - BeatsPerMeasureUpButton.width - SMALL_SPACE, 26))
 
     ToolBar.render(screen)
     NoteGrid.color = ColorButton.currentStateIdx
@@ -634,16 +688,16 @@ def snapshotEditorState():
     Returns a snapshot of editor state needed to replay undo/redo deterministically.
     '''
     return {
-        "noteMap": pst.snapshotNoteMapState(noteMap),
-        "waveMap": copy.deepcopy(instrumentMap),
-        "tempo": int(tempo),
-        "beatLength": int(beatLength),
-        "beatsPerMeasure": int(beatsPerMeasure),
-        "key": str(KeyDropdown.currentState),
-        "mode": str(ModeDropdown.currentState),
-        "accidentals": "flats" if AccidentalsButton.currentStateIdx == 0 else "sharps",
-        "colorIndex": int(ColorButton.currentStateIdx),
-        "waveIndex": int(WaveDropdown.currentStateIdx)
+        "noteMap"         : pst.snapshotNoteMapState(noteMap),
+        "waveMap"         : copy.deepcopy(instrumentMap),
+        "tempo"           : int(tempo),
+        "beatLength"      : int(beatLength),
+        "beatsPerMeasure" : int(beatsPerMeasure),
+        "key"             : str(KeyDropdown.currentState),
+        "mode"            : str(ModeDropdown.currentState),
+        "accidentals"     : "flats" if AccidentalsButton.currentStateIdx == 0 else "sharps",
+        "colorIndex"      : int(ColorButton.currentStateIdx),
+        "waveIndex"       : int(WaveDropdown.currentStateIdx)
     }
 
 
@@ -827,9 +881,9 @@ def handleClick():
     if brushType == "brush":
         notes: list[custom.Note] = noteMap[currColorName]
         activeBrushNote = custom.Note({
-            "pitch" : mousePitch,
-            "time" : mouseTime,
-            "duration" : 1,
+            "pitch"       : mousePitch,
+            "time"        : mouseTime,
+            "duration"    : 1,
             "data_fields" : {}
         })
         # Track the note created for this mouse-down so drag only extends this note.
@@ -879,9 +933,9 @@ def handleClick():
                 for note in notes:
                     if note.selected:
                         notes.append(custom.Note({
-                            "pitch" : note.pitch,
-                            "time" : note.time,
-                            "duration" : note.duration,
+                            "pitch"       : note.pitch,
+                            "time"        : note.time,
+                            "duration"    : note.duration,
                             "data_fields" : note.dataFields
                         }))
 
@@ -1016,6 +1070,42 @@ run = True
 root = None
 last_update = time.time()
 
+
+_lastFullFrame = None
+
+
+def handleResize(new_w, new_h, full=True):
+    '''
+    fields:
+        new_w (number) - new screen width
+        new_h (number) - new screen height
+        full (bool) - whether or not to perform a full recalc
+
+    Resize the display surface and reflow the UI to the new dimensions.
+    '''
+    global screen, width, height, _lastFullFrame
+
+    width, height = (max(new_w, minWidth), max(new_h, minHeight))
+
+    # SDL already resized the window surface for us, so avoid set_mode() here
+    screen = pygame.display.get_surface()
+    if screen is None or screen.get_size() != (width, height):
+        screen = pygame.display.set_mode((width, height), pygame.RESIZABLE | pygame.SHOWN)
+        sdl.reapply_minimum_window_size()  # set_mode() wipes the minimum size
+
+    if not full:
+        screen.fill((36, 36, 36))
+        if _lastFullFrame is not None:
+            screen.blit(_lastFullFrame, (0, 0))
+        pygame.display.flip()
+        return
+
+    NoteGrid.viewBounds()
+
+    MasterPanel.render(screen)
+    _lastFullFrame = screen.copy()
+    pygame.display.flip()
+
 while run:
     while not gui_running:
         pc_data = pcrw.waitForOpenCommand()
@@ -1109,10 +1199,15 @@ while run:
                 pygame.display.set_caption(f"{title_text} - Symphony v1.1.5")
                 pygame.display.set_icon(gameIcon)
                 screen = pygame.display.set_mode((width, height), pygame.RESIZABLE | pygame.SHOWN)
-            
+
+            sdl.install_live_resize_watch(handleResize)
+            if not sdl.set_minimum_window_size(minWidth, minHeight):
+                console.warn("Could not set native minimum window size")
+
             colorSync()
             PlayHead.setHome(0)
             MasterPanel.render(screen)
+            _lastFullFrame = screen.copy()
             psm.resetTransactionHistory()
             pygame.event.pump()
             pygame.display.flip()
@@ -1127,12 +1222,12 @@ while run:
                 saveFrame = 0
                 working_file_path
                 worldMessage = fio.dumpToFile(
-                                        working_file_path,
-                                        working_file_path,
-                                        sl.newProgramState(key, mode, tempo, noteMap, instrumentMap, beatLength, beatsPerMeasure, meta=projectMeta),
-                                        autoSave,
-                                        title_text,
-                                        sessionID)
+                                        workingFile  = working_file_path,
+                                        destFile     = working_file_path,
+                                        programState = sl.newProgramState(key, mode, tempo, noteMap, instrumentMap, beatLength, beatsPerMeasure, meta=projectMeta),
+                                        autoSave     = autoSave,
+                                        titleText    = title_text,
+                                        sessionID    = sessionID)
 
             NoteGrid.setNoteMap(noteMap)
             try:
@@ -1152,48 +1247,7 @@ while run:
                     console.warn("Pygame was quit")
                     break
                 elif event.type == pygame.VIDEORESIZE:
-                    screen = pygame.display.set_mode((max(event.w, minWidth), max(event.h, minHeight)), pygame.RESIZABLE | pygame.SHOWN)
-                    width, height = (max(event.w, minWidth), max(event.h, minHeight))
-
-                    BeatLengthDownButton.setPosition((TempoUpButton.x + TempoUpButton.width + LARGE_SPACE, 26))
-                    BeatLengthTextBox.setPosition((BeatLengthDownButton.x + BeatLengthDownButton.width + SMALL_SPACE, 26))
-                    BeatLengthUpButton.setPosition((BeatLengthTextBox.x + BeatLengthTextBox.width + SMALL_SPACE, 26))
-
-                    QuestionButton.setPosition((width - 54, 26))
-                    ModeDropdown.setPosition((QuestionButton.x - ModeDropdown.width - LARGE_SPACE, 26))
-                    KeyDropdown.setPosition((ModeDropdown.x - KeyDropdown.width - SMALL_SPACE, 26))
-
-                    if ColorButton.currentStateIdx != 6:
-                        WaveDropdown.setPosition((KeyDropdown.x - WaveDropdown.width - LARGE_SPACE, 26))
-                        ColorButton.setPosition((WaveDropdown.x - ColorButton.width - SMALL_SPACE, 26))
-                    else:
-                        if WaveDropdown.expanded:
-                            WaveDropdown.handleClickOut()
-                        WaveDropdown.setPosition((-300, 26))
-                        ColorButton.setPosition((KeyDropdown.x - ColorButton.width - SMALL_SPACE, 26))
-
-                    BeatsPerMeasureUpButton.setPosition((ColorButton.x - BeatsPerMeasureUpButton.width - LARGE_SPACE, 26))
-                    BeatsPerMeasureTextBox.setPosition((BeatsPerMeasureUpButton.x - BeatsPerMeasureTextBox.width - SMALL_SPACE, 26))
-                    BeatsPerMeasureDownButton.setPosition((BeatsPerMeasureTextBox.x - BeatsPerMeasureDownButton.width - SMALL_SPACE, 26))
-
-                    BeatsPerMeasureControls.setRect((0, 0, width, height))
-                    TempoControls.setRect((0, 0, width, height))
-
-                    LeftToolbar.setRect((0, 0, width, height))
-                    RightToolbar.setRect((0, 0, width, height))
-
-                    PitchPanel.setRect((0, 80, 80, height - 80))
-                    NotePanel.setRect((80, 80, width - 80, height - 80))
-                    NoteGrid.width = width
-                    NoteGrid.height = height
-                    PitchList.height = height
-                    NoteGrid.viewBounds()
-
-                    ToolBar.setRect((0, 0, width, height))
-                    GridPanel.setRect((0, 80, width, height - 80))
-                    MasterPanel.setRect((0, 0, width, height))
-
-                    MasterPanel.render(screen)
+                    handleResize(event.w, event.h)
                 elif event.type == pygame.KEYDOWN:
                     if event.key in [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7]:
                         # Skip color channel switching if a text box is selected
@@ -1262,7 +1316,13 @@ while run:
                         playPauseToggle()
                     elif event.key == pygame.K_s:
                         if pygame.key.get_pressed()[CMD_KEY]: # if the user presses Ctrl+S (to save)
-                            worldMessage = fio.dumpToFile(working_file_path, working_file_path, sl.newProgramState(key, mode, tempo, noteMap, instrumentMap, beatLength, beatsPerMeasure, meta=projectMeta), autoSave, title_text, sessionID)
+                            worldMessage = fio.dumpToFile(
+                                workingFile  = working_file_path,
+                                destFile     = working_file_path,
+                                programState = sl.newProgramState(key, mode, tempo, noteMap, instrumentMap, beatLength, beatsPerMeasure, meta=projectMeta),
+                                autoSave     = autoSave,
+                                titleText    = title_text,
+                                sessionID    = sessionID)
                             saveFrame = 0
                 elif event.type == pygame.KEYUP:
                     if event.key == CMD_KEY: # Switches away from eraser when Ctrl is let go
@@ -1290,7 +1350,13 @@ while run:
             traceback.print_exc()
             break
 
-    worldMessage = fio.dumpToFile(working_file_path, working_file_path, sl.newProgramState(key, mode, tempo, noteMap, instrumentMap, beatLength, beatsPerMeasure, meta=projectMeta), autoSave, title_text, sessionID)
+    worldMessage = fio.dumpToFile(
+        workingFile  = working_file_path,
+        destFile     = working_file_path,
+        programState = sl.newProgramState(key, mode, tempo, noteMap, instrumentMap, beatLength, beatsPerMeasure, meta=projectMeta),
+        autoSave     = autoSave,
+        titleText    = title_text,
+        sessionID    = sessionID)
     
     try:
         # On macOS, destroying/recreating pygame's Cocoa window while the

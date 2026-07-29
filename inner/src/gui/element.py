@@ -134,16 +134,18 @@ class Element():
     A generic GUI element. Contains no functionality.
     '''
 
-    def __init__(self, pos, width, height):
-        self.x = pos[0]
-        self.y = pos[1]
+    def __init__(self, width, height, name=''):
         self.width = width
         self.height = height
         self.selected = False
+        self.offsetX = 0
+        self.offsetY = 0
+        self.x = 0
+        self.y = 0
+        self.name = name
 
-    def setPosition(self, pos):
-        self.x = pos[0]
-        self.y = pos[1]
+    def __str__(self):
+        return self.name
 
     def update(self, screen):
         return False
@@ -156,8 +158,8 @@ class Interactive(Element):
     Class to contain clickable/draggable elements, which inherit an Element, adding clicking functionality.
     '''
 
-    def __init__(self, pos, width, height):
-        super().__init__(pos, width, height)
+    def __init__(self, width, height, name):
+        super().__init__(width, height, name)
 
         # clickable properties
         self.mouseAlrDown = False
@@ -181,6 +183,8 @@ class Interactive(Element):
         self.mousePosition = (0, 0)
         self.wasDraggedSinceClick = False
         self.redraw = False
+
+        self.name = name
 
     def _updateMouseState(self):
         '''
@@ -461,8 +465,8 @@ class TextBox(Interactive):
     '''
     Class to contain text boxes, which inherit a clickable, storing text and adding editing, etc.
     '''
-    def __init__(self, pos, width, height, text, font: pygame.font.Font=None):
-        super().__init__(pos, width, height)
+    def __init__(self, width, height, text, font: pygame.font.Font=None, name=''):
+        super().__init__(width, height, name)
 
         # text box properties
         self.text = text
@@ -592,22 +596,22 @@ class TextBox(Interactive):
     
     def render(self, screen: pygame.Surface):
         pygame.draw.rect(screen, ALT_BG_COLOR_4,
-                         (self.x, self.y, self.width, self.height), border_radius=3)
+                         (self.offsetX, self.offsetY, self.width, self.height), border_radius=3)
         if self.selected:
             pygame.draw.rect(screen, SELECTED_BORDER_COLOR,
-                         (self.x, self.y, self.width, self.height), width=1, border_radius=3)
+                         (self.offsetX, self.offsetY, self.width, self.height), width=1, border_radius=3)
 
         #pygame.draw.rect(screen, SELECTED_BORDER_COLOR if self.selected else BORDER_COLOR,
-                         #(self.x, self.y, self.width, self.height), width=1, border_radius=3)
+                         #(self.offsetX, self.offsetY, self.width, self.height), width=1, border_radius=3)
 
-        stamp(screen, self.temporaryText if self.selected else self.text, self.font, self.x + self.width/2, self.y + self.height/2, ALT_TEXT_COLOR, justification="center")
+        stamp(screen, self.temporaryText if self.selected else self.text, self.font, self.offsetX + self.width/2, self.offsetY + self.height/2, ALT_TEXT_COLOR, justification="center")
 
 class Button(Interactive):
     '''
     Class to contain buttons, which inherit an interactive, having states and fully customizable function.
     '''
-    def __init__(self, pos, width, height, states: list, font: pygame.font.Font=None):
-        super().__init__(pos, width, height)
+    def __init__(self, width, height, states: list, font: pygame.font.Font=None, name=''):
+        super().__init__(width, height, name)
 
         # button properties
         self.states = states
@@ -626,13 +630,13 @@ class Button(Interactive):
             self.render(screen)
 
     def render(self, screen: pygame.Surface):
-        pygame.draw.rect(screen, ALT_BG_COLOR_1 if self.mouseInside else ALT_BG_COLOR_4, (self.x, self.y, self.width, self.height), border_radius=3)
+        pygame.draw.rect(screen, ALT_BG_COLOR_1 if self.mouseInside else ALT_BG_COLOR_4, (self.offsetX, self.offsetY, self.width, self.height), border_radius=3)
         if isinstance(self.currentState, pygame.Surface): # if it's an image (icon)
-            loc = (self.x + self.width / 2 - self.currentState.get_width() / 2,
-                   self.y + self.height / 2 - self.currentState.get_height() / 2)
+            loc = (self.offsetX + self.width / 2 - self.currentState.get_width() / 2,
+                   self.offsetY + self.height / 2 - self.currentState.get_height() / 2)
             screen.blit(self.currentState, loc)
         else:
-            stamp(screen, self.currentState, self.font, self.x + self.width/2, self.y + self.height/2, ALT_TEXT_COLOR, justification="center")
+            stamp(screen, self.currentState, self.font, self.offsetX + self.width/2, self.offsetY + self.height/2, ALT_TEXT_COLOR, justification="center")
 
     def cycleStates(self):
         self.currentStateIdx = (self.currentStateIdx + 1) % len(self.states)
@@ -646,8 +650,8 @@ class Dropdown(Interactive):
     '''
     Class to contain dropdowns, which inherit an interactive, having states and open/closed state.
     '''
-    def __init__(self, pos, width, height, states: list, font: pygame.font.Font=None, image: pygame.Surface=None):
-        super().__init__(pos, width, height)
+    def __init__(self, width, height, states: list, font: pygame.font.Font=None, image: pygame.Surface=None, name=''):
+        super().__init__(width, height, name)
 
         # button properties
         self.initHeight = height
@@ -672,10 +676,10 @@ class Dropdown(Interactive):
         if self.expanded:
             self.height = self.initHeight * (len(self.states) + 1)
         else:
-            if ((pygame.mouse.get_pos()[1] - self.y) // self.initHeight) - 1 == -1:
+            if ((pygame.mouse.get_pos()[1] - self.offsetY) // self.initHeight) - 1 == -1:
                 self.handleClickOut() # if we select the top item (the placeholder), treat it like clicking out
             else:
-                self.setCurrentState(((pygame.mouse.get_pos()[1] - self.y) // self.initHeight) - 1)
+                self.setCurrentState(((pygame.mouse.get_pos()[1] - self.offsetY) // self.initHeight) - 1)
                 self.height = self.initHeight
                 if callable(self.onSelectCallback) : self.onSelectCallback()
                 if callable(self.onCloseCallback): self.onCloseCallback()
@@ -712,7 +716,7 @@ class Dropdown(Interactive):
             self.render(screen)
 
     def renderState(self, screen: pygame.Surface, state, yCenter):
-        stateCenterX = self.x + self.width/2 - 4
+        stateCenterX = self.offsetX + self.width/2 - 4
         if isinstance(state, pygame.Surface): # if it's an image (icon)
             loc = (stateCenterX - state.get_width() / 2,
                    yCenter - state.get_height() / 2)
@@ -722,24 +726,24 @@ class Dropdown(Interactive):
 
     def render(self, screen: pygame.Surface):
         if not self.expanded:
-            pygame.draw.rect(screen, ALT_BG_COLOR_1 if self.mouseInside else ALT_BG_COLOR_4, (self.x, self.y, self.width, self.height), border_radius=3)
-            self.renderState(screen, self.currentState, self.y + self.height/2)
+            pygame.draw.rect(screen, ALT_BG_COLOR_1 if self.mouseInside else ALT_BG_COLOR_4, (self.offsetX, self.offsetY, self.width, self.height), border_radius=3)
+            self.renderState(screen, self.currentState, self.offsetY + self.height/2)
 
-            screen.blit(self.image, (self.x + self.width - self.image.get_width() - 4, self.y + (self.height / 2) - (self.image.get_height() / 2)))
+            screen.blit(self.image, (self.offsetX + self.width - self.image.get_width() - 4, self.offsetY + (self.height / 2) - (self.image.get_height() / 2)))
         if self.expanded:
-            pygame.draw.rect(screen, ALT_BG_COLOR_4, (self.x, self.y, self.width, self.height), border_radius=3)
-            self.renderState(screen, self.currentState, self.y + self.initHeight/2)
+            pygame.draw.rect(screen, ALT_BG_COLOR_4, (self.offsetX, self.offsetY, self.width, self.height), border_radius=3)
+            self.renderState(screen, self.currentState, self.offsetY + self.initHeight/2)
 
-            screen.blit(self.image, (self.x + self.width - self.image.get_width() - 4, self.y + (self.initHeight / 2) - (self.image.get_height() / 2)))
+            screen.blit(self.image, (self.offsetX + self.width - self.image.get_width() - 4, self.offsetY + (self.initHeight / 2) - (self.image.get_height() / 2)))
         
             # dropdown bg
-            pygame.draw.rect(screen, ALT_BG_COLOR_4, (self.x, self.y + self.initHeight, self.width, self.height - self.initHeight), border_radius=3)
+            pygame.draw.rect(screen, ALT_BG_COLOR_4, (self.offsetX, self.offsetY + self.initHeight, self.width, self.height - self.initHeight), border_radius=3)
             # outline
-            pygame.draw.rect(screen, BORDER_COLOR, (self.x, self.y + self.initHeight, self.width, self.height - self.initHeight), border_radius=3, width=1)
+            pygame.draw.rect(screen, BORDER_COLOR, (self.offsetX, self.offsetY + self.initHeight, self.width, self.height - self.initHeight), border_radius=3, width=1)
             # selected item highlight
-            pygame.draw.rect(screen, ALT_BG_COLOR_1, (self.x, self.y + self.initHeight + (self.currentStateIdx * self.initHeight), self.width, self.initHeight), border_radius=3)
+            pygame.draw.rect(screen, ALT_BG_COLOR_1, (self.offsetX, self.offsetY + self.initHeight + (self.currentStateIdx * self.initHeight), self.width, self.initHeight), border_radius=3)
             for idx, state in enumerate(self.states):
-                self.renderState(screen, state, self.y + self.initHeight/2 + ((idx + 1) * self.initHeight))
+                self.renderState(screen, state, self.offsetY + self.initHeight/2 + ((idx + 1) * self.initHeight))
 
     def cycleStates(self):
         self.currentStateIdx = (self.currentStateIdx + 1) % len(self.states)
@@ -758,8 +762,8 @@ class Label(Element):
     '''
     Class to contain labels, which inherit an element, having a text and a font.
     '''
-    def __init__(self, pos, width, height, text = '', font: pygame.font.Font=None):
-        super().__init__(pos, width, height)
+    def __init__(self, width, height, text = '', font: pygame.font.Font=None, name=''):
+        super().__init__(width, height, name)
 
         # label properties
         self.text = text
@@ -780,6 +784,6 @@ class Label(Element):
     
     def render(self, screen: pygame.Surface):
         if not self.disabled:
-            pygame.draw.rect(screen, BG_COLOR, (self.x, self.y, self.width, self.height), border_radius=3)
-            stamp(screen, self.text, self.font, self.x + self.width/2, self.y + self.height/2, ALT_TEXT_COLOR, justification="center")
+            pygame.draw.rect(screen, BG_COLOR, (self.offsetX, self.offsetY, self.width, self.height), border_radius=3)
+            stamp(screen, self.text, self.font, self.offsetX + self.width/2, self.offsetY + self.height/2, ALT_TEXT_COLOR, justification="center")
             self.redraw = False
