@@ -33,6 +33,7 @@ import events
 import gui.element as gui
 import gui.frame as frame
 import gui.custom as custom
+import gui.dom as dom
 import process_command.read_write as pcrw
 import utils.state_loading as sl
 import utils.file_io as fio
@@ -41,6 +42,7 @@ import utils.sdl_resize_watch as sdl
 import sound.sound_processing as sp
 import sound.instruments as ins
 import utils.project_state as pst
+import utils.util as utils
 
 console.log("Imported Internal Modules & Connected External Libraries "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
 lastTime = time.time()
@@ -135,14 +137,40 @@ lastTime = time.time()
 
 ###### VARIABLE & GUI ELEMENT SETUP ######
 
+# initialize constants to make style setting easier (adds intellisense and allows for no quotes)
+background = "background"
+'''```type: list[int, int, int, int] # The RGBA background color of the Panel. \ndefault: gui.COLOR_TRANSPARENT'''
+border = "border"
+'''```type: int | list[int, int, int, int] # The thickness of the border around the Panel. \ndefault: 0'''
+borderColor = "border-color"
+'''```type: list[int, int, int, int] # The color of the border around the Panel. \ndefault: gui.COLOR_BORDER'''
+rounding = "rounding"
+'''```type: "sm" | "lg" | int | list[int, int, int, int] # The size of rounding on the corners of the Panel. \ndefault: 0'''
+display = "display"
+'''```type: "flex" | "absolute" | "fixed" # Whether to make the object anchor relative to the DOM, to its parent, or to the screen. \ndefault: "flex"'''
+offset = "offset"
+'''```type: list[int, int] # The offset of the object relative to its anchor. \ndefault: [0, 0]'''
+orient = "orient"
+'''```type: "row" | "col" # The direction to make the children of the panel flow. \ndefault: "row"'''
+align = "align"
+'''```type: "center" | "top" | "bottom" | "spread" # The layout of the children vertically. \ndefault: "top"'''
+justify = "justify"
+'''```type: "center" | "left" | "right" | "spread" # The layout of the children horizontally. \ndefault: "left"'''
+sizing = "sizing"
+'''```type: list["fit" | "fill" | int, "fit" | "fill" | int] # Decides how to occupy the provided space. \ndefault: "fit"'''
+padding = "padding"
+'''```type: int | list[int, int, int, int] # The additional space internal to the Panel. \ndefault: 0'''
+gap = "gap"
+'''```type: int # The space between children of the Panel. \ndefault: 0'''
+
 fps = 60
 
-worldMessage = ""
+WorldMessage = utils.LightWatchable('')
 questions_url = "https://docs.nimbial.com/symphony/4"
 
 key = 'Eb'
 mode = 'Lydian'
-tempo = 360
+Tempo = utils.LightWatchable(360)
 
 play_obj = None # global to hold the last Channel/Sound so it doesn't get garbage-collected
 
@@ -208,10 +236,8 @@ head = False
 playing = False
 brushType = "brush"
 
-beatLength = 4
-beatsPerMeasure = 4
-
-tempo = 360
+BeatLength = utils.LightWatchable(4)
+BeatsPerMeasure = utils.LightWatchable(4)
 
 mainFont = f'{source_path}/assets/InterVariable.ttf'
 gui.init(source_path)
@@ -238,100 +264,143 @@ PlayPauseButton = gui.Button(width=28, height=28, states=[playImage, pauseImage]
 AccidentalsButton = gui.Button(width=28, height=28, states=[flatsImage, sharpsImage], name='AccidentalsButton')
 PlayheadButton = gui.Button(width=28, height=28, states=[headImage, headAltImage], name='PlayheadButton')
 BrushButton = gui.Button(width=28, height=28, states=[brushImage, eraserImage, selectImage], name='BrushButton')
+ControlButtons = frame.Panel(
+    [PlayPauseButton, AccidentalsButton, PlayheadButton, BrushButton],
+    style={
+        background : gui.COLOR_BORDER,
+        rounding : 3,
+        gap : 1,
+        padding: 1,
+    },
+    name="ControlButtons"
+)
 
 BeatLengthDownButton = gui.Button(width=20, height=28, states=[downChevronImage], name='BeatLengthDownButton')
-BeatLengthTextBox = gui.TextBox(width=30, height=28, text='4', name='BeatLengthTextBox')
+BeatLengthTextBox = gui.TextBox(width=90, height=28, suffix='tiles', name='BeatLengthTextBox')
+BeatLengthTextBox.linkToValue(BeatLength)
 BeatLengthUpButton = gui.Button(width=20, height=28, states=[upChevronImage], name='BeatLengthUpButton')
 BeatLengthControls = frame.Panel(
     [BeatLengthDownButton, BeatLengthTextBox, BeatLengthUpButton],
     style={
-        "background" : gui.BORDER_COLOR,
-        "gap" : 1,
-        "border" : 1,
+        background : gui.COLOR_BORDER,
+        rounding : 3,
+        gap : 1,
+        padding: 1,
     },
     name="BeatLengthControls"
 )
 
 BeatsPerMeasureUpButton = gui.Button(width=20, height=28, states=[upChevronImage], name='BeatsPerMeasureUpButton')
-BeatsPerMeasureTextBox = gui.TextBox(width=30, height=28, text='4', name='BeatsPerMeasureTextBox')
+BeatsPerMeasureTextBox = gui.TextBox(width=90, height=28, suffix='beats', name='BeatsPerMeasureTextBox')
+BeatsPerMeasureTextBox.linkToValue(BeatsPerMeasure)
 BeatsPerMeasureDownButton = gui.Button(width=20, height=28, states=[downChevronImage], name='BeatsPerMeasureDownButton')
 BeatsPerMeasureControls = frame.Panel(
     [BeatsPerMeasureDownButton, BeatsPerMeasureTextBox, BeatsPerMeasureUpButton],
     style={
-        "background" : gui.BORDER_COLOR,
-        "gap" : 1,
-        "border" : 1,
+        background : gui.COLOR_BORDER,
+        rounding : 3,
+        gap : 1,
+        padding: 1,
     },
     name="BeatsPerMeasureControls"
 )
 
 LeftToolbar = frame.Panel(
-    elements=[PlayPauseButton, PlayheadButton, AccidentalsButton, BrushButton, BeatLengthControls, BeatsPerMeasureControls],
+    elements=[ControlButtons, BeatLengthControls, BeatsPerMeasureControls],
     style={
-        "gap" : 24,
+        gap : 24,
     },
     name="LeftToolbar"
 )
 
 TempoDownButton = gui.Button(width=20, height=28, states=[downChevronImage], name='TempoDownButton')
-TempoTextBox = gui.TextBox(width=105, height=28, text='360', name='TempoTextBox')
+TempoTextBox = gui.TextBox(width=120, height=28, suffix='tiles/min', name='TempoTextBox')
+TempoTextBox.linkToValue(Tempo)
 TempoUpButton = gui.Button(width=20, height=28, states=[upChevronImage], name='TempoUpButton')
 TempoControls = frame.Panel(
     elements=[TempoDownButton, TempoTextBox, TempoUpButton],
     style={
-        "background" : gui.BORDER_COLOR,
-        "gap" : 1,
-        "border" : 1,
+        background : gui.COLOR_BORDER,
+        rounding : 3,
+        gap : 1,
+        padding: 1,
     },
     name="TempoControls"
 )
 
 ColorButton = gui.Button(width=28, height=28, states=custom.getColorStates(28, 28, source_path), name='ColorButton')
 WaveDropdown = gui.Dropdown(width=64, height=28, states=instrumentImages, image=upDownChevronImage, name='WaveDropdown')
+WaveControls = frame.Panel(
+    [ColorButton, WaveDropdown],
+    style={
+        background : gui.COLOR_BORDER,
+        rounding : 3,
+        gap : 1,
+        padding: 1,
+    },
+    name="WaveControls"
+)
+
 KeyDropdown = gui.Dropdown(width=60, height=28, states=NOTES_FLAT, image=upDownChevronImage, name='KeyDropdown')
 ModeDropdown = gui.Dropdown(width=140, height=28, states=modes, image=upDownChevronImage, name='ModeDropdown')
+KeySignatureControls = frame.Panel(
+    [KeyDropdown, ModeDropdown],
+    style={
+        background : gui.COLOR_BORDER,
+        rounding : 3,
+        gap : 1,
+        padding: 1, 
+    },
+    name="KeySignatureControls"
+)
+
 QuestionButton = gui.Button(width=28, height=28, states=[questionImage], name='QuestionButton')
+QuestionButtonPanel = frame.Panel(
+    [QuestionButton],
+    style={
+        background : gui.COLOR_BORDER,
+        rounding : 3,
+        gap : 1,
+        padding: 1, 
+    },
+    name="QuestionButtonPanel"
+)
 
 RightToolbar = frame.Panel(
-    [KeyDropdown, ModeDropdown, WaveDropdown, ColorButton, QuestionButton],
+    [TempoControls, WaveControls, KeySignatureControls, QuestionButtonPanel],
     style={
-        "gap" : 24,
+        gap : 24,
     },
     name="RightToolbar"
 )
 
-WorldMessage = gui.Label(width=width, height=20, text=worldMessage, name='WorldMessage')
+WorldMessageLabel = gui.Label(width=width, height=20, text=WorldMessage, name='WorldMessage')
 MessagePanel = frame.Panel(
-    [WorldMessage],
+    [WorldMessageLabel],
     style={
-        "display" : "fixed"
+        display : "fixed"
     },
     name="MessagePanel"
 )
 
 ToolBar = frame.Panel(
-    [LeftToolbar, RightToolbar, WorldMessage],
+    [LeftToolbar, RightToolbar, MessagePanel],
     style={
-        "background" : gui.BG_COLOR,
-        "display" : "fixed",
-        "offset" : [0, 0],
-        "align" : "center",
-        "justify" : "spread",
-        "sizing" : ("fill", 80),
-        "border" : (0, 0, 1, 0),
+        background : gui.COLOR_BG,
+        border : (0, 0, 1, 0),
+        borderColor : (255, 0, 0, 0),
+        display : "fixed",
+        offset : [0, 0],
+        align : "center",
+        justify : "spread",
+        sizing : ["fill", 80],
+        padding : 26
     },
     name="ToolBar"
 )
 
-# def toolBarGraphics(screen):
-#     pygame.draw.rect(screen, gui.BG_COLOR, (0, 0, width, 80))
-#     pygame.draw.line(screen, gui.BORDER_COLOR, (0, 79), (width, 79), 1)
-
-# ToolBar.onSelfRender(toolBarGraphics)
-
-NoteGrid = custom.NoteGrid(width=width, height=height, name='NoteGrid')
-
 PitchList = custom.PitchList(width=80, height=height-80, notes=NOTES_FLAT, name='PitchList')
+NoteGrid = custom.NoteGrid(width=width-80, height=height-80, name='NoteGrid')
 PlayHead = custom.PlayHead()
 
 def bumpRight():
@@ -342,7 +411,8 @@ PlayHead.onExitView(bumpRight)
 NotePanel = frame.Panel(
     elements=[NoteGrid, PlayHead],
     style={
-        "background" : gui.BG_COLOR,
+        background : gui.COLOR_BG,
+        sizing: ['fill', 'fill']
     },
     name="NotePanel"
 )
@@ -350,7 +420,8 @@ PlayHead.setLinkedPanel(NotePanel)
 PitchPanel = frame.Panel(
     elements=[PitchList],
     style={
-        "background" : gui.BG_COLOR,
+        background : gui.COLOR_BG,
+        sizing: [80, 'fill']
     },
     name="PitchPanel"
 )
@@ -359,7 +430,10 @@ NoteGrid.setLinkedPanels(NotePanel, PitchPanel)
 PitchList.setLinkedPanels(PitchPanel)
 
 GridPanel = frame.Panel(
-    [NotePanel, PitchPanel],
+    [PitchPanel, NotePanel],
+    style={
+        sizing: ['fill', 'fill']
+    },
     name="GridPanel"
 )
 NoteGrid.setNoteMap(noteMap)
@@ -368,14 +442,19 @@ NoteGrid.setColorNames(justColorNames)
 MasterPanel = frame.Panel(
     [GridPanel, ToolBar],
     style={
-        "background" : gui.BG_COLOR,
+        background : gui.COLOR_BG,
+        sizing: ["fill", "fill"],
+        padding: [80, 0, 0, 0]
     },
     name="MasterPanel"
 )
 
+dom.init(MasterPanel)
+
 MasterPanel.visualizeHierarchy()
 MasterPanel.calculateDimensions([width, height])
 MasterPanel.relativeToScreenSpace([0, 0])
+dom.setZOrderRecursively(MasterPanel)
 
 NoteGrid.setModeKey(key = NOTES_SHARP.index(key) if ('#' in key) else NOTES_FLAT.index(key),
                     mode = modesMap[mode])
@@ -387,56 +466,56 @@ lastTime = time.time()
 
 ###### GUI LOGIC ######
 
-PlayPauseButton.onMouseEnter(lambda: (WorldMessage.setText("Control playback"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
-PlayPauseButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
-AccidentalsButton.onMouseEnter(lambda: (WorldMessage.setText("Toggle between sharps and flats"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
-AccidentalsButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
-PlayheadButton.onMouseEnter(lambda: (WorldMessage.setText("Set where to play from"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
-PlayheadButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
-BrushButton.onMouseEnter(lambda: (WorldMessage.setText("Toggle brush type"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
-BrushButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
+# PlayPauseButton.onMouseEnter(lambda: (WorldMessage.setText("Control playback"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
+# PlayPauseButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
+# AccidentalsButton.onMouseEnter(lambda: (WorldMessage.setText("Toggle between sharps and flats"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
+# AccidentalsButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
+# PlayheadButton.onMouseEnter(lambda: (WorldMessage.setText("Set where to play from"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
+# PlayheadButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
+# BrushButton.onMouseEnter(lambda: (WorldMessage.setText("Toggle brush type"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
+# BrushButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
 
-TempoDownButton.onMouseEnter(lambda: (WorldMessage.setText("Decrease tempo"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
-TempoDownButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
-TempoUpButton.onMouseEnter(lambda: (WorldMessage.setText("Increase tempo"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
-TempoUpButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
-BeatLengthDownButton.onMouseEnter(lambda: (WorldMessage.setText("Decrease beat length (in tiles)"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
-BeatLengthDownButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
-BeatLengthUpButton.onMouseEnter(lambda: (WorldMessage.setText("Increase beat length (in tiles)"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
-BeatLengthUpButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
-BeatsPerMeasureDownButton.onMouseEnter(lambda: (WorldMessage.setText("Decrease # of beats per measure"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
-BeatsPerMeasureDownButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
-BeatsPerMeasureUpButton.onMouseEnter(lambda: (WorldMessage.setText("Increase # of beats per measure"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
-BeatsPerMeasureUpButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
+# TempoDownButton.onMouseEnter(lambda: (WorldMessage.setText("Decrease Tempo.value"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
+# TempoDownButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
+# TempoUpButton.onMouseEnter(lambda: (WorldMessage.setText("Increase Tempo.value"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
+# TempoUpButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
+# BeatLengthDownButton.onMouseEnter(lambda: (WorldMessage.setText("Decrease beat length (in tiles)"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
+# BeatLengthDownButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
+# BeatLengthUpButton.onMouseEnter(lambda: (WorldMessage.setText("Increase beat length (in tiles)"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
+# BeatLengthUpButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
+# BeatsPerMeasureDownButton.onMouseEnter(lambda: (WorldMessage.setText("Decrease # of beats per measure"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
+# BeatsPerMeasureDownButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
+# BeatsPerMeasureUpButton.onMouseEnter(lambda: (WorldMessage.setText("Increase # of beats per measure"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
+# BeatsPerMeasureUpButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
 
-QuestionButton.onMouseEnter(lambda: (WorldMessage.setText("Open Symphony Help"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
-QuestionButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
+# QuestionButton.onMouseEnter(lambda: (WorldMessage.setText("Open Symphony Help"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
+# QuestionButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
 
-ModeDropdown.onMouseEnter(lambda: (WorldMessage.setText("Change musical mode"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
-ModeDropdown.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
-KeyDropdown.onMouseEnter(lambda: (WorldMessage.setText("Change key"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
-KeyDropdown.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
-WaveDropdown.onMouseEnter(lambda: (WorldMessage.setText("Change the sound of this channel"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
-WaveDropdown.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
-ColorButton.onMouseEnter(lambda: (WorldMessage.setText("Cycle color channel"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
-ColorButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
+# ModeDropdown.onMouseEnter(lambda: (WorldMessage.setText("Change musical mode"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
+# ModeDropdown.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
+# KeyDropdown.onMouseEnter(lambda: (WorldMessage.setText("Change key"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
+# KeyDropdown.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
+# WaveDropdown.onMouseEnter(lambda: (WorldMessage.setText("Change the sound of this channel"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
+# WaveDropdown.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
+# ColorButton.onMouseEnter(lambda: (WorldMessage.setText("Cycle color channel"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
+# ColorButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
 
 # Key, Mode
 KeyDropdown.setCurrentState(keyIndex)
 ModeDropdown.setCurrentState(modes.index(mode))
 
 def playPauseToggle():
-    global playing, play_obj, tempo
+    global playing, play_obj, Tempo
     playing = not playing
     PlayPauseButton.cycleStates()
-    PlayPauseButton.render(screen)
+    PlayPauseButton.render(screen, 'screen')
     if playing:
-        play_obj = sp.playFull(noteMap, instrumentMap, PlayHead.time, tempo, volume=0.3,
+        play_obj = sp.playFull(noteMap, instrumentMap, PlayHead.time, Tempo.value, volume=0.3,
                                channel='all' if ColorButton.currentStateIdx == 6 else ColorButton.currentStateIdx)
-        PlayHead.play(tempo)
+        PlayHead.play(Tempo.value)
     else:
         PlayHead.stop()
-        NotePanel.render(screen)
+        NotePanel.render(screen, 'screen')
         try: play_obj.stop()
         except: None
 
@@ -449,120 +528,79 @@ def headToggle():
 
 PlayheadButton.onMouseClick(headToggle)
 
-# Tempo, BeatsPerMeasure Restrictions
+# Tempo, BeatsPerMeasure, BeatLength Restrictions
 TempoTextBox.setInputRestrictions('numeric')
-TempoTextBox.setStateRestrictions(lambda x : (len(x) > 0 and int(x) != 0))
-TempoTextBox.setText(TempoTextBox.getText() + ' tpm')
-
-def addTpmToEnd():
-    if not (len(TempoTextBox.getText()) > 4 and TempoTextBox.getText()[-4:] == ' tpm'):
-        TempoTextBox.setText(TempoTextBox.getText() + ' tpm')
-def removeTpmFromEnd():
-    if len(TempoTextBox.getText()) > 4 and TempoTextBox.getText()[-4:] == ' tpm':
-        TempoTextBox.setText(TempoTextBox.getText()[:-4])
-TempoTextBox.onFocus(removeTpmFromEnd)
-TempoTextBox.onBlurFocus(addTpmToEnd)
+TempoTextBox.setStateRestrictions(lambda x : (len(x) > 0 and int(x) != 0 and int(x) > 9))
 
 BeatsPerMeasureTextBox.setInputRestrictions('numeric')
 BeatsPerMeasureTextBox.setStateRestrictions(lambda x : (len(x) > 0 and int(x) > 0))
 
+BeatLengthTextBox.setInputRestrictions('numeric')
+BeatLengthTextBox.setStateRestrictions(lambda x : (len(x) > 0 and int(x) > 0))
+
 # Tempo Controls
-def tempoSync():
-    global tempo
-    oldTempo = tempo
-    tempo = int(TempoTextBox.getText().replace(' tpm', ''))
-    tempo = max(10, tempo)
-    TempoTextBox.setText(str(tempo) + ' tpm')
-
-    TempoControls.render(screen)
-    if tempo != oldTempo:
-        psm.pushEditorSnapshotTransaction("CHANGE_TEMPO", "Change tempo")
-
 def tempoUp():
-    global tempo
-    tempo += 1
-    TempoTextBox.setText(str(tempo) + ' tpm')
-    tempoSync()
+    global Tempo
+    Tempo.value += 1
+    psm.pushEditorSnapshotTransaction("CHANGE_TEMPO", "Change Tempo.value")
 
 def tempoDown():
-    global tempo
-    tempo = max(10, tempo - 1)
-    TempoTextBox.setText(str(tempo) + ' tpm')
-    tempoSync()
+    global Tempo
+    Tempo.value = max(10, Tempo.value - 1)
+    psm.pushEditorSnapshotTransaction("CHANGE_TEMPO", "Change Tempo.value")
 
+TempoTextBox.watch([Tempo])
 TempoUpButton.onMouseClick(tempoUp)
 TempoDownButton.onMouseClick(tempoDown)
-TempoTextBox.onBlurFocus(tempoSync)
 
 # Beats Per Measure Controls
-def beatsPerMeasureSync():
-    global beatsPerMeasure
-    oldBeatsPerMeasure = beatsPerMeasure
-    beatsPerMeasure = int(BeatsPerMeasureTextBox.getText())
-    BeatsPerMeasureControls.render(screen)
-    if NoteGrid.beatsPerMeasure != beatsPerMeasure:
-        NoteGrid.setIntervals(beatLength, beatsPerMeasure)
-        NotePanel.render(screen)
-    if beatsPerMeasure != oldBeatsPerMeasure:
-        psm.pushEditorSnapshotTransaction("CHANGE_BEATS_PER_MEASURE", "Change beats per measure")
-
 def beatsPerMeasureUp():
-    global beatsPerMeasure
-    beatsPerMeasure += 1
-    BeatsPerMeasureTextBox.setText(beatsPerMeasure)
-    beatsPerMeasureSync()
+    global BeatsPerMeasure
+    BeatsPerMeasure.value += 1
+    psm.pushEditorSnapshotTransaction("CHANGE_BEATS_PER_MEASURE", "Change beats per measure")
 
 def beatsPerMeasureDown():
-    global beatsPerMeasure
-    beatsPerMeasure = max(1, beatsPerMeasure - 1)
-    BeatsPerMeasureTextBox.setText(beatsPerMeasure)
-    beatsPerMeasureSync()
+    global BeatsPerMeasure
+    BeatsPerMeasure.value = max(1, BeatsPerMeasure.value - 1)
+    psm.pushEditorSnapshotTransaction("CHANGE_BEATS_PER_MEASURE", "Change beats per measure")
 
 BeatsPerMeasureUpButton.onMouseClick(beatsPerMeasureUp)
 BeatsPerMeasureDownButton.onMouseClick(beatsPerMeasureDown)
-BeatsPerMeasureTextBox.onBlurFocus(beatsPerMeasureSync)
 
 # Beat Length Controls
-def beatLengthSync():
-    global beatLength
-    oldBeatLength = beatLength
-    beatLength = int(BeatLengthTextBox.getText())
-    BeatLengthControls.render(screen)
-    if NoteGrid.beatLength != beatLength:
-        NoteGrid.setIntervals(beatLength, beatsPerMeasure)
-        NotePanel.render(screen)
-    if beatLength != oldBeatLength:
-        psm.pushEditorSnapshotTransaction("CHANGE_BEAT_LENGTH", "Change beat length")
-
 def beatLengthUp():
-    global beatLength
-    beatLength += 1
-    BeatLengthTextBox.setText(beatLength)
-    beatLengthSync()
+    global BeatLength
+    BeatLength.value += 1
+    psm.pushEditorSnapshotTransaction("CHANGE_BEAT_LENGTH", "Change beat length")
 
 def beatLengthDown():
-    global beatLength
-    beatLength = max(1, beatLength - 1)
-    BeatLengthTextBox.setText(beatLength)
-    beatLengthSync()
+    global BeatLength
+    BeatLength.value = max(1, BeatLength.value - 1)
+    psm.pushEditorSnapshotTransaction("CHANGE_BEAT_LENGTH", "Change beat length")
 
 BeatLengthUpButton.onMouseClick(beatLengthUp)
 BeatLengthDownButton.onMouseClick(beatLengthDown)
-BeatLengthTextBox.onBlurFocus(beatLengthSync)
 
+def setNoteGridIntervals():
+    NoteGrid.setIntervals(BeatLength.value, BeatsPerMeasure.value)
+
+NoteGrid.watch([BeatsPerMeasure, BeatLength])
+NoteGrid.onDepChange(setNoteGridIntervals)
+
+# Accidentals Controls
 def toggleAccidentals():
     AccidentalsButton.cycleStates()
-    AccidentalsButton.render(screen)
+    AccidentalsButton.render(screen, 'screen')
     PitchList.setNotes(NOTES_FLAT if (AccidentalsButton.currentStateIdx == 0) else NOTES_SHARP)
-    PitchPanel.render(screen)
+    PitchPanel.render(screen, 'screen')
     if AccidentalsButton.currentStateIdx == 0: # changed to flats
         KeyDropdown.states = NOTES_FLAT
         KeyDropdown.setCurrentState(keyIndex)
-        KeyDropdown.render(screen)
+        KeyDropdown.render(screen, 'screen')
     else:
         KeyDropdown.states = NOTES_SHARP
         KeyDropdown.setCurrentState(keyIndex)
-        KeyDropdown.render(screen)
+        KeyDropdown.render(screen, 'screen')
 AccidentalsButton.onMouseClick(toggleAccidentals)
 
 def finalizeKey():
@@ -580,9 +618,9 @@ def finalizeMode():
     psm.pushEditorSnapshotTransaction("CHANGE_MODE", "Change mode")
 
 KeyDropdown.onSelect(finalizeKey)
-KeyDropdown.onClose(lambda: MasterPanel.render(screen))
+KeyDropdown.onClose(lambda: MasterPanel.render(screen, 'screen'))
 ModeDropdown.onSelect(finalizeMode)
-ModeDropdown.onClose(lambda: MasterPanel.render(screen))
+ModeDropdown.onClose(lambda: MasterPanel.render(screen, 'screen'))
 
 def finalizeWave():
     global instrumentMap
@@ -598,7 +636,7 @@ def colorSync():
         if WaveDropdown.expanded:
             WaveDropdown.handleClickOut()
 
-    ToolBar.render(screen)
+    ToolBar.render(screen, 'screen')
     NoteGrid.color = ColorButton.currentStateIdx
     
     # Clear selections when switching to universal view (channel 6)
@@ -607,7 +645,7 @@ def colorSync():
             # console.log(notes)
             clearSelection(notes)
     
-    NotePanel.render(screen)
+    NotePanel.render(screen, 'screen')
 
 def cycleColor():
     oldColor = ColorButton.currentStateIdx
@@ -617,7 +655,7 @@ def cycleColor():
         psm.pushEditorSnapshotTransaction("CHANGE_COLOR", "Change color channel")
 
 WaveDropdown.onSelect(finalizeWave)
-WaveDropdown.onClose(lambda: MasterPanel.render(screen))
+WaveDropdown.onClose(lambda: MasterPanel.render(screen, 'screen'))
 ColorButton.onMouseClick(cycleColor)
 QuestionButton.onMouseClick(lambda: webbrowser.open(questions_url))
 
@@ -690,9 +728,9 @@ def snapshotEditorState():
     return {
         "noteMap"         : pst.snapshotNoteMapState(noteMap),
         "waveMap"         : copy.deepcopy(instrumentMap),
-        "tempo"           : int(tempo),
-        "beatLength"      : int(beatLength),
-        "beatsPerMeasure" : int(beatsPerMeasure),
+        "Tempo.value"           : int(Tempo.value),
+        "beatLength"      : int(BeatLength.value),
+        "beatsPerMeasure" : int(BeatsPerMeasure.value),
         "key"             : str(KeyDropdown.currentState),
         "mode"            : str(ModeDropdown.currentState),
         "accidentals"     : "flats" if AccidentalsButton.currentStateIdx == 0 else "sharps",
@@ -739,16 +777,16 @@ def applyEditorStateToRuntime(stateSnapshot):
 
     Applies a replayed snapshot to live runtime globals and UI controls.
     '''
-    global noteMap, instrumentMap, tempo, beatLength, beatsPerMeasure, key, mode
+    global noteMap, instrumentMap, Tempo, BeatLength, BeatsPerMeasure, key, mode
     global suspendTransactionCapture
 
     suspendTransactionCapture = True
     try:
         applyNoteMapSnapshot(noteMap, stateSnapshot.get("noteMap", {}))
         instrumentMap = copy.deepcopy(stateSnapshot.get("waveMap", instrumentMap))
-        tempo = int(stateSnapshot.get("tempo", tempo))
-        beatLength = int(stateSnapshot.get("beatLength", beatLength))
-        beatsPerMeasure = int(stateSnapshot.get("beatsPerMeasure", beatsPerMeasure))
+        Tempo.value = int(stateSnapshot.get("Tempo.value", Tempo.value))
+        BeatLength.value = int(stateSnapshot.get("beatLength", BeatLength.value))
+        BeatsPerMeasure.value = int(stateSnapshot.get("beatsPerMeasure", BeatsPerMeasure.value))
         key = stateSnapshot.get("key", key)
         mode = stateSnapshot.get("mode", mode)
 
@@ -770,11 +808,7 @@ def applyEditorStateToRuntime(stateSnapshot):
         WaveDropdown.setCurrentState(int(stateSnapshot.get("waveIndex", WaveDropdown.currentStateIdx)))
         NoteGrid.color = ColorButton.currentStateIdx
 
-        TempoTextBox.setText(str(tempo) + " tpm")
-        BeatLengthTextBox.setText(str(beatLength))
-        BeatsPerMeasureTextBox.setText(str(beatsPerMeasure))
-
-        NoteGrid.setIntervals(beatLength, beatsPerMeasure)
+        NoteGrid.setIntervals(BeatLength.value, BeatsPerMeasure.value)
         NoteGrid.setModeKey(
             key=NOTES_SHARP.index(key) if ("#" in key) else NOTES_FLAT.index(key),
             mode=modesMap[mode]
@@ -786,7 +820,7 @@ def applyEditorStateToRuntime(stateSnapshot):
         PitchList.setWave(WaveDropdown.currentStateIdx)
         colorSync()
         preprocess()
-        MasterPanel.render(screen)
+        MasterPanel.render(screen, 'screen')
     finally:
         suspendTransactionCapture = False
 
@@ -853,8 +887,8 @@ def handleClick():
             #console.log("click was on wave dropdown, we don't care")
             return
 
-    mouseTime, mousePitch = custom.convertWorldToGrid(pygame.mouse.get_pos())
-    mouseTimeExact, _mousePitch = custom.convertWorldToGrid(pygame.mouse.get_pos(), timeInt=False)
+    mouseTime, mousePitch = custom.convertWorldToGrid(pygame.mouse.get_pos(), rect=pygame.Rect(NoteGrid.x, NoteGrid.y, NoteGrid.width, NoteGrid.height))
+    mouseTimeExact, _mousePitch = custom.convertWorldToGrid(pygame.mouse.get_pos(), timeInt=False, rect=pygame.Rect(NoteGrid.x, NoteGrid.y, NoteGrid.width, NoteGrid.height))
 
     drawStartPos = (mouseTime, mousePitch)
     if mouseTime is None:
@@ -864,8 +898,8 @@ def handleClick():
         PlayHead.setHome(mouseTime)
         # console.log(f"home: {mouseTime}")
         PlayheadButton.setCurrentState(0)
-        PlayheadButton.render(screen)
-        NotePanel.render(screen)
+        PlayheadButton.render(screen, 'screen')
+        NotePanel.render(screen, 'screen')
         return
     if ColorButton.currentStateIdx == 6:
         return
@@ -946,16 +980,16 @@ def handleClick():
 
         selectingAnything = False
         draggingSelection = False
-        selectionStartPos = pygame.mouse.get_pos()
+        selectionStartPos = [pygame.mouse.get_pos()[0] - NoteGrid.x, pygame.mouse.get_pos()[1] - NoteGrid.y]
 
-    NotePanel.render(screen)
+    NotePanel.render(screen, 'screen')
 
 def handleDrag(xy):
     global selectingAnything, draggingSelection, drawStartPos, extendingNote, activeBrushNote
-    if pygame.mouse.get_pos()[1] < 80:
+    if not pygame.Rect(NoteGrid.x, NoteGrid.y, NoteGrid.width, NoteGrid.height).collidepoint(pygame.mouse.get_pos()):
         return
 
-    mouseTime, mousePitch = custom.convertWorldToGrid(pygame.mouse.get_pos())
+    mouseTime, mousePitch = custom.convertWorldToGrid(pygame.mouse.get_pos(), rect=pygame.Rect(NoteGrid.x, NoteGrid.y, NoteGrid.width, NoteGrid.height))
     if mouseTime is None or ColorButton.currentStateIdx == 6:
         return
 
@@ -1001,24 +1035,24 @@ def handleDrag(xy):
         else:
             # SELECTION BOX
             x0, y0 = selectionStartPos
-            x1, y1 = pygame.mouse.get_pos()
+            x1, y1 = [pygame.mouse.get_pos()[0] - NoteGrid.x, pygame.mouse.get_pos()[1] - NoteGrid.y]
 
-            rect = pygame.Rect(
+            selectionRect = pygame.Rect(
                 min(x0, x1),
                 min(y0, y1),
                 abs(x1 - x0),
                 abs(y1 - y0)
             )
-            NoteGrid.setSelection(rect)
+            NoteGrid.setSelection(selectionRect)
 
             for note in notes:
                 note_x, note_y = custom.convertGridToWorld(note.time, note.pitch)
                 note_rect = pygame.Rect(note_x, note_y, note.duration * custom.tileWidth, custom.tileHeight)
 
-                if rect.colliderect(note_rect): note.select()
+                if selectionRect.colliderect(note_rect): note.select()
                 elif not pygame.key.get_pressed()[pygame.K_LSHIFT]: note.unselect()
 
-    NotePanel.render(screen)
+    NotePanel.render(screen, 'screen')
 
 def handleUnDrag():
     '''
@@ -1028,7 +1062,7 @@ def handleUnDrag():
     Finalizes drag interactions, commits transaction state, and restores normal cursor/render state.
     '''
     global activeBrushNote
-    if pygame.mouse.get_pos()[1] < 80:
+    if not pygame.Rect(NoteGrid.x, NoteGrid.y, NoteGrid.width, NoteGrid.height).collidepoint(pygame.mouse.get_pos()):
         activeBrushNote = None
         return
 
@@ -1037,11 +1071,11 @@ def handleUnDrag():
     preprocess()
     activeBrushNote = None
     pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
-    NotePanel.render(screen)
+    NotePanel.render(screen, 'screen')
 
 def handleUnClick():
     global activeBrushNote
-    if pygame.mouse.get_pos()[1] < 80:
+    if not pygame.Rect(NoteGrid.x, NoteGrid.y, NoteGrid.width, NoteGrid.height).collidepoint(pygame.mouse.get_pos()):
         activeBrushNote = None
         return
     psm.finalizeInteractionTransaction()
@@ -1049,7 +1083,7 @@ def handleUnClick():
     preprocess()
     activeBrushNote = None
     pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
-    NotePanel.render(screen)
+    NotePanel.render(screen, 'screen')
 
 NoteGrid.onMouseClick(handleClick)
 NoteGrid.onMouseDrag(handleDrag)
@@ -1101,8 +1135,10 @@ def handleResize(new_w, new_h, full=True):
         return
 
     NoteGrid.viewBounds()
+    MasterPanel.calculateDimensions([width, height])
+    MasterPanel.relativeToScreenSpace([0, 0])
 
-    MasterPanel.render(screen)
+    MasterPanel.render(screen, 'screen')
     _lastFullFrame = screen.copy()
     pygame.display.flip()
 
@@ -1130,14 +1166,14 @@ while run:
             autoSave = False if settings['disable_auto_save'] else directory["Symphony Auto-Save"][0]["Auto-Save"]
             showButtonTooltips = settings['show_button_tooltips']
 
-            WorldMessage.setDisabled(not showButtonTooltips)
+            WorldMessageLabel.setDisabled(not showButtonTooltips)
             console.log(ps)
 
             noteMap : dict[str: list] = ps["noteMap"]
             instrumentMap = ps["waveMap"]
             key = ps["key"]
-            beatLength = ps['beatLength']
-            beatsPerMeasure = ps['beatsPerMeasure']
+            BeatLength.value = ps['beatLength']
+            BeatsPerMeasure.value = ps['beatsPerMeasure']
             if "#" in key:
                 accidentals = "sharps"
                 KeyDropdown.states = NOTES_SHARP
@@ -1153,7 +1189,7 @@ while run:
             except ValueError:
                 keyIndex = 0
             mode = ps["mode"]
-            tempo = ps["tpm"]
+            Tempo.value = ps["tpm"]
             projectMeta = copy.deepcopy(ps["meta"])
 
             NoteGrid.setModeKey(key = NOTES_SHARP.index(key) if ('#' in key) else NOTES_FLAT.index(key),
@@ -1162,10 +1198,7 @@ while run:
                         mode = modesMap[mode])
             KeyDropdown.setCurrentState(keyIndex)
             ModeDropdown.setCurrentState(modes.index(mode))
-            TempoTextBox.setText(str(tempo) + ' tpm')
-            BeatLengthTextBox.setText(str(beatLength))
-            BeatsPerMeasureTextBox.setText(str(beatsPerMeasure))
-            NoteGrid.setIntervals(beatLength, beatsPerMeasure)
+            NoteGrid.setIntervals(BeatLength.value, BeatsPerMeasure.value)
             
             # Initialize view position and color channel when opening GUI
             custom.viewRow = 50
@@ -1201,12 +1234,12 @@ while run:
                 screen = pygame.display.set_mode((width, height), pygame.RESIZABLE | pygame.SHOWN)
 
             sdl.install_live_resize_watch(handleResize)
-            if not sdl.set_minimum_window_size(minWidth, minHeight):
-                console.warn("Could not set native minimum window size")
+            # if not sdl.set_minimum_window_size(minWidth, minHeight):
+            #     console.warn("Could not set native minimum window size")
 
             colorSync()
             PlayHead.setHome(0)
-            MasterPanel.render(screen)
+            MasterPanel.render(screen, 'screen')
             _lastFullFrame = screen.copy()
             psm.resetTransactionHistory()
             pygame.event.pump()
@@ -1221,10 +1254,10 @@ while run:
             if saveFrame > 1200: # Saves every 20 seconds
                 saveFrame = 0
                 working_file_path
-                worldMessage = fio.dumpToFile(
+                WorldMessage.value = fio.dumpToFile(
                                         workingFile  = working_file_path,
                                         destFile     = working_file_path,
-                                        programState = sl.newProgramState(key, mode, tempo, noteMap, instrumentMap, beatLength, beatsPerMeasure, meta=projectMeta),
+                                        programState = sl.newProgramState(key, mode, Tempo.value, noteMap, instrumentMap, BeatLength.value, BeatsPerMeasure.value, meta=projectMeta),
                                         autoSave     = autoSave,
                                         titleText    = title_text,
                                         sessionID    = sessionID)
@@ -1282,7 +1315,7 @@ while run:
                             elif event.key == pygame.K_EQUALS:
                                 zoomIndex = min(zoomIndex + 1, len(zoomDimensions) - 1)
                             custom.tileWidth, custom.tileHeight = zoomDimensions[zoomIndex]
-                            GridPanel.render(screen)
+                            GridPanel.render(screen, 'screen')
                     if event.key == pygame.K_BACKSPACE or event.key == pygame.K_DELETE: # Delete all selected notes
                         beforeDelete = snapshotEditorState()
                         for colorName in noteMap:
@@ -1292,7 +1325,7 @@ while run:
                             ]
                         if beforeDelete != snapshotEditorState():
                             psm.pushEditorSnapshotTransaction("DELETE_NOTES", "Delete selected notes")
-                        NotePanel.render(screen)
+                        NotePanel.render(screen, 'screen')
                     elif event.key == pygame.K_z and pygame.key.get_pressed()[CMD_KEY]:
                         if pygame.key.get_pressed()[pygame.K_LSHIFT] or pygame.key.get_pressed()[pygame.K_RSHIFT]:
                             psm.performRedo()
@@ -1303,23 +1336,23 @@ while run:
                     elif event.key == pygame.K_a:
                         for note in noteMap[justColorNames[ColorButton.currentStateIdx]]:
                             note.select()
-                        NotePanel.render(screen)
+                        NotePanel.render(screen, 'screen')
                     elif event.key == CMD_KEY: # Switch to eraser momentarily
                         brushType = "eraser"
                         BrushButton.setCurrentState(1)
-                        BrushButton.render(screen)
+                        BrushButton.render(screen, 'screen')
                     elif event.key == pygame.K_LSHIFT: # Switch to select permanently
                         brushType = "select"
                         BrushButton.setCurrentState(2)
-                        BrushButton.render(screen)
+                        BrushButton.render(screen, 'screen')
                     elif event.key == pygame.K_SPACE: # Play / pause
                         playPauseToggle()
                     elif event.key == pygame.K_s:
                         if pygame.key.get_pressed()[CMD_KEY]: # if the user presses Ctrl+S (to save)
-                            worldMessage = fio.dumpToFile(
+                            WorldMessage.value = fio.dumpToFile(
                                 workingFile  = working_file_path,
                                 destFile     = working_file_path,
-                                programState = sl.newProgramState(key, mode, tempo, noteMap, instrumentMap, beatLength, beatsPerMeasure, meta=projectMeta),
+                                programState = sl.newProgramState(key, mode, Tempo.value, noteMap, instrumentMap, BeatLength.value, BeatsPerMeasure.value, meta=projectMeta),
                                 autoSave     = autoSave,
                                 titleText    = title_text,
                                 sessionID    = sessionID)
@@ -1328,21 +1361,22 @@ while run:
                     if event.key == CMD_KEY: # Switches away from eraser when Ctrl is let go
                         brushType = "brush"
                         BrushButton.setCurrentState(0)
-                        BrushButton.render(screen)
+                        BrushButton.render(screen, 'screen')
                         for color, colorChannel in noteMap.items():
                             for note in colorChannel:
                                 note.selected = False
-                        NotePanel.render(screen)
+                        NotePanel.render(screen, 'screen')
                 elif event.type == pygame.WINDOWFOCUSLOST:
                     console.warn("Window unfocused")
-                    MasterPanel.render(screen)
+                    MasterPanel.render(screen, 'screen')
                 elif event.type == pygame.WINDOWFOCUSGAINED:
                     console.warn("Window focused")
-                    MasterPanel.render(screen)
+                    MasterPanel.render(screen, 'screen')
 
             if gui_running == False:
                 PlayHead.stop()
                 break
+            dom.flip(screen)  # repaint whatever dirtied itself this frame, then clear the queues
             clock.tick(fps)
             pygame.display.flip()  # Update the display
         except Exception as e:
@@ -1350,10 +1384,10 @@ while run:
             traceback.print_exc()
             break
 
-    worldMessage = fio.dumpToFile(
+    WorldMessage.value = fio.dumpToFile(
         workingFile  = working_file_path,
         destFile     = working_file_path,
-        programState = sl.newProgramState(key, mode, tempo, noteMap, instrumentMap, beatLength, beatsPerMeasure, meta=projectMeta),
+        programState = sl.newProgramState(key, mode, Tempo.value, noteMap, instrumentMap, BeatLength.value, BeatsPerMeasure.value, meta=projectMeta),
         autoSave     = autoSave,
         titleText    = title_text,
         sessionID    = sessionID)

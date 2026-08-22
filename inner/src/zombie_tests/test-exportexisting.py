@@ -44,11 +44,12 @@ def send_command(command):
 
 # launch main.py in non-blocking mode but keep console output
 subprocess.Popen(
-    [sys.executable, os.path.join(project_root, "main.py"), project_root],
+    [sys.executable, "-u", os.path.join(project_root, "main.py"), project_root],
     stdout=None,  # inherit console output
     stderr=None,
     stdin=None,
-    close_fds=True
+    close_fds=True,
+    env={**os.environ, "PYTHONUNBUFFERED": "1"}
 )
 
 time.sleep(3)

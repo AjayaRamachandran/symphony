@@ -27,7 +27,7 @@ class Transaction():
     '''
     Base parent object for all transactions.
     '''
-    def __init__(self, userID=1, transactionType: str = None, action=None, title: str = None, timestamp=None):
+    def __init__(self, userID=1, transactionType: str | None = None, action=None, title: str | None = None, timestamp=None):
         self.userID = userID
         self.transactionType = transactionType
         self.action = action

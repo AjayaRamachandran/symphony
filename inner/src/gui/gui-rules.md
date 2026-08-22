@@ -1,9 +1,10 @@
 # GUI Rules
 The `Frame` object, which holds elements within it, has accepted style rules that define how it renders, similar to css styling. Below is an enumeration of the accepted fields:
 ```python
-"background"    : list[int, int, int, int]                          # default: gui.EMPTY_COLOR
+"background"    : list[int, int, int, int]                          # default: gui.COLOR_TRANSPARENT
 "border"        : int | list[int, int, int, int]                    # default: 0
-"rounding"      : "sm" | "lg" | int | tuple[int, int, int, int]     # default: 0 (rounding disabled if border is not int)
+"border-color"  : list[int, int, int, int]                          # default: gui.COLOR_BORDER
+"rounding"      : "sm" | "lg" | int | list[int, int, int, int]      # default: 0 (rounding disabled if border is not int)
 
 "display"       : "flex" | "absolute" | "fixed"                     # default: nest
 "offset"        : list[int, int]                                    # default: [0, 0]

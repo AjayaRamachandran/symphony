@@ -222,7 +222,7 @@ def draw_view(
     view_max_freq: float,
 ) -> pygame.Rect:
     screen_w, screen_h = screen.get_size()
-    bg_color = (18, 18, 20)
+    COLOR_BG = (18, 18, 20)
     axis_color = (230, 230, 230)
     text_color = (240, 240, 240)
 
@@ -238,7 +238,7 @@ def draw_view(
         max(10, screen_h - margin_top - margin_bottom),
     )
 
-    screen.fill(bg_color)
+    screen.fill(COLOR_BG)
     screen.blit(heatmap_surface, plot_rect.topleft)
     pygame.draw.rect(screen, axis_color, plot_rect, width=1)
 

@@ -62,7 +62,7 @@ def _has_required_shape(candidate: dict, required: dict) -> bool:
 
 ###### METHODS / CLASSES ######
 
-def newProgramState(key : str, mode : str, tpm : int, noteMap : dict, waveMap : dict, beatLength : int, beatsPerMeasure : int, meta: dict = None):
+def newProgramState(key : str, mode : str, tpm : int, noteMap : dict, waveMap : dict, beatLength : int, beatsPerMeasure : int, meta: dict | None = None):
     stateMeta = copy.deepcopy(meta) if _has_required_shape(meta, DEFAULT_META_FIELD) else copy.deepcopy(DEFAULT_META_FIELD)
     return {
         "meta" : stateMeta,

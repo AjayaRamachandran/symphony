@@ -12,7 +12,7 @@ from console_controls.console import *
 
 ###### FUNCTIONS ######
 
-def dumpToFile(workingFile: str, destFile: str, programState: dict, autoSave: str = None, titleText: str = "", sessionID: str = ""):
+def dumpToFile(workingFile: str, destFile: str, programState: dict, autoSave: str | None = None, titleText: str = "", sessionID: str = ""):
     '''
     fields:
         workingFile (string) - path of the working file\n

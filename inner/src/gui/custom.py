@@ -2,6 +2,8 @@
 # module for holding data for custom gui elements, bespoke interfaces.
 ###### IMPORT ######
 
+from __future__ import annotations
+
 import pygame
 import time
 from io import BytesIO
@@ -13,6 +15,7 @@ from console_controls.console import *
 import gui.element as gui
 import gui.frame as frame
 import sound.sound_processing as sp
+import gui.dom as dom
 import events
 
 ###### INITIALIZE ######
@@ -36,20 +39,21 @@ def getColorStates(width, height, source_path):
     for idx, color in enumerate(colors):
         surf = pygame.Surface((width, height), pygame.SRCALPHA)
         pygame.draw.rect(surf, color, (0, 0, width, height), border_radius=3)
-        gui.stamp(surf, str(idx + 1), gui.SUBHEADING1, width/2, height/2, gui.BG_COLOR, justification='center')
+        gui.stamp(surf, str(idx + 1), gui.SUBHEADING1, width/2, height/2, gui.COLOR_BG, justification='center')
         outputs.append(surf)
     
-    gui.stamp(rainbowImage, '7', gui.SUBHEADING1, rainbowImage.get_width()/2, rainbowImage.get_height()/2, gui.BG_COLOR, justification='center')
+    gui.stamp(rainbowImage, '7', gui.SUBHEADING1, rainbowImage.get_width()/2, rainbowImage.get_height()/2, gui.COLOR_BG, justification='center')
     outputs.append(rainbowImage)
     return outputs
 
-def convertGridToWorld(time, pitch, tileSize: tuple[int | float] = None, view: tuple[int | float] = None):
+def convertGridToWorld(time, pitch, tileSize: tuple[int | float, int | float] | None = None, view: tuple[int | float, int | float] | None = None, rect: pygame.Rect = pygame.Rect(0, 0, 0, 0)):
     '''
     fields:
         time (number) - the time of the grid coordinate
         pitch (number) - the pitch of the grid coordinate
         tileSize (tuple[number]) - the coordinate dimensions of the grid tiles
         view (tuple[number]) - the coordinates of the view camera in relation to the GRID
+        rect (pygame.Rect) - a rect to apply to conversions (local to world space)
     outputs: tuple[number]
     
     Converts the Grid coordinates to Screen (world) coordinates.
@@ -59,15 +63,16 @@ def convertGridToWorld(time, pitch, tileSize: tuple[int | float] = None, view: t
     _tileWidth, _tileHeight = tileSize if tileSize is not None else (tileWidth, tileHeight)
     _viewCol, _viewRow = view if view is not None else (viewCol, viewRow)
 
-    return [(time - viewCol) * _tileWidth + 80, ((84 - viewRow) - pitch) * _tileHeight + 80]
+    return [(time - viewCol) * _tileWidth - rect.topleft[0], ((84 - viewRow) - pitch) * _tileHeight - rect.topleft[1]]
 
-def convertWorldToGrid(mousePos, tileSize: tuple[int | float] = None, view: tuple[int | float] = None, timeInt = True):
+def convertWorldToGrid(mousePos, tileSize: tuple[int | float, int | float] | None = None, view: tuple[int | float, int | float] | None = None, timeInt = True, rect: pygame.Rect = pygame.Rect(0, 0, 0, 0)):
     '''
     fields:
         mousePos (tuple[number]) - the mouse coordinates in world/screen space
         tileSize (tuple[number]) - the coordinate dimensions of the grid tiles
         view (tuple[number]) - the coordinates of the view camera in relation to the GRID
         timeInt (boolean) - whether or not to round the values
+        rect (pygame.Rect) - a clipping mask to omit conversions outside of
     outputs: tuple[number]
     
     Converts Screen (world) coordinates to Grid coordinates.
@@ -75,17 +80,17 @@ def convertWorldToGrid(mousePos, tileSize: tuple[int | float] = None, view: tupl
     global tileWidth, tileHeight, viewRow, viewCol
 
     mouseX, mouseY = mousePos
-    if mouseX < 80 or mouseY < 80:
+
+    if not rect.collidepoint(mousePos):
         return None, None
     
     _tileWidth, _tileHeight = tileSize if tileSize is not None else (tileWidth, tileHeight)
     _viewCol, _viewRow = view if view is not None else (viewCol, viewRow)
 
-    time = (mouseX - 80) / _tileWidth + _viewCol
-    pitch = (84 - _viewRow) - (mouseY - 80) / _tileHeight
+    time = (mouseX - rect.topleft[0]) / _tileWidth + _viewCol
+    pitch = (84 - _viewRow) - (mouseY - rect.topleft[1]) / _tileHeight
 
     return floor(time) if timeInt else time, ceil(pitch)
-
 
 ###### CLASSES ######
 
@@ -148,18 +153,30 @@ class PitchList(gui.Interactive):
         sp.playNote(note=note, waves=self.wave, duration=0.2)
         console.log(f"played note {note}")
 
+    def calculateDimensions(self, parentDimensions: list[int] | tuple[int]):
+        '''
+        Updates the PitchList's dimensions to be inherited from its parent. This overwrites the default calculateDimensions()
+        behavior of an Element, which is to do nothing.
+        '''
+        # console.log(f"calculating dimensions of child element {self.name} to be {[80, parentDimensions[1]]}")
+        self.width = 80
+        self.height = parentDimensions[1]
+        # if the panel has no surface yet, or it does not match its new dimensions, (re)build it.
+        if self.surface is None or self.surface.get_size() != (self.width, self.height):
+            self.surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+
     def update(self, screen):
         super().update(screen)
         if self.redraw and self.panel:
-            self.panel.render(screen)
+            dom.dirty(self.panel)
 
-    def render(self, screen):
-        screen.fill(gui.BG_COLOR)
+    def render(self, screen: pygame.Surface, positioning: str = 'relative'):
+        screen.fill(gui.COLOR_BG)
         # split viewRow into a stable integer row index and a fractional scroll offset
         # this avoids floating-point precision issues (e.g. 53.00000000000001)
         baseRow = int(viewRow)
         frac = viewRow - baseRow
-        offsetY = (-frac) * tileHeight + 80 # calculate the vertical pixel offset caused by partial scrolling
+        offsetY = (-frac) * tileHeight # calculate the vertical pixel offset caused by partial scrolling
         y = 0
         while offsetY < pygame.display.get_window_size()[1]:
             rowIndex = baseRow + y # calculate the absolute row index for this tile
@@ -169,8 +186,8 @@ class PitchList(gui.Interactive):
             noteToWrite = self.notes[11 - (rowIndex % 12)]
             octaveToWrite = 8 - (rowIndex // 12)
 
-            pygame.draw.rect(screen, gui.ALT_BG_COLOR_4 if litRow else gui.ALT_BG_COLOR_3, (1, offsetY + 1, 78, tileHeight - 2), border_radius=3)
-            gui.stamp(screen, f"{noteToWrite} {octaveToWrite}", gui.SUBHEADING1, 5, offsetY + 5, gui.ALT_TEXT_COLOR)
+            pygame.draw.rect(screen, gui.COLOR_ALT_BG_4 if litRow else gui.COLOR_ALT_BG_3, (1, offsetY + 1, 78, tileHeight - 2), border_radius=3)
+            gui.stamp(screen, f"{noteToWrite} {octaveToWrite}", gui.SUBHEADING1, 5, offsetY + 5, gui.COLOR_TEXT_ALT)
 
             offsetY += tileHeight
             y += 1
@@ -197,20 +214,29 @@ class NoteGrid(gui.Interactive):
         def changeView(xy):
             global viewRow, viewCol, tileHeight, tileWidth
             self.redraw = True
-            viewCol += xy[0] / 8
-            viewRow -= xy[1] / 8
+
+            self.scVel[0] += xy[0] / 2
+            
+            self.scVel[1] += xy[1] / 2
+
+            for dim in [0, 1]:
+                if (xy[dim] > 0) != (self.scVel[dim] > 0) and (xy[dim] < 0) != (self.scVel[dim] < 0):
+                    #console.log(f"xy: {xy}, scvel: {self.scVel}")
+                    self.scVel[dim] *= -0.2
+                else:
+                    self.scVel[dim] *= 1.03
+
             if viewCol <= 0:
                 viewCol = 0
             self.viewBounds()
             x, y = xy
-            self.scVel = [x * 2, y * 2]
 
         self.onMouseClick(lambda: setattr(self, 'redraw', True))
         self.onHoverScroll(changeView)
 
     def viewBounds(self):
         global viewRow, viewCol
-        numRowsVisible = (pygame.display.get_window_size()[1] - 80) / tileHeight
+        numRowsVisible = self.height / tileHeight
         if viewRow <= 23:
             viewRow = 23
         if viewRow >= 96 - numRowsVisible:
@@ -268,33 +294,47 @@ class NoteGrid(gui.Interactive):
 
     def setSelection(self, rect):
         self.selectionRect = rect
+
+    def calculateDimensions(self, parentDimensions: list[int] | tuple[int]):
+        '''
+        Updates the NoteGrid's dimensions to be inherited from its parent. This overwrites the default calculateDimensions()
+        behavior of an Element, which is to do nothing.
+        '''
+        # console.log(f"calculating dimensions of child element {self.name} to be {parentDimensions}")
+        self.width = parentDimensions[0]
+        self.height = parentDimensions[1]
+        # if the panel has no surface yet, or it does not match its new dimensions, (re)build it.
+        if self.surface is None or self.surface.get_size() != (self.width, self.height):
+            self.surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
     
     def update(self, screen):
         global viewCol, viewRow
         super().update(screen)
         if self.panel and self.notes and (self.redraw or self.scVel != [0, 0]):
-            if self.scVel[0] < 0:
-                self.scVel = [self.scVel[0] + 1, self.scVel[1]]
-            if self.scVel[0] > 0:
-                self.scVel = [self.scVel[0] - 1, self.scVel[1]]
-            if self.scVel[1] < 0:
-                self.scVel = [self.scVel[0], self.scVel[1] + 1]
-            if self.scVel[1] > 0:
-                self.scVel = [self.scVel[0], self.scVel[1] - 1]
-            viewCol += self.scVel[0] / 20
-            viewRow -= self.scVel[1] / 20
+            self.scVel = [self.scVel[0] * 0.94, self.scVel[1] * 0.94]
+
+            viewCol += self.scVel[0] / 24
+            viewRow -= self.scVel[1] / 24
+
+            if abs(self.scVel[0]) < 1:
+                self.scVel[0] = 0
+            if abs(self.scVel[1]) < 1:
+                self.scVel[1] = 0
+
             if viewCol <= 0:
                 viewCol = 0
+
             self.viewBounds()
-            self.panel.render(screen)
-            self.notes.render(screen)
+
+            dom.dirty(self.panel)
+            dom.dirty(self.notes)
     
-    def render(self, screen):
-        screen.fill(gui.BG_COLOR)
+    def render(self, screen: pygame.Surface, positioning: str = 'relative'):
+        self.surface.fill(gui.COLOR_BG)
         # split viewCol into integer column index and fractional scroll offset
         baseCol = int(viewCol)
         fracCol = viewCol - baseCol
-        offsetX = (-fracCol) * tileWidth + 80 # initial horizontal pixel offset from partial scrolling
+        offsetX = (-fracCol) * tileWidth # initial horizontal pixel offset from partial scrolling
         x = 0
         while offsetX < pygame.display.get_window_size()[0]:
             # absolute column index for this tile
@@ -304,28 +344,28 @@ class NoteGrid(gui.Interactive):
 
             baseRow = int(viewRow) # split viewRow into integer row index and fractional scroll offset
             fracRow = viewRow - baseRow
-            offsetY = (-fracRow) * tileHeight + 80 # initial vertical pixel offset from partial scrolling
+            offsetY = (-fracRow) * tileHeight # initial vertical pixel offset from partial scrolling
             y = 0
             while offsetY < pygame.display.get_window_size()[1]:
                 rowIndex = baseRow + y # absolute row index for this tile
 
                 litRow = ((11 - ((rowIndex + self.key) % 12)) in self.mode)
 
-                thisColor = gui.GRID_BG_COLOR
+                thisColor = gui.COLOR_GRID_BG
                 if not litRow:
                     if litColAmount == 1:
-                        thisColor = gui.GRID_BG_COLOR_BEAT
+                        thisColor = gui.COLOR_GRID_BG_BEAT
                     elif litColAmount == 2:
-                        thisColor = gui.GRID_BG_COLOR_MEASURE
+                        thisColor = gui.COLOR_GRID_BG_MEASURE
                 else:
                     if litColAmount == 0:
-                        thisColor = gui.GRID_LITROW_COLOR
+                        thisColor = gui.COLOR_GRID_LITROW
                     elif litColAmount == 1:
-                        thisColor = gui.GRID_LITROW_COLOR_BEAT
+                        thisColor = gui.COLOR_GRID_LITROW_BEAT
                     elif litColAmount == 2:
-                        thisColor = gui.GRID_LITROW_COLOR_MEASURE
+                        thisColor = gui.COLOR_GRID_LITROW_MEASURE
 
-                pygame.draw.rect(screen, thisColor, (offsetX + 1, offsetY + 1, tileWidth - 2, tileHeight - 2), border_radius=3)
+                pygame.draw.rect(self.surface, thisColor, (offsetX + 1, offsetY + 1, tileWidth - 2, tileHeight - 2), border_radius=3)
 
                 offsetY += tileHeight
                 y += 1
@@ -342,10 +382,10 @@ class NoteGrid(gui.Interactive):
                 continue
             for note in colorNotes:
                 if isinstance(note, Note):
-                    note.render(screen, colors[colorIdx] if colorIdx < len(colors) else colors[0], self.color != 6 and self.color != colorIdx, [0,0])
+                    note.render(self.surface, colors[colorIdx] if colorIdx < len(colors) else colors[0], self.color != 6 and self.color != colorIdx, [0,0])
                 else:
                     if isinstance(note, dict):
-                        note.render(screen, colors[colorIdx] if colorIdx < len(colors) else colors[0], self.color != 6 and self.color != colorIdx, [0,0])
+                        note.render(self.surface, colors[colorIdx] if colorIdx < len(colors) else colors[0], self.color != 6 and self.color != colorIdx, [0,0])
 
                     raise ValueError(f'Invalid data type for note: {note.__class__()}')
         
@@ -356,12 +396,14 @@ class NoteGrid(gui.Interactive):
                 colorNotes = self.noteMap[selectedColorName]
                 for note in colorNotes:
                     if isinstance(note, Note):
-                        note.render(screen, colors[self.color], False, [0,0])
+                        note.render(self.surface, colors[self.color], False)
                     else:
                         raise ValueError(f'Invalid data type for note: {note}')
 
         if self.selectionRect:
-            pygame.draw.rect(screen, (255, 255, 255, 255), self.selectionRect, 1)
+            pygame.draw.rect(self.surface, (255, 255, 255, 255), self.selectionRect, 1)
+
+        super().render(screen, positioning)
 
 class PlayHead():
     '''
@@ -401,7 +443,7 @@ class PlayHead():
             self.time = self.home + tilesPassed
 
             if self.panel != None:
-                self.panel.render(screen)
+                dom.dirty(self.panel)
         else:
             self.time = self.home
     
@@ -415,7 +457,7 @@ class PlayHead():
         '''
         self.onExitViewCallback = function
 
-    def render(self, screen: pygame.Surface):
+    def render(self, screen: pygame.Surface, positioning: str = 'relative'):
         lineX = convertGridToWorld(self.time, 0)[0]
         if lineX > screen.get_width():
             if callable(self.onExitViewCallback): self.onExitViewCallback()
@@ -487,7 +529,7 @@ class Note():
         self.duration = newData.get('duration', self.duration)
         self.dataFields = newData.get('data_fields', self.dataFields)
 
-    def render(self, screen: pygame.Surface, color: tuple[int, int, int, int], transparent = False, tileOffset: tuple = None): 
+    def render(self, screen: pygame.Surface, color: tuple[int, int, int, int], transparent: bool = False): 
         #drawScreen = pygame.Surface(pygame.display.get_window_size(), pygame.SRCALPHA)
         rectCoords = [
             *convertGridToWorld(self.time, self.pitch, (tileWidth, tileHeight), (viewCol, viewRow)),

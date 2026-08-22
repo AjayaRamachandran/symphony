@@ -57,12 +57,17 @@ try: os.remove(os.path.join(working_file_folder, working_file_name) + '.symphony
 except: None
 
 # launch main.py in non-blocking mode but keep console output
-subprocess.Popen(
-    [sys.executable, os.path.join(project_root, "main.py"), project_root],
+#
+# -u / PYTHONUNBUFFERED matter here: without them the child block-buffers stdout
+# whenever it can't confirm it's attached to a tty, so a traceback written just
+# before the process dies is still sitting in the buffer and is lost with it.
+app = subprocess.Popen(
+    [sys.executable, "-u", os.path.join(project_root, "main.py"), project_root],
     stdout=None,  # inherit console output
     stderr=None,
     stdin=None,
-    close_fds=True
+    close_fds=True,
+    env={**os.environ, "PYTHONUNBUFFERED": "1"}
 )
 
 time.sleep(2)
@@ -94,6 +99,17 @@ open_command = {
 }
 
 send_command(open_command)
+
+# Stay attached until the app exits. This keeps the console handles alive for the
+# child's whole lifetime and reports how it died -- a nonzero code with no
+# traceback means the process was terminated rather than raising.
+try:
+    exit_code = app.wait()
+except KeyboardInterrupt:
+    app.terminate()
+    exit_code = app.wait()
+
+print(f"\n[test-launchnew] app exited with code {exit_code}", flush=True)
 
 #time.sleep(10)
 
