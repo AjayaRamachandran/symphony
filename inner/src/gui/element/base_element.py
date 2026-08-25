@@ -116,27 +116,34 @@ def unselectTextBoxes(globalTextBoxes):
 
 ###### CLASSES ######
 
-class Element():
+class Component():
     '''
-    A generic GUI element. Contains no functionality.
+    Shared base for object in the DOM: damaging, style, dependency watching, etc.
+    Both Element and Panel inherit from this.
     '''
 
-    def __init__(self, width: int, height: int, name: str = ''):
+    def __init__(self, width: int = 0, height: int = 0, style: dict | None = None, name: str = ''):
+        self.name = name
+        self.style = style if style is not None else {}
         self.width = width
         self.height = height
-        self.selected = False
         self.offsetX = 0
         self.offsetY = 0
         self.x = 0
         self.y = 0
         self.z = 0
-        self.name = name
+        self.display = self.style.get("display", "flex")
         self.domStatus = "clean"
-        self.surface = pygame.Surface((width, height), pygame.SRCALPHA)
+        self.surface: pygame.Surface | None = None
         self.damageRects: list[pygame.Rect] = []
         self.watching: list[utils.Watchable] = []
-        self.oldWatching: list[utils.Watchable] = []
+        self.oldWatching: list = []
         self.depChange = None
+
+    def __str__(self):
+        return self.name
+
+    ###### WATCHING ######
 
     def watch(self, deps: list[utils.Watchable] | utils.Watchable, operation: str = 'set'):
         '''
@@ -145,9 +152,9 @@ class Element():
             operation ('set', 'add') - what operation to do with the passed deps
         outputs: none
 
-        Adds or sets a list of dependencies (Watchable objects) that determine when the element rerenders.
+        Adds or sets a list of dependencies (Watchable objects) that determine when the component rerenders.
         '''
-            
+
         if isinstance(deps, list):
             for watched in deps:
                 if not (isinstance(watched, utils.Watchable)):
@@ -167,12 +174,9 @@ class Element():
                 self.watching = deps
             else:
                 for dep in deps:
-                    self.watching.append(dep)   
-            
-        self.oldWatching = [
-            el.value if isinstance(el, utils.LightWatchable) else el.watchId
-            for el in self.watching
-        ]
+                    self.watching.append(dep)
+
+        self.oldWatching = self.snapshotWatched()
 
     def onDepChange(self, function):
         '''
@@ -184,29 +188,45 @@ class Element():
         '''
         self.depChange = function
 
-    def update(self):
+    def snapshotWatched(self):
         '''
-        Parent update method for all Elements.
-        Queues a DOM dirty if any of the Watchables in the Element's deps are changed.
+        fields: none\n
+        outputs: list
+
+        Captures the current comparison value of every watched dependency. Light watchables compare
+        by value, heavy ones by their watch id.
         '''
-        for idx, var in enumerate(self.watching):
-            if isinstance(var, utils.LightWatchable):
-                current = var.value
-            else:
-                current = var.watchId
-
-            # console.log(self.name, self.watching, self.oldWatching)
-            if current != self.oldWatching[idx]:
-                dom.dirty(self)
-                self.depChange() if callable(self.depChange) else None
-
-        self.oldWatching = [
+        return [
             el.value if isinstance(el, utils.LightWatchable) else el.watchId
             for el in self.watching
         ]
 
-    def __str__(self):
-        return self.name
+    def pollWatched(self):
+        '''
+        fields: none\n
+        outputs: nothing
+
+        Dirties this component and fires depChange if any watched dependency changed since last frame.
+        '''
+        for idx, var in enumerate(self.watching):
+            current = var.value if isinstance(var, utils.LightWatchable) else var.watchId
+
+            if current != self.oldWatching[idx]:
+                dom.dirty(self)
+                self.depChange() if callable(self.depChange) else None
+
+        self.oldWatching = self.snapshotWatched()
+
+    def update(self, screen):
+        '''
+        fields:
+            screen (pygame.Surface) - surface this component is being updated against
+        outputs: nothing
+
+        Parent update method for every component. Subclasses that override this must call
+        super().update(screen) so dependency watching keeps working.
+        '''
+        self.pollWatched()
 
     def calculateDimensions(self, parentDimensions: list[int] | tuple[int]):
         '''
@@ -214,43 +234,67 @@ class Element():
             parentDimensions (pair<number, number>) - effective dimensions of the parent.
         outputs: none
 
-        Updates the dimensions of the Element optionally based on the parent. By default, nothing is done, but some elements
-        require this behavior (like the NoteGrid).
+        Updates the dimensions of the component optionally based on the parent. By default, nothing is done, but
+        some components require this behavior (like Panel and the NoteGrid).
         '''
         None
 
     def dirty(self):
         '''
-        Flags the element as needing to be redrawn next frame.
+        Flags the component as needing to be redrawn next frame.
         '''
         self.domStatus = "dirty"
 
     def damage(self, damageRect: pygame.Rect):
+        '''
+        fields:
+            damageRect (pygame.Rect) - screen space region of this component that needs repainting
+        outputs: nothing
+        '''
         self.domStatus = "damaged"
         self.damageRects.append(damageRect)
 
     def clean(self):
+        '''
+        Clears the dirty/damaged state after the component has been repainted.
+        '''
         self.domStatus = "clean"
         self.damageRects = []
 
     def repair(self, screen: pygame.Surface):
         '''
-        Repairs the portions of this element that are damaged, the areas which are
-        stored in this element's `damageRects`.
+        Repairs the portions of this component that are damaged, the areas which are
+        stored in this component's `damageRects`.
 
         The screen is intended to be the global screen (so in global coords)
         '''
-        elementRect = pygame.Rect(self.x, self.y, self.width, self.height)
+        componentRect = pygame.Rect(self.x, self.y, self.width, self.height)
 
         for damageRect in self.damageRects:
-            clip = elementRect.clip(pygame.Rect(damageRect)) # .clip gets the overlapping region
+            clip = componentRect.clip(pygame.Rect(damageRect)) # .clip gets the overlapping region
 
             if clip.width <= 0 or clip.height <= 0:
                 continue
-            
+
             areaInLocalSpace = pygame.Rect(clip.x - self.x, clip.y - self.y, clip.width, clip.height)
             screen.blit(self.surface, (clip.x, clip.y), area=areaInLocalSpace) # area is a way to blit only a subsurface
-        
+
+    def blit(self, screen: pygame.Surface, positioning: str = 'relative'):
+        '''
+        fields:
+            screen (pygame.Surface) - surface to blit to\n
+            positioning ('screen' | 'relative') - whether or not to blit in screen space or relative space
+        outputs: nothing
+
+        The shared tail of every render(): places this component's surface onto the given screen.
+        '''
+        if positioning == 'screen':
+            screen.blit(self.surface, (self.x, self.y))
+        elif positioning == 'relative':
+            screen.blit(self.surface, (self.offsetX, self.offsetY))
+        else:
+            raise ValueError(f"Positioning of components must be either 'screen' or 'relative', not {positioning}")
+
     def render(self, screen: pygame.Surface, positioning: str = 'relative'):
         '''
         fields:
@@ -258,12 +302,19 @@ class Element():
             positioning ('screen' | 'relative') - whether or not to render in screen space or relative space
         outputs: nothing
 
-        The parent rendering method for all elements. Conditionally renders true or offset coordinates based on
+        The parent rendering method for all components. Conditionally renders true or offset coordinates based on
         the positioning parameter.
         '''
-        if positioning == 'screen':
-            screen.blit(self.surface, (self.x, self.y))
-        elif positioning == 'relative':
-            screen.blit(self.surface, (self.offsetX, self.offsetY))
-        else:
-            raise ValueError(f"Positioning of elements must be either 'screen' or 'relative', not {positioning}")
+        self.blit(screen, positioning)
+
+
+class Element(Component):
+    '''
+    A generic GUI element. Contains no functionality beyond what a Component provides,
+    other than eagerly owning a fixed-size surface and a selection flag.
+    '''
+
+    def __init__(self, width: int, height: int, name: str = '', style: dict | None = None):
+        super().__init__(width, height, style, name)
+        self.selected = False
+        self.surface = pygame.Surface((width, height), pygame.SRCALPHA)

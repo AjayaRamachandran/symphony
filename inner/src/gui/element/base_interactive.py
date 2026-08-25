@@ -292,7 +292,7 @@ class Interactive(Element):
 
         Updates the element on the screen (does not render it)
         '''
-        super().update()
+        super().update(screen)
 
         self.mouseInside = mouseBounds((self.x, self.y, self.width, self.height))
         self._updateMouseState()

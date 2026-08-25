@@ -22,45 +22,21 @@ DRAG_THRESHOLD = 2
 LG_ROUND = 10
 SM_ROUND = 2
 
-class Panel():
+class Panel(gui.Component):
     '''
-    Rectangular object that can render as a surface and hold elements within it. 
+    Rectangular component that can render as a surface and hold other components within it.
+    Geometry, damage tracking, and dependency watching all come from Component.
     '''
-    def __init__(self, elements: list[Panel | gui.Element], style: dict = {}, name: str = ""):
-        self.style = style
-        self.elements: list[Panel | gui.Element] = elements
-        self.name = name
+    def __init__(self, elements: list[gui.Component], style: dict = {}, name: str = ""):
+        super().__init__(0, 0, style, name)
+        self.elements: list[gui.Component] = elements
         self.selfRender = None
-        self.offsetX = 0
-        self.offsetY = 0
-        self.width = 0
-        self.height = 0
-        self.x = 0
-        self.y = 0
-        self.z = 0
-        self.domStatus = "clean"
-        self.surface: pygame.Surface | None = None
-        self.damageRects: list[pygame.Rect] = []
         self.debug = [random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)]
-    
-    def __str__(self):
-        return self.name
 
-    def dirty(self):
-        self.domStatus = "dirty"
-
-    def damage(self, damageRect: pygame.Rect):
-        self.domStatus = "damaged"
-        self.damageRects.append(damageRect)
-
-    def clean(self):
-        self.domStatus = "clean"
-        self.damageRects = []
-    
-    def addElement(self, el: Panel | gui.Element):
+    def addElement(self, el: gui.Component):
         '''
         fields:
-            el (gui.Element or Panel) - element to add to list
+            el (gui.Component) - component to add to list
         
         Adds an element or panel to the list of objects stored within this panel.
         '''
@@ -114,12 +90,12 @@ class Panel():
             "fit" if tempSizing[0] == "fit" else max(0, (parentDimensions[0] if tempSizing[0] == "fill" else tempSizing[0]) - padX),
             "fit" if tempSizing[1] == "fit" else max(0, (parentDimensions[1] if tempSizing[1] == "fill" else tempSizing[1]) - padY),
         ]
-        validElements = [el for el in self.elements if (isinstance(el, Panel) or isinstance(el, gui.Element))]
+        validElements = [el for el in self.elements if isinstance(el, gui.Component)]
         for el in validElements:
             if isinstance(el, Panel):
                 el.calculateDimensions(effectiveDimensions)
 
-        flexedChildren = [el for el in validElements if getattr(el, "display", "flex") == "flex"]
+        flexedChildren = [el for el in validElements if el.display == "flex"]
 
         # CALCULATE THE WIDTH AND HEIGHT OF THE CURRENT ELEMENT, BASED ON THE CHILDREN
         if tempSizing[0] == "fit":
@@ -145,7 +121,7 @@ class Panel():
             self.height = tempSizing[1]
 
         for el in validElements:
-            if isinstance(el, gui.Element):
+            if not isinstance(el, Panel):
                 el.calculateDimensions([self.width, self.height])
 
         # if the panel has no surface yet, or it does not match its new dimensions, (re)build it.
@@ -185,8 +161,8 @@ class Panel():
                     acc += ((self.height - clusterHeight - paddingT - paddingB) / (len(flexedChildren) - 1))
 
         for el in validElements:
-            elDisplay = el.style.get("display", "flex") if hasattr(el, "style") else "flex"
-            elOffset = el.style.get("offset", [0, 0]) if hasattr(el, "style") else [0, 0]
+            elDisplay = el.style.get("display", "flex")
+            elOffset = el.style.get("offset", [0, 0])
             if elDisplay == "flex":
                 el.offsetX += elOffset[0]
                 el.offsetY += elOffset[1]
@@ -199,49 +175,35 @@ class Panel():
             runningOffset (list<int, int>) - screen-space origin of this element's content box
         outputs: nothing
         '''
-        validElements = [el for el in self.elements if (isinstance(el, Panel) or isinstance(el, gui.Element))]
+        validElements = [el for el in self.elements if isinstance(el, gui.Component)]
         for el in validElements:
-            if getattr(el, "display", "flex") == "fixed":
-                fixedOffset = el.style.get("offset", [0, 0]) if hasattr(el, "style") else [0, 0]
+            if el.display == "fixed":
+                fixedOffset = el.style.get("offset", [0, 0])
                 el.x, el.y = fixedOffset[0], fixedOffset[1]
             else:
-                el.x = runningOffset[0] + getattr(el, "offsetX", 0)
-                el.y = runningOffset[1] + getattr(el, "offsetY", 0)
+                el.x = runningOffset[0] + el.offsetX
+                el.y = runningOffset[1] + el.offsetY
 
             if isinstance(el, Panel):
                 el.relativeToScreenSpace([el.x, el.y])
 
     def update(self, screen):
         '''
-        fields: none\n
+        fields:
+            screen (pygame.Surface) - surface this panel is being updated against
         outputs: nothing
 
-        Informs all children of this element to update (poll for changes), elements will
-        automatically queue themselves to render if there is need for it. ("self-awareness")
+        Informs all children to update (poll for changes), then polls this panel's own
+        watched dependencies. Components automatically queue themselves to render if there
+        is need for it. ("self-awareness")
 
         Ex. hovering over a button should only make that button re-render with tint.
         '''
         for el in self.elements:
             el.update(screen)
 
-    def repair(self, screen: pygame.Surface):
-        '''
-        Repairs the portions of this element that are damaged, the areas which are
-        stored in this element's `damageRects`.
+        super().update(screen)
 
-        The screen is intended to be the global screen (so in global coords)
-        '''
-        elementRect = pygame.Rect(self.x, self.y, self.width, self.height)
-
-        for damageRect in self.damageRects:
-            clip = elementRect.clip(pygame.Rect(damageRect)) # .clip gets the overlapping region
-
-            if clip.width <= 0 or clip.height <= 0:
-                continue
-            
-            areaInLocalSpace = pygame.Rect(clip.x - self.x, clip.y - self.y, clip.width, clip.height)
-            screen.blit(self.surface, (clip.x, clip.y), area=areaInLocalSpace) # area is a way to blit only a subsurface
-        
     def render(self, screen: pygame.Surface, positioning: str = 'relative'):
         '''
         fields:
@@ -308,13 +270,7 @@ class Panel():
         for el in self.elements:
             el.render(self.surface, positioning='relative')
 
-        # very similar to positioning logic of elements
-        if positioning == 'screen':
-            screen.blit(self.surface, (self.x, self.y))
-        elif positioning == 'relative':
-            screen.blit(self.surface, (self.offsetX, self.offsetY))
-        else:
-            raise ValueError(f"Positioning of panels must be either 'screen' or 'relative', not {positioning}")
+        self.blit(screen, positioning)
 
 
     def visualizeHierarchy(self, nestLevel = 0):
@@ -323,8 +279,8 @@ class Panel():
             prefix = prefix + '    '
         console.warn(prefix + f'<{self.__str__()} {self.style}>')
         for el in self.elements:
-            if isinstance(el, gui.Element):
-                console.warn(prefix + '    ' + f'<{el.__str__()} />')
-            elif isinstance(el, Panel):
+            if isinstance(el, Panel):
                 el.visualizeHierarchy(nestLevel+1)
+            elif isinstance(el, gui.Component):
+                console.warn(prefix + '    ' + f'<{el.__str__()} />')
         console.warn(prefix + f'</{self.__str__()}>')

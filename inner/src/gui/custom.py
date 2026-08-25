@@ -16,14 +16,17 @@ import gui.element as gui
 import gui.frame as frame
 import sound.sound_processing as sp
 import gui.dom as dom
+import utils.util as utils
 import events
 
 ###### INITIALIZE ######
 
-viewRow = 0  # will be initialized when GUI opens
-viewCol = 0  # will be initialized when GUI opens
-tileWidth = 30
-tileHeight = 30
+# Watchable view state. Panels watch these directly, so scrolling and zooming dirty the
+# affected panels without any component having to reach up and dirty its parent by hand.
+viewRow = utils.LightWatchable(0)  # will be initialized when GUI opens
+viewCol = utils.LightWatchable(0)  # will be initialized when GUI opens
+tileWidth = utils.LightWatchable(30)
+tileHeight = utils.LightWatchable(30)
 
 
 colors = [(235, 144, 74, 255),
@@ -58,12 +61,11 @@ def convertGridToWorld(time, pitch, tileSize: tuple[int | float, int | float] | 
     
     Converts the Grid coordinates to Screen (world) coordinates.
     '''
-    global tileWidth, tileHeight, viewRow, viewCol
 
-    _tileWidth, _tileHeight = tileSize if tileSize is not None else (tileWidth, tileHeight)
-    _viewCol, _viewRow = view if view is not None else (viewCol, viewRow)
+    _tileWidth, _tileHeight = tileSize if tileSize is not None else (tileWidth.value, tileHeight.value)
+    _viewCol, _viewRow = view if view is not None else (viewCol.value, viewRow.value)
 
-    return [(time - viewCol) * _tileWidth - rect.topleft[0], ((84 - viewRow) - pitch) * _tileHeight - rect.topleft[1]]
+    return [(time - viewCol.value) * _tileWidth - rect.topleft[0], ((84 - viewRow.value) - pitch) * _tileHeight - rect.topleft[1]]
 
 def convertWorldToGrid(mousePos, tileSize: tuple[int | float, int | float] | None = None, view: tuple[int | float, int | float] | None = None, timeInt = True, rect: pygame.Rect = pygame.Rect(0, 0, 0, 0)):
     '''
@@ -77,15 +79,14 @@ def convertWorldToGrid(mousePos, tileSize: tuple[int | float, int | float] | Non
     
     Converts Screen (world) coordinates to Grid coordinates.
     '''
-    global tileWidth, tileHeight, viewRow, viewCol
 
     mouseX, mouseY = mousePos
 
     if not rect.collidepoint(mousePos):
         return None, None
     
-    _tileWidth, _tileHeight = tileSize if tileSize is not None else (tileWidth, tileHeight)
-    _viewCol, _viewRow = view if view is not None else (viewCol, viewRow)
+    _tileWidth, _tileHeight = tileSize if tileSize is not None else (tileWidth.value, tileHeight.value)
+    _viewCol, _viewRow = view if view is not None else (viewCol.value, viewRow.value)
 
     time = (mouseX - rect.topleft[0]) / _tileWidth + _viewCol
     pitch = (84 - _viewRow) - (mouseY - rect.topleft[1]) / _tileHeight
@@ -98,32 +99,59 @@ class PitchList(gui.Interactive):
     '''
     Class that manages the Pitch list on the left side of the screen, and how it plays back notes.
     '''
-    def __init__(self, width, height, notes, name):
+    def __init__(self, width, height, name):
         super().__init__(width, height, name)
-        self.notes = notes
-        self.mode = [0, 2, 4, 6, 7, 9, 11]
-        self.key = 3
-        self.wave = 0
+
+        # every piece of state below is owned elsewhere; these getters read the live value
+        # so the PitchList never holds a stale shadow copy
+        self.modeGetter = lambda: [0, 2, 4, 6, 7, 9, 11]
+        self.keyGetter = lambda: 3
+        self.noteGetter = lambda: []
+        self.waveGetter = lambda: {}
 
         self.onMouseEnter(lambda: (setattr(self, 'redraw', True), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
         self.onMouseLeave(lambda: (setattr(self, 'redraw', True), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
         self.onMouseClick(self.onPitchListClick)
 
-    def setModeKey(self, mode=None, key=None):
+    def setMode(self, modeGetter):
         '''
         fields:
-            mode (list) - list of which 12TET notes are in the mode
-        
-        Updates the internal interval to match the main interval.
+            modeGetter (function -> list[int]) - a getter for the 12TET notes in the current mode
+        outputs: none
+
+        Sets the internal modeGetter lambda so the live mode can be read whenever needed.
         '''
-        self.mode = mode if mode != None else self.mode
-        self.key = key if key != None else self.key
+        self.modeGetter = modeGetter
 
-    def setNotes(self, notes):
-        self.notes = notes
+    def setKey(self, keyGetter):
+        '''
+        fields:
+            keyGetter (function -> int) - a getter for the index of the current key
+        outputs: none
 
-    def setWave(self, wave):
-        self.wave = wave
+        Sets the internal keyGetter lambda so the live key can be read whenever needed.
+        '''
+        self.keyGetter = keyGetter
+
+    def setNotes(self, noteGetter):
+        '''
+        fields:
+            noteGetter (function -> list[str]) - a getter function for the latest noteList
+        outputs: none
+
+        Sets the internal noteGetter lambda so it can be called to get the notes whenever needed.
+        '''
+        self.noteGetter = noteGetter
+
+    def setWave(self, waveGetter):
+        '''
+        fields:
+            waveGetter (function -> list[str]) - a getter function for the latest waveMap
+        outputs: none
+
+        Sets the internal waveGetter lambda so it can be called to get the wavemap whenever needed.
+        '''
+        self.waveGetter = waveGetter
 
     def setLinkedPanels(self, panel: frame.Panel):
         '''
@@ -138,19 +166,18 @@ class PitchList(gui.Interactive):
         '''
         Handles pitch list clicks and plays the clicked note.
         '''
-        global viewRow, tileHeight
 
         self.redraw = True
 
         mouseY = pygame.mouse.get_pos()[1]
-        baseRow = int(viewRow)
-        frac = viewRow - baseRow
-        offsetY = (-frac) * tileHeight + self.y
-        rowOffset = floor((mouseY - offsetY) / tileHeight)
+        baseRow = int(viewRow.value)
+        frac = viewRow.value - baseRow
+        offsetY = (-frac) * tileHeight.value + self.y
+        rowOffset = floor((mouseY - offsetY) / tileHeight.value)
         rowIndex = baseRow + rowOffset
 
         note = (-1 - (rowIndex % 12)) + 12 * (7 - rowIndex // 12) + 1
-        sp.playNote(note=note, waves=self.wave, duration=0.2)
+        sp.playNote(note=note, waves=self.waveGetter(), duration=0.2)
         console.log(f"played note {note}")
 
     def calculateDimensions(self, parentDimensions: list[int] | tuple[int]):
@@ -171,25 +198,30 @@ class PitchList(gui.Interactive):
             dom.dirty(self.panel)
 
     def render(self, screen: pygame.Surface, positioning: str = 'relative'):
+        # resolve every externally owned value once for this pass
+        mode = self.modeGetter()
+        key = self.keyGetter()
+        notes = self.noteGetter()
+
         screen.fill(gui.COLOR_BG)
         # split viewRow into a stable integer row index and a fractional scroll offset
         # this avoids floating-point precision issues (e.g. 53.00000000000001)
-        baseRow = int(viewRow)
-        frac = viewRow - baseRow
-        offsetY = (-frac) * tileHeight # calculate the vertical pixel offset caused by partial scrolling
+        baseRow = int(viewRow.value)
+        frac = viewRow.value - baseRow
+        offsetY = (-frac) * tileHeight.value # calculate the vertical pixel offset caused by partial scrolling
         y = 0
         while offsetY < pygame.display.get_window_size()[1]:
             rowIndex = baseRow + y # calculate the absolute row index for this tile
 
-            litRow = ((11 - ((rowIndex + self.key) % 12)) in self.mode)
+            litRow = ((11 - ((rowIndex + key) % 12)) in mode)
 
-            noteToWrite = self.notes[11 - (rowIndex % 12)]
+            noteToWrite = notes[11 - (rowIndex % 12)]
             octaveToWrite = 8 - (rowIndex // 12)
 
-            pygame.draw.rect(screen, gui.COLOR_ALT_BG_4 if litRow else gui.COLOR_ALT_BG_3, (1, offsetY + 1, 78, tileHeight - 2), border_radius=3)
+            pygame.draw.rect(screen, gui.COLOR_ALT_BG_4 if litRow else gui.COLOR_ALT_BG_3, (1, offsetY + 1, 78, tileHeight.value - 2), border_radius=3)
             gui.stamp(screen, f"{noteToWrite} {octaveToWrite}", gui.SUBHEADING1, 5, offsetY + 5, gui.COLOR_TEXT_ALT)
 
-            offsetY += tileHeight
+            offsetY += tileHeight.value
             y += 1
 
 
@@ -200,19 +232,22 @@ class NoteGrid(gui.Interactive):
     '''
     def __init__(self, width, height, name):
         super().__init__(width, height, name)
-        self.noteMap = {}
-        self.color = 0
-        self.colorNames = []  # List of color names in order: ["orange", "purple", "cyan", "lime", "blue", "pink", "all"]
+        # every piece of state below is owned elsewhere; these getters read the live value
+        # so the NoteGrid never holds a stale shadow copy
+        self.noteMapGetter = lambda: {}
+        self.colorGetter = lambda: 0
+        # colour names in order: ["orange", "purple", "cyan", "lime", "blue", "pink", "all"]
+        self.colorNamesGetter = lambda: []
+        self.beatLengthGetter = lambda: 4
+        self.beatsPerMeasureGetter = lambda: 4
+        self.modeGetter = lambda: [0, 2, 4, 6, 7, 9, 11]
+        self.keyGetter = lambda: 3
+
         self.scVel = [0, 0]
-        self.beatLength = 4
-        self.beatsPerMeasure = 4
-        self.mode = [0, 2, 4, 6, 7, 9, 11]
-        self.key = 3
 
         self.selectionRect = None
 
         def changeView(xy):
-            global viewRow, viewCol, tileHeight, tileWidth
             self.redraw = True
 
             self.scVel[0] += xy[0] / 2
@@ -226,8 +261,8 @@ class NoteGrid(gui.Interactive):
                 else:
                     self.scVel[dim] *= 1.03
 
-            if viewCol <= 0:
-                viewCol = 0
+            if viewCol.value <= 0:
+                viewCol.set(0)
             self.viewBounds()
             x, y = xy
 
@@ -235,59 +270,83 @@ class NoteGrid(gui.Interactive):
         self.onHoverScroll(changeView)
 
     def viewBounds(self):
-        global viewRow, viewCol
-        numRowsVisible = self.height / tileHeight
-        if viewRow <= 23:
-            viewRow = 23
-        if viewRow >= 96 - numRowsVisible:
-            viewRow = 96 - numRowsVisible
-        #console.log((viewRow, viewCol))
+        numRowsVisible = self.height / tileHeight.value
+        if viewRow.value <= 23:
+            viewRow.set(23)
+        if viewRow.value >= 96 - numRowsVisible:
+            viewRow.set(96 - numRowsVisible)
+        #console.log((viewRow.value, viewCol.value))
 
-    def setNoteMap(self, noteMap):
+    def setNoteMap(self, noteMapGetter):
         '''
         fields:
-            noteMap (dict) - noteMap passed in
-        
-        Updates the internal noteMap to match the main noteMap.
-        '''
-        self.noteMap = noteMap
-    
-    def setColorNames(self, colorNames):
-        '''
-        fields:
-            colorNames (list) - list of color names in order
-        
-        Sets the color names list for proper color channel lookup.
-        '''
-        self.colorNames = colorNames
+            noteMapGetter (function -> dict) - a getter for the live noteMap
+        outputs: none
 
-    def setIntervals(self, beatLength: int, beatsPerMeasure: int):
+        Sets the internal noteMapGetter lambda so the latest noteMap can be read whenever needed.
         '''
-        fields:
-            interval (number) - interval between light tiles
-        
-        Updates the internal interval to match the main interval.
-        '''
-        self.beatLength = beatLength
-        self.beatsPerMeasure = beatsPerMeasure
+        self.noteMapGetter = noteMapGetter
 
-    def setModeKey(self, mode=None, key=None):
+    def setColor(self, colorGetter):
         '''
         fields:
-            mode (list) - list of which 12TET notes are in the mode
-        
-        Updates the internal interval to match the main interval.
+            colorGetter (function -> int) - a getter for the index of the active color channel
+        outputs: none
+
+        Sets the internal colorGetter lambda so the live color channel can be read whenever needed.
         '''
-        self.mode = mode if mode != None else self.mode
-        self.key = key if key != None else self.key
+        self.colorGetter = colorGetter
+
+    def setColorNames(self, colorNamesGetter):
+        '''
+        fields:
+            colorNamesGetter (function -> list[str]) - a getter for the ordered color name list
+        outputs: none
+
+        Sets the internal colorNamesGetter lambda, used for color channel lookup.
+        '''
+        self.colorNamesGetter = colorNamesGetter
+
+    def setIntervals(self, beatLengthGetter, beatsPerMeasureGetter):
+        '''
+        fields:
+            beatLengthGetter (function -> int) - a getter for the interval between light tiles
+            beatsPerMeasureGetter (function -> int) - a getter for the beats in a measure
+        outputs: none
+
+        Sets the internal interval getters so the live values can be read whenever needed.
+        '''
+        self.beatLengthGetter = beatLengthGetter
+        self.beatsPerMeasureGetter = beatsPerMeasureGetter
+
+    def setMode(self, modeGetter):
+        '''
+        fields:
+            modeGetter (function -> list[int]) - a getter for the 12TET notes in the current mode
+        outputs: none
+
+        Sets the internal modeGetter lambda so the live mode can be read whenever needed.
+        '''
+        self.modeGetter = modeGetter
+
+    def setKey(self, keyGetter):
+        '''
+        fields:
+            keyGetter (function -> int) - a getter for the index of the current key
+        outputs: none
+
+        Sets the internal keyGetter lambda so the live key can be read whenever needed.
+        '''
+        self.keyGetter = keyGetter
 
     def setLinkedPanels(self, panel: frame.Panel, notes: frame.Panel):
         '''
         fields:
             panel (Panel) - the linked NotePanel
             notes (Panel) - the linked PitchPanel
-        
-        Sets the linked panels to be rendered with the NoteGrid is updated.
+
+        Sets the linked panels to be rendered when the NoteGrid is updated. This is a structural
+        link, not a data dependency: the grid is repainted as part of its parent panel's surface.
         '''
         self.panel = panel
         self.notes = notes
@@ -308,21 +367,20 @@ class NoteGrid(gui.Interactive):
             self.surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
     
     def update(self, screen):
-        global viewCol, viewRow
         super().update(screen)
         if self.panel and self.notes and (self.redraw or self.scVel != [0, 0]):
             self.scVel = [self.scVel[0] * 0.94, self.scVel[1] * 0.94]
 
-            viewCol += self.scVel[0] / 24
-            viewRow -= self.scVel[1] / 24
+            viewCol.set(viewCol.value + self.scVel[0] / 24)
+            viewRow.set(viewRow.value - self.scVel[1] / 24)
 
             if abs(self.scVel[0]) < 1:
                 self.scVel[0] = 0
             if abs(self.scVel[1]) < 1:
                 self.scVel[1] = 0
 
-            if viewCol <= 0:
-                viewCol = 0
+            if viewCol.value <= 0:
+                viewCol.set(0)
 
             self.viewBounds()
 
@@ -330,26 +388,35 @@ class NoteGrid(gui.Interactive):
             dom.dirty(self.notes)
     
     def render(self, screen: pygame.Surface, positioning: str = 'relative'):
+        # resolve every externally owned value once for this pass
+        noteMap = self.noteMapGetter()
+        color = self.colorGetter()
+        colorNames = self.colorNamesGetter()
+        beatLength = self.beatLengthGetter()
+        beatsPerMeasure = self.beatsPerMeasureGetter()
+        mode = self.modeGetter()
+        key = self.keyGetter()
+
         self.surface.fill(gui.COLOR_BG)
         # split viewCol into integer column index and fractional scroll offset
-        baseCol = int(viewCol)
-        fracCol = viewCol - baseCol
-        offsetX = (-fracCol) * tileWidth # initial horizontal pixel offset from partial scrolling
+        baseCol = int(viewCol.value)
+        fracCol = viewCol.value - baseCol
+        offsetX = (-fracCol) * tileWidth.value # initial horizontal pixel offset from partial scrolling
         x = 0
         while offsetX < pygame.display.get_window_size()[0]:
             # absolute column index for this tile
             colIndex = baseCol + x
 
-            litColAmount = int(colIndex % self.beatLength == 0) + int(colIndex % (self.beatLength * self.beatsPerMeasure) == 0)
+            litColAmount = int(colIndex % beatLength == 0) + int(colIndex % (beatLength * beatsPerMeasure) == 0)
 
-            baseRow = int(viewRow) # split viewRow into integer row index and fractional scroll offset
-            fracRow = viewRow - baseRow
-            offsetY = (-fracRow) * tileHeight # initial vertical pixel offset from partial scrolling
+            baseRow = int(viewRow.value) # split viewRow into integer row index and fractional scroll offset
+            fracRow = viewRow.value - baseRow
+            offsetY = (-fracRow) * tileHeight.value # initial vertical pixel offset from partial scrolling
             y = 0
             while offsetY < pygame.display.get_window_size()[1]:
                 rowIndex = baseRow + y # absolute row index for this tile
 
-                litRow = ((11 - ((rowIndex + self.key) % 12)) in self.mode)
+                litRow = ((11 - ((rowIndex + key) % 12)) in mode)
 
                 thisColor = gui.COLOR_GRID_BG
                 if not litRow:
@@ -365,38 +432,38 @@ class NoteGrid(gui.Interactive):
                     elif litColAmount == 2:
                         thisColor = gui.COLOR_GRID_LITROW_MEASURE
 
-                pygame.draw.rect(self.surface, thisColor, (offsetX + 1, offsetY + 1, tileWidth - 2, tileHeight - 2), border_radius=3)
+                pygame.draw.rect(self.surface, thisColor, (offsetX + 1, offsetY + 1, tileWidth.value - 2, tileHeight.value - 2), border_radius=3)
 
-                offsetY += tileHeight
+                offsetY += tileHeight.value
                 y += 1
-            offsetX += tileWidth
+            offsetX += tileWidth.value
             x += 1
 
         # render all color channels except the selected one
-        for colorName, colorNotes in self.noteMap.items():
-            try: colorIdx = self.colorNames.index(colorName) if self.colorNames else 0
+        for colorName, colorNotes in noteMap.items():
+            try: colorIdx = colorNames.index(colorName) if colorNames else 0
             except ValueError: continue
             
             # skip rendering the selected color (it will be rendered separately)
-            if self.color != 6 and colorIdx == self.color:
+            if color != 6 and colorIdx == color:
                 continue
             for note in colorNotes:
                 if isinstance(note, Note):
-                    note.render(self.surface, colors[colorIdx] if colorIdx < len(colors) else colors[0], self.color != 6 and self.color != colorIdx, [0,0])
+                    note.render(self.surface, colors[colorIdx] if colorIdx < len(colors) else colors[0], color != 6 and color != colorIdx, [0,0])
                 else:
                     if isinstance(note, dict):
-                        note.render(self.surface, colors[colorIdx] if colorIdx < len(colors) else colors[0], self.color != 6 and self.color != colorIdx, [0,0])
+                        note.render(self.surface, colors[colorIdx] if colorIdx < len(colors) else colors[0], color != 6 and color != colorIdx, [0,0])
 
                     raise ValueError(f'Invalid data type for note: {note.__class__()}')
         
         # Render the selected color channel (if not "all" and it exists)
-        if self.color != 6 and len(self.colorNames) > self.color:
-            selectedColorName = self.colorNames[self.color]
-            if selectedColorName in self.noteMap:
-                colorNotes = self.noteMap[selectedColorName]
+        if color != 6 and len(colorNames) > color:
+            selectedColorName = colorNames[color]
+            if selectedColorName in noteMap:
+                colorNotes = noteMap[selectedColorName]
                 for note in colorNotes:
                     if isinstance(note, Note):
-                        note.render(self.surface, colors[self.color], False)
+                        note.render(self.surface, colors[color], False)
                     else:
                         raise ValueError(f'Invalid data type for note: {note}')
 
@@ -405,11 +472,15 @@ class NoteGrid(gui.Interactive):
 
         super().render(screen, positioning)
 
-class PlayHead():
+class PlayHead(gui.Element):
     '''
-    Class to contain the playhead, which cues music playback and displays it on the screen
+    Class to contain the playhead, which cues music playback and displays it on the screen.
+    It draws straight onto its parent panel's surface, so it is sized 0x0 and kept out of
+    the flexbox via absolute display.
     '''
-    def __init__(self):
+    def __init__(self, name='PlayHead'):
+        super().__init__(0, 0, name, style={"display": "absolute", "offset": [0, 0]})
+
         # playhead properties
         self.time = 0
         self.home = 0
@@ -417,6 +488,7 @@ class PlayHead():
         self.playing = False
         self.lastPlayTime = time.time()
 
+        self.onExitViewCallback = None
         self.panel = None
 
     def setHome(self, home):
@@ -436,6 +508,8 @@ class PlayHead():
         self.panel = panel
     
     def update(self, screen: pygame.Surface):
+        super().update(screen)
+
         if self.playing:
             secondsPassed = time.time() - self.lastPlayTime
             minutesPassed = secondsPassed / 60
@@ -532,9 +606,9 @@ class Note():
     def render(self, screen: pygame.Surface, color: tuple[int, int, int, int], transparent: bool = False): 
         #drawScreen = pygame.Surface(pygame.display.get_window_size(), pygame.SRCALPHA)
         rectCoords = [
-            *convertGridToWorld(self.time, self.pitch, (tileWidth, tileHeight), (viewCol, viewRow)),
-            self.duration * tileWidth,
-            tileHeight
+            *convertGridToWorld(self.time, self.pitch, (tileWidth.value, tileHeight.value), (viewCol.value, viewRow.value)),
+            self.duration * tileWidth.value,
+            tileHeight.value
         ]
         lineCoordsTop = [
             rectCoords[0] + rectCoords[2] - 6,
@@ -555,8 +629,8 @@ class Note():
         pygame.draw.rect(screen, ([100, 100, 100, 255] if transparent else color), rectCoords, border_radius=3)
         pygame.draw.line(screen, ([80, 80, 80, 255] if transparent else [*[min(255, color[a]*0.8) for a in range(3)], 255]),
                          lineCoordsTop, lineCoordsBottom, 2)
-        pygame.draw.line(screen, ([80, 80, 80, 255] if transparent else [*[min(255, color[a]*0.8) for a in range(3)], 255]),
-                         lineCoordsTop2, lineCoordsBottom2, 2)
+        # pygame.draw.line(screen, ([80, 80, 80, 255] if transparent else [*[min(255, color[a]*0.8) for a in range(3)], 255]),
+        #                  lineCoordsTop2, lineCoordsBottom2, 2)
         if self.selected:
             pygame.draw.rect(screen, (255, 255, 255, 255), rectCoords, width=2, border_radius=3)
         #screen.blit(screen, [0, 0])

@@ -168,8 +168,8 @@ fps = 60
 WorldMessage = utils.LightWatchable('')
 questions_url = "https://docs.nimbial.com/symphony/4"
 
-key = 'Eb'
-mode = 'Lydian'
+Key = utils.LightWatchable('Eb')
+Mode = utils.LightWatchable('Lydian')
 Tempo = utils.LightWatchable(360)
 
 play_obj = None # global to hold the last Channel/Sound so it doesn't get garbage-collected
@@ -227,9 +227,9 @@ justColors = [n[1] for n in colorsList]
 justColorNames = [n[0] for n in colorsList]
 
 instrumentTypes = ['square', 'triangle', 'sawtooth', 'piano', 'bells', 'voice']
-instrumentMap = {}
+waveMap = {}
 for index, color in enumerate(colorsList):
-    instrumentMap[color[0]] = 0
+    waveMap[color[0]] = 0
 
 accidentals = "flats"
 head = False
@@ -399,12 +399,12 @@ ToolBar = frame.Panel(
     name="ToolBar"
 )
 
-PitchList = custom.PitchList(width=80, height=height-80, notes=NOTES_FLAT, name='PitchList')
+PitchList = custom.PitchList(width=80, height=height-80, name='PitchList')
 NoteGrid = custom.NoteGrid(width=width-80, height=height-80, name='NoteGrid')
 PlayHead = custom.PlayHead()
 
 def bumpRight():
-    if playing: custom.viewCol += 25
+    if playing: custom.viewCol.set(custom.viewCol.value + 25)
 
 PlayHead.onExitView(bumpRight)
 
@@ -436,8 +436,29 @@ GridPanel = frame.Panel(
     },
     name="GridPanel"
 )
-NoteGrid.setNoteMap(noteMap)
-NoteGrid.setColorNames(justColorNames)
+# every value below is defined in this module; the components read them live through these
+# getters, so they are wired exactly once and never need re-pushing when the value changes
+def getNoteMap(): return noteMap
+def getColorNames(): return justColorNames
+def getColorIndex(): return ColorButton.currentStateIdx
+def getBeatLength(): return BeatLength.value
+def getBeatsPerMeasure(): return BeatsPerMeasure.value
+def getKeyIndex(): return NOTES_SHARP.index(Key.value) if ('#' in Key.value) else NOTES_FLAT.index(Key.value)
+def getModeIntervals(): return modesMap[Mode.value]
+def getPitchListNotes(): return NOTES_FLAT if (AccidentalsButton.currentStateIdx == 0) else NOTES_SHARP
+def getPitchListWave(): return waveMap
+
+NoteGrid.setNoteMap(getNoteMap)
+NoteGrid.setColorNames(getColorNames)
+NoteGrid.setColor(getColorIndex)
+NoteGrid.setIntervals(getBeatLength, getBeatsPerMeasure)
+NoteGrid.setMode(getModeIntervals)
+NoteGrid.setKey(getKeyIndex)
+
+PitchList.setMode(getModeIntervals)
+PitchList.setKey(getKeyIndex)
+PitchList.setNotes(getPitchListNotes)
+PitchList.setWave(getPitchListWave)
 
 MasterPanel = frame.Panel(
     [GridPanel, ToolBar],
@@ -456,10 +477,6 @@ MasterPanel.calculateDimensions([width, height])
 MasterPanel.relativeToScreenSpace([0, 0])
 dom.setZOrderRecursively(MasterPanel)
 
-NoteGrid.setModeKey(key = NOTES_SHARP.index(key) if ('#' in key) else NOTES_FLAT.index(key),
-                    mode = modesMap[mode])
-PitchList.setModeKey(key = NOTES_SHARP.index(key) if ('#' in key) else NOTES_FLAT.index(key),
-                    mode = modesMap[mode])
 
 console.log("Initialized GUI Objects "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
 lastTime = time.time()
@@ -502,7 +519,7 @@ lastTime = time.time()
 
 # Key, Mode
 KeyDropdown.setCurrentState(keyIndex)
-ModeDropdown.setCurrentState(modes.index(mode))
+ModeDropdown.setCurrentState(modes.index(Mode.value))
 
 def playPauseToggle():
     global playing, play_obj, Tempo
@@ -510,7 +527,7 @@ def playPauseToggle():
     PlayPauseButton.cycleStates()
     PlayPauseButton.render(screen, 'screen')
     if playing:
-        play_obj = sp.playFull(noteMap, instrumentMap, PlayHead.time, Tempo.value, volume=0.3,
+        play_obj = sp.playFull(noteMap, waveMap, PlayHead.time, Tempo.value, volume=0.3,
                                channel='all' if ColorButton.currentStateIdx == 6 else ColorButton.currentStateIdx)
         PlayHead.play(Tempo.value)
     else:
@@ -581,18 +598,10 @@ def beatLengthDown():
 BeatLengthUpButton.onMouseClick(beatLengthUp)
 BeatLengthDownButton.onMouseClick(beatLengthDown)
 
-def setNoteGridIntervals():
-    NoteGrid.setIntervals(BeatLength.value, BeatsPerMeasure.value)
-
-NoteGrid.watch([BeatsPerMeasure, BeatLength])
-NoteGrid.onDepChange(setNoteGridIntervals)
-
 # Accidentals Controls
 def toggleAccidentals():
     AccidentalsButton.cycleStates()
     AccidentalsButton.render(screen, 'screen')
-    PitchList.setNotes(NOTES_FLAT if (AccidentalsButton.currentStateIdx == 0) else NOTES_SHARP)
-    PitchPanel.render(screen, 'screen')
     if AccidentalsButton.currentStateIdx == 0: # changed to flats
         KeyDropdown.states = NOTES_FLAT
         KeyDropdown.setCurrentState(keyIndex)
@@ -604,41 +613,29 @@ def toggleAccidentals():
 AccidentalsButton.onMouseClick(toggleAccidentals)
 
 def finalizeKey():
-    global key
-    key = KeyDropdown.currentState
-    NoteGrid.setModeKey(key = KeyDropdown.currentStateIdx)
-    PitchList.setModeKey(key = KeyDropdown.currentStateIdx)
+    global Key
+    Key.value = KeyDropdown.currentState
     psm.pushEditorSnapshotTransaction("CHANGE_KEY", "Change key")
 
 def finalizeMode():
-    global mode
-    mode = ModeDropdown.currentState
-    NoteGrid.setModeKey(mode = modesMap[ModeDropdown.currentState])
-    PitchList.setModeKey(mode = modesMap[ModeDropdown.currentState])
+    global Mode
+    Mode.value = ModeDropdown.currentState
     psm.pushEditorSnapshotTransaction("CHANGE_MODE", "Change mode")
 
 KeyDropdown.onSelect(finalizeKey)
-KeyDropdown.onClose(lambda: MasterPanel.render(screen, 'screen'))
 ModeDropdown.onSelect(finalizeMode)
-ModeDropdown.onClose(lambda: MasterPanel.render(screen, 'screen'))
+
+GridPanel.watch([BeatsPerMeasure, BeatLength, Key, Mode])
 
 def finalizeWave():
-    global instrumentMap
-    instrumentMap[justColorNames[ColorButton.currentStateIdx]] = WaveDropdown.currentStateIdx
-    PitchList.setWave(WaveDropdown.currentStateIdx)
+    global waveMap
+    waveMap[justColorNames[ColorButton.currentStateIdx]] = WaveDropdown.currentStateIdx
     psm.pushEditorSnapshotTransaction("CHANGE_WAVE_TYPE", "Change wave type")
 
 def colorSync():
     if ColorButton.currentStateIdx != 6:
-        WaveDropdown.setCurrentState(instrumentMap[justColorNames[ColorButton.currentStateIdx]])
-        PitchList.setWave(WaveDropdown.currentStateIdx)
-    else:
-        if WaveDropdown.expanded:
-            WaveDropdown.handleClickOut()
+        WaveDropdown.setCurrentState(waveMap[justColorNames[ColorButton.currentStateIdx]])
 
-    ToolBar.render(screen, 'screen')
-    NoteGrid.color = ColorButton.currentStateIdx
-    
     # Clear selections when switching to universal view (channel 6)
     if ColorButton.currentStateIdx == 6:
         for color, notes in noteMap.items():
@@ -727,8 +724,8 @@ def snapshotEditorState():
     '''
     return {
         "noteMap"         : pst.snapshotNoteMapState(noteMap),
-        "waveMap"         : copy.deepcopy(instrumentMap),
-        "Tempo.value"           : int(Tempo.value),
+        "waveMap"         : copy.deepcopy(waveMap),
+        "tempo"           : int(Tempo.value),
         "beatLength"      : int(BeatLength.value),
         "beatsPerMeasure" : int(BeatsPerMeasure.value),
         "key"             : str(KeyDropdown.currentState),
@@ -777,47 +774,34 @@ def applyEditorStateToRuntime(stateSnapshot):
 
     Applies a replayed snapshot to live runtime globals and UI controls.
     '''
-    global noteMap, instrumentMap, Tempo, BeatLength, BeatsPerMeasure, key, mode
+    global noteMap, waveMap, Tempo, BeatLength, BeatsPerMeasure, Key, Mode
     global suspendTransactionCapture
 
     suspendTransactionCapture = True
     try:
         applyNoteMapSnapshot(noteMap, stateSnapshot.get("noteMap", {}))
-        instrumentMap = copy.deepcopy(stateSnapshot.get("waveMap", instrumentMap))
+        waveMap = copy.deepcopy(stateSnapshot.get("waveMap", waveMap))
         Tempo.value = int(stateSnapshot.get("Tempo.value", Tempo.value))
         BeatLength.value = int(stateSnapshot.get("beatLength", BeatLength.value))
         BeatsPerMeasure.value = int(stateSnapshot.get("beatsPerMeasure", BeatsPerMeasure.value))
-        key = stateSnapshot.get("key", key)
-        mode = stateSnapshot.get("mode", mode)
+        Key.value = stateSnapshot.get("key", Key.value)
+        Mode.value = stateSnapshot.get("mode", Mode.value)
 
         accidentalsState = stateSnapshot.get("accidentals", "flats")
         AccidentalsButton.setCurrentState(0 if accidentalsState == "flats" else 1)
-        PitchList.setNotes(NOTES_FLAT if accidentalsState == "flats" else NOTES_SHARP)
         KeyDropdown.states = NOTES_FLAT if accidentalsState == "flats" else NOTES_SHARP
 
         try:
-            keyIdx = KeyDropdown.states.index(key)
+            keyIdx = KeyDropdown.states.index(Key.value)
         except ValueError:
             keyIdx = 0
         KeyDropdown.setCurrentState(keyIdx)
 
-        if mode in modes:
-            ModeDropdown.setCurrentState(modes.index(mode))
+        if Mode.value in modes:
+            ModeDropdown.setCurrentState(modes.index(Mode.value))
 
         ColorButton.setCurrentState(int(stateSnapshot.get("colorIndex", ColorButton.currentStateIdx)))
         WaveDropdown.setCurrentState(int(stateSnapshot.get("waveIndex", WaveDropdown.currentStateIdx)))
-        NoteGrid.color = ColorButton.currentStateIdx
-
-        NoteGrid.setIntervals(BeatLength.value, BeatsPerMeasure.value)
-        NoteGrid.setModeKey(
-            key=NOTES_SHARP.index(key) if ("#" in key) else NOTES_FLAT.index(key),
-            mode=modesMap[mode]
-        )
-        PitchList.setModeKey(
-            key=NOTES_SHARP.index(key) if ("#" in key) else NOTES_FLAT.index(key),
-            mode=modesMap[mode]
-        )
-        PitchList.setWave(WaveDropdown.currentStateIdx)
         colorSync()
         preprocess()
         MasterPanel.render(screen, 'screen')
@@ -870,7 +854,7 @@ def removeAt(time, pitch, color):
     return None
 
 def handleClick():
-    global selectingAnything, draggingSelection, selectionStartPos, dragStartGridPos, drawStartPos, extendingNote, extendStartGridPos, activeBrushNote, head, instrumentMap
+    global selectingAnything, draggingSelection, selectionStartPos, dragStartGridPos, drawStartPos, extendingNote, extendStartGridPos, activeBrushNote, head, waveMap
     if (pygame.mouse.get_pos()[1] < 80) or (pygame.mouse.get_pos()[0] < 80):
         # console.log("click was outside of the notegrid, we don't care")
         return
@@ -922,7 +906,7 @@ def handleClick():
         })
         # Track the note created for this mouse-down so drag only extends this note.
         noteMap[currColorName].append(activeBrushNote)
-        sp.playNote(note=mousePitch, waves=instrumentMap[justColorNames[ColorButton.currentStateIdx]], duration=0.2)
+        sp.playNote(note=mousePitch, waves=waveMap[justColorNames[ColorButton.currentStateIdx]], duration=0.2)
     elif brushType == "eraser":
         notes: list[custom.Note] = noteMap[currColorName]
         removeAt(mouseTime, mousePitch, currColorName)
@@ -951,7 +935,7 @@ def handleClick():
         else:
             clickedNote.select()
             if not extendingNote:
-                sp.playNote(note=clickedNote.pitch, waves=instrumentMap[justColorNames[ColorButton.currentStateIdx]], duration=0.2)
+                sp.playNote(note=clickedNote.pitch, waves=waveMap[justColorNames[ColorButton.currentStateIdx]], duration=0.2)
 
         if extendingNote:
             for note in notes:
@@ -1013,8 +997,8 @@ def handleDrag(xy):
     elif brushType == 'select':
         if extendingNote:
             # EXTEND/RETRACT
-            dx = round(xy[0] / custom.tileWidth)
-            dy = -round(xy[1] / custom.tileHeight)
+            dx = round(xy[0] / custom.tileWidth.value)
+            dy = -round(xy[1] / custom.tileHeight.value)
             pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_SIZEWE)
 
             for note in notes:
@@ -1025,8 +1009,8 @@ def handleDrag(xy):
                     note.duration = note.extendOriginalDuration + dx
         elif draggingSelection:
             # GRID-SNAPPED MOVE
-            dx = round(xy[0] / custom.tileWidth)
-            dy = -round(xy[1] / custom.tileHeight)
+            dx = round(xy[0] / custom.tileWidth.value)
+            dy = -round(xy[1] / custom.tileHeight.value)
 
             for note in notes:
                 if note.selected and note.dragInitialPosition:
@@ -1047,7 +1031,7 @@ def handleDrag(xy):
 
             for note in notes:
                 note_x, note_y = custom.convertGridToWorld(note.time, note.pitch)
-                note_rect = pygame.Rect(note_x, note_y, note.duration * custom.tileWidth, custom.tileHeight)
+                note_rect = pygame.Rect(note_x, note_y, note.duration * custom.tileWidth.value, custom.tileHeight.value)
 
                 if selectionRect.colliderect(note_rect): note.select()
                 elif not pygame.key.get_pressed()[pygame.K_LSHIFT]: note.unselect()
@@ -1170,41 +1154,33 @@ while run:
             console.log(ps)
 
             noteMap : dict[str: list] = ps["noteMap"]
-            instrumentMap = ps["waveMap"]
-            key = ps["key"]
+            waveMap = ps["waveMap"]
+            Key.value = ps["key"]
             BeatLength.value = ps['beatLength']
             BeatsPerMeasure.value = ps['beatsPerMeasure']
-            if "#" in key:
+            if "#" in Key.value:
                 accidentals = "sharps"
                 KeyDropdown.states = NOTES_SHARP
                 AccidentalsButton.setCurrentState(1)
-                PitchList.setNotes(NOTES_SHARP)
-            elif "b" in key:
+            elif "b" in Key.value:
                 accidentals = "flats"
                 KeyDropdown.states = NOTES_FLAT
                 AccidentalsButton.setCurrentState(0)
-                PitchList.setNotes(NOTES_FLAT)
             try:
-                keyIndex = KeyDropdown.states.index(key)
+                keyIndex = KeyDropdown.states.index(Key.value)
             except ValueError:
                 keyIndex = 0
-            mode = ps["mode"]
+            Mode.value = ps["mode"]
             Tempo.value = ps["tpm"]
             projectMeta = copy.deepcopy(ps["meta"])
 
-            NoteGrid.setModeKey(key = NOTES_SHARP.index(key) if ('#' in key) else NOTES_FLAT.index(key),
-                        mode = modesMap[mode])
-            PitchList.setModeKey(key = NOTES_SHARP.index(key) if ('#' in key) else NOTES_FLAT.index(key),
-                        mode = modesMap[mode])
             KeyDropdown.setCurrentState(keyIndex)
-            ModeDropdown.setCurrentState(modes.index(mode))
-            NoteGrid.setIntervals(BeatLength.value, BeatsPerMeasure.value)
+            ModeDropdown.setCurrentState(modes.index(Mode.value))
             
             # Initialize view position and color channel when opening GUI
-            custom.viewRow = 50
-            custom.viewCol = 0
+            custom.viewRow.set(50)
+            custom.viewCol.set(0)
             ColorButton.setCurrentState(0)
-            NoteGrid.color = 0
             
             # On macOS, show the hidden window; on other platforms, reinitialize
             if platform == 'mac' and pygame.display.get_init():
@@ -1257,12 +1233,11 @@ while run:
                 WorldMessage.value = fio.dumpToFile(
                                         workingFile  = working_file_path,
                                         destFile     = working_file_path,
-                                        programState = sl.newProgramState(key, mode, Tempo.value, noteMap, instrumentMap, BeatLength.value, BeatsPerMeasure.value, meta=projectMeta),
+                                        programState = sl.newProgramState(Key.value, Mode.value, Tempo.value, noteMap, waveMap, BeatLength.value, BeatsPerMeasure.value, meta=projectMeta),
                                         autoSave     = autoSave,
                                         titleText    = title_text,
                                         sessionID    = sessionID)
 
-            NoteGrid.setNoteMap(noteMap)
             try:
                 MasterPanel.update(screen)
                 for event in events.get():
@@ -1309,12 +1284,13 @@ while run:
                                 psm.pushEditorSnapshotTransaction("CHANGE_COLOR", "Change color channel")
                     if event.key in [pygame.K_MINUS, pygame.K_EQUALS]: # zoom out horizontally
                         if pygame.key.get_pressed()[CMD_KEY]:
-                            zoomIndex = zoomDimensions.index((custom.tileWidth, custom.tileHeight))
+                            zoomIndex = zoomDimensions.index((custom.tileWidth.value, custom.tileHeight.value))
                             if event.key == pygame.K_MINUS:
                                 zoomIndex = max(zoomIndex - 1, 0)
                             elif event.key == pygame.K_EQUALS:
                                 zoomIndex = min(zoomIndex + 1, len(zoomDimensions) - 1)
-                            custom.tileWidth, custom.tileHeight = zoomDimensions[zoomIndex]
+                            custom.tileWidth.set(zoomDimensions[zoomIndex][0])
+                            custom.tileHeight.set(zoomDimensions[zoomIndex][1])
                             GridPanel.render(screen, 'screen')
                     if event.key == pygame.K_BACKSPACE or event.key == pygame.K_DELETE: # Delete all selected notes
                         beforeDelete = snapshotEditorState()
@@ -1352,7 +1328,7 @@ while run:
                             WorldMessage.value = fio.dumpToFile(
                                 workingFile  = working_file_path,
                                 destFile     = working_file_path,
-                                programState = sl.newProgramState(key, mode, Tempo.value, noteMap, instrumentMap, BeatLength.value, BeatsPerMeasure.value, meta=projectMeta),
+                                programState = sl.newProgramState(Key.value, Mode.value, Tempo.value, noteMap, waveMap, BeatLength.value, BeatsPerMeasure.value, meta=projectMeta),
                                 autoSave     = autoSave,
                                 titleText    = title_text,
                                 sessionID    = sessionID)
@@ -1387,7 +1363,7 @@ while run:
     WorldMessage.value = fio.dumpToFile(
         workingFile  = working_file_path,
         destFile     = working_file_path,
-        programState = sl.newProgramState(key, mode, Tempo.value, noteMap, instrumentMap, BeatLength.value, BeatsPerMeasure.value, meta=projectMeta),
+        programState = sl.newProgramState(Key.value, Mode.value, Tempo.value, noteMap, waveMap, BeatLength.value, BeatsPerMeasure.value, meta=projectMeta),
         autoSave     = autoSave,
         titleText    = title_text,
         sessionID    = sessionID)

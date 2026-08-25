@@ -4,6 +4,8 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import copy
 import pygame
 from math import *
@@ -14,7 +16,10 @@ import random
 from console_controls.console import *
 import sound.sound_processing as sp
 import gui.element.base_element as gui
-import gui.frame as frame
+# `gui.frame` imports this module's dependency chain, so it is imported lazily
+# inside the functions that need it to avoid a circular import at load time.
+if TYPE_CHECKING:
+    import gui.frame as frame
 from utils.util import dedup
 import events
 
@@ -27,14 +32,15 @@ SM_ROUND = 2
 Z_INDEX = 0
 
 MASTER_PANEL = None
-DIRTY_ELEMENTS: list[gui.Element | frame.Panel] = []
-DAMAGED_ELEMENTS: list[gui.Element | frame.Panel] = []
+DIRTY_ELEMENTS: list[gui.Component] = []
+DAMAGED_ELEMENTS: list[gui.Component] = []
 
 def init(masterPanel: frame.Panel):
     global MASTER_PANEL
     MASTER_PANEL = masterPanel
 
-def setZOrderRecursively(curr: frame.Panel | gui.Element):
+def setZOrderRecursively(curr: gui.Component):
+    import gui.frame as frame
     global Z_INDEX
     curr.z = Z_INDEX
     Z_INDEX += 1
@@ -58,11 +64,12 @@ def damageClippingAbovePanelsRecursively(
 
     Recursively damages the elements that clip an element and sit above it in the DOM.
     '''
+    import gui.frame as frame
     global DAMAGED_ELEMENTS
 
     for el in currPanel.elements:
         # if we've already reached the damaged panel, damage any overlapping panels
-        if isAbove and (isinstance(el, gui.Element) or isinstance(el, frame.Panel)):
+        if isAbove and isinstance(el, gui.Component):
             if damageRect.colliderect((el.x, el.y, el.width, el.height)):
                 if el.domStatus != 'dirty':
                     el.damage(damageRect)
@@ -82,14 +89,13 @@ def damageClippingAbovePanelsRecursively(
 
     return isAbove
 
-def dirty(element: gui.Element | frame.Panel):
+def dirty(component: gui.Component):
     global DIRTY_ELEMENTS
-    DIRTY_ELEMENTS.append(element)
+    DIRTY_ELEMENTS.append(component)
 
-    # el = self._searchForElementRecursively(elementName, self.masterPanel)
-    element.dirty()
-    damageRect = pygame.Rect(element.x, element.y, element.width, element.height)
-    damageClippingAbovePanelsRecursively(damageRect, MASTER_PANEL, element.name, False)
+    component.dirty()
+    damageRect = pygame.Rect(component.x, component.y, component.width, component.height)
+    damageClippingAbovePanelsRecursively(damageRect, MASTER_PANEL, component.name, False)
 
 def flip(screen):
     '''

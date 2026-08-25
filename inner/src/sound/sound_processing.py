@@ -248,7 +248,7 @@ def playFull(noteMap, waveMap, playhead=0, tpm=360, volume=0.2, sample_rate=SAMP
         volume (float) - output volume\n
         sample_rate (int) - audio sample rate\n
         channel (str | int) - which channel to play\n
-    outputs: nothing (plays sound)
+    outputs: sound object, and plays sound
 
     Creates the full sound as a buffer then plays it.
     '''

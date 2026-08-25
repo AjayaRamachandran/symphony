@@ -40,6 +40,8 @@ class Label(Element):
         self.disabled = disabled
 
     def update(self, screen):
+        super().update(screen)
+
         if self.redraw and not self.disabled:
             dom.dirty(self)
     
