@@ -30,7 +30,7 @@ lastTime = time.time()
 ###### INTERNAL MODULES ######
 
 import events
-import gui.element as gui
+import gui.element as element
 import gui.frame as frame
 import gui.custom as custom
 import gui.dom as dom
@@ -240,7 +240,7 @@ BeatLength = utils.LightWatchable(4)
 BeatsPerMeasure = utils.LightWatchable(4)
 
 mainFont = f'{source_path}/assets/InterVariable.ttf'
-gui.init(source_path)
+element.init(source_path)
 ins.init(source_path)
 
 zoomDimensions = [
@@ -260,14 +260,14 @@ zoomDimensions = [
 # SMALL_SPACE = 6
 # PADDING = 26
 
-PlayPauseButton = gui.Button(width=28, height=28, states=[playImage, pauseImage], name='PlayPauseButton')
-AccidentalsButton = gui.Button(width=28, height=28, states=[flatsImage, sharpsImage], name='AccidentalsButton')
-PlayheadButton = gui.Button(width=28, height=28, states=[headImage, headAltImage], name='PlayheadButton')
-BrushButton = gui.Button(width=28, height=28, states=[brushImage, eraserImage, selectImage], name='BrushButton')
+PlayPauseButton = element.Button(width=28, height=28, states=[playImage, pauseImage], name='PlayPauseButton')
+AccidentalsButton = element.Button(width=28, height=28, states=[flatsImage, sharpsImage], name='AccidentalsButton')
+PlayheadButton = element.Button(width=28, height=28, states=[headImage, headAltImage], name='PlayheadButton')
+BrushButton = element.Button(width=28, height=28, states=[brushImage, eraserImage, selectImage], name='BrushButton')
 ControlButtons = frame.Panel(
     [PlayPauseButton, AccidentalsButton, PlayheadButton, BrushButton],
     style={
-        background : gui.COLOR_BORDER,
+        background : element.COLOR_BORDER,
         rounding : 3,
         gap : 1,
         padding: 1,
@@ -275,14 +275,14 @@ ControlButtons = frame.Panel(
     name="ControlButtons"
 )
 
-BeatLengthDownButton = gui.Button(width=20, height=28, states=[downChevronImage], name='BeatLengthDownButton')
-BeatLengthTextBox = gui.TextBox(width=90, height=28, suffix='tiles', name='BeatLengthTextBox')
+BeatLengthDownButton = element.Button(width=20, height=28, states=[downChevronImage], name='BeatLengthDownButton')
+BeatLengthTextBox = element.TextBox(width=90, height=28, suffix='tiles', name='BeatLengthTextBox')
 BeatLengthTextBox.linkToValue(BeatLength)
-BeatLengthUpButton = gui.Button(width=20, height=28, states=[upChevronImage], name='BeatLengthUpButton')
+BeatLengthUpButton = element.Button(width=20, height=28, states=[upChevronImage], name='BeatLengthUpButton')
 BeatLengthControls = frame.Panel(
     [BeatLengthDownButton, BeatLengthTextBox, BeatLengthUpButton],
     style={
-        background : gui.COLOR_BORDER,
+        background : element.COLOR_BORDER,
         rounding : 3,
         gap : 1,
         padding: 1,
@@ -290,14 +290,14 @@ BeatLengthControls = frame.Panel(
     name="BeatLengthControls"
 )
 
-BeatsPerMeasureUpButton = gui.Button(width=20, height=28, states=[upChevronImage], name='BeatsPerMeasureUpButton')
-BeatsPerMeasureTextBox = gui.TextBox(width=90, height=28, suffix='beats', name='BeatsPerMeasureTextBox')
+BeatsPerMeasureUpButton = element.Button(width=20, height=28, states=[upChevronImage], name='BeatsPerMeasureUpButton')
+BeatsPerMeasureTextBox = element.TextBox(width=90, height=28, suffix='beats', name='BeatsPerMeasureTextBox')
 BeatsPerMeasureTextBox.linkToValue(BeatsPerMeasure)
-BeatsPerMeasureDownButton = gui.Button(width=20, height=28, states=[downChevronImage], name='BeatsPerMeasureDownButton')
+BeatsPerMeasureDownButton = element.Button(width=20, height=28, states=[downChevronImage], name='BeatsPerMeasureDownButton')
 BeatsPerMeasureControls = frame.Panel(
     [BeatsPerMeasureDownButton, BeatsPerMeasureTextBox, BeatsPerMeasureUpButton],
     style={
-        background : gui.COLOR_BORDER,
+        background : element.COLOR_BORDER,
         rounding : 3,
         gap : 1,
         padding: 1,
@@ -313,14 +313,14 @@ LeftToolbar = frame.Panel(
     name="LeftToolbar"
 )
 
-TempoDownButton = gui.Button(width=20, height=28, states=[downChevronImage], name='TempoDownButton')
-TempoTextBox = gui.TextBox(width=120, height=28, suffix='tiles/min', name='TempoTextBox')
+TempoDownButton = element.Button(width=20, height=28, states=[downChevronImage], name='TempoDownButton')
+TempoTextBox = element.TextBox(width=120, height=28, suffix='tiles/min', name='TempoTextBox')
 TempoTextBox.linkToValue(Tempo)
-TempoUpButton = gui.Button(width=20, height=28, states=[upChevronImage], name='TempoUpButton')
+TempoUpButton = element.Button(width=20, height=28, states=[upChevronImage], name='TempoUpButton')
 TempoControls = frame.Panel(
     elements=[TempoDownButton, TempoTextBox, TempoUpButton],
     style={
-        background : gui.COLOR_BORDER,
+        background : element.COLOR_BORDER,
         rounding : 3,
         gap : 1,
         padding: 1,
@@ -328,12 +328,12 @@ TempoControls = frame.Panel(
     name="TempoControls"
 )
 
-ColorButton = gui.Button(width=28, height=28, states=custom.getColorStates(28, 28, source_path), name='ColorButton')
-WaveDropdown = gui.Dropdown(width=64, height=28, states=instrumentImages, image=upDownChevronImage, name='WaveDropdown')
+ColorButton = element.Button(width=28, height=28, states=custom.getColorStates(28, 28, source_path), name='ColorButton')
+WaveDropdown = element.Dropdown(width=64, height=28, states=instrumentImages, image=upDownChevronImage, name='WaveDropdown')
 WaveControls = frame.Panel(
     [ColorButton, WaveDropdown],
     style={
-        background : gui.COLOR_BORDER,
+        background : element.COLOR_BORDER,
         rounding : 3,
         gap : 1,
         padding: 1,
@@ -341,12 +341,12 @@ WaveControls = frame.Panel(
     name="WaveControls"
 )
 
-KeyDropdown = gui.Dropdown(width=60, height=28, states=NOTES_FLAT, image=upDownChevronImage, name='KeyDropdown')
-ModeDropdown = gui.Dropdown(width=140, height=28, states=modes, image=upDownChevronImage, name='ModeDropdown')
+KeyDropdown = element.Dropdown(width=60, height=28, states=NOTES_FLAT, image=upDownChevronImage, name='KeyDropdown')
+ModeDropdown = element.Dropdown(width=140, height=28, states=modes, image=upDownChevronImage, name='ModeDropdown')
 KeySignatureControls = frame.Panel(
     [KeyDropdown, ModeDropdown],
     style={
-        background : gui.COLOR_BORDER,
+        background : element.COLOR_BORDER,
         rounding : 3,
         gap : 1,
         padding: 1, 
@@ -354,11 +354,11 @@ KeySignatureControls = frame.Panel(
     name="KeySignatureControls"
 )
 
-QuestionButton = gui.Button(width=28, height=28, states=[questionImage], name='QuestionButton')
+QuestionButton = element.Button(width=28, height=28, states=[questionImage], name='QuestionButton')
 QuestionButtonPanel = frame.Panel(
     [QuestionButton],
     style={
-        background : gui.COLOR_BORDER,
+        background : element.COLOR_BORDER,
         rounding : 3,
         gap : 1,
         padding: 1, 
@@ -374,7 +374,7 @@ RightToolbar = frame.Panel(
     name="RightToolbar"
 )
 
-WorldMessageLabel = gui.Label(width=width, height=20, text=WorldMessage, name='WorldMessage')
+WorldMessageLabel = element.Label(width=width, height=20, text=WorldMessage, name='WorldMessage')
 MessagePanel = frame.Panel(
     [WorldMessageLabel],
     style={
@@ -386,7 +386,7 @@ MessagePanel = frame.Panel(
 ToolBar = frame.Panel(
     [LeftToolbar, RightToolbar, MessagePanel],
     style={
-        background : gui.COLOR_BG,
+        background : element.COLOR_BG,
         border : (0, 0, 1, 0),
         borderColor : (255, 0, 0, 0),
         display : "fixed",
@@ -411,7 +411,7 @@ PlayHead.onExitView(bumpRight)
 NotePanel = frame.Panel(
     elements=[NoteGrid, PlayHead],
     style={
-        background : gui.COLOR_BG,
+        background : element.COLOR_BG,
         sizing: ['fill', 'fill']
     },
     name="NotePanel"
@@ -420,7 +420,7 @@ PlayHead.setLinkedPanel(NotePanel)
 PitchPanel = frame.Panel(
     elements=[PitchList],
     style={
-        background : gui.COLOR_BG,
+        background : element.COLOR_BG,
         sizing: [80, 'fill']
     },
     name="PitchPanel"
@@ -463,7 +463,7 @@ PitchList.setWave(getPitchListWave)
 MasterPanel = frame.Panel(
     [GridPanel, ToolBar],
     style={
-        background : gui.COLOR_BG,
+        background : element.COLOR_BG,
         sizing: ["fill", "fill"],
         padding: [80, 0, 0, 0]
     },
@@ -652,7 +652,6 @@ def cycleColor():
         psm.pushEditorSnapshotTransaction("CHANGE_COLOR", "Change color channel")
 
 WaveDropdown.onSelect(finalizeWave)
-WaveDropdown.onClose(lambda: MasterPanel.render(screen, 'screen'))
 ColorButton.onMouseClick(cycleColor)
 QuestionButton.onMouseClick(lambda: webbrowser.open(questions_url))
 

@@ -2,7 +2,7 @@
 # package that exposes the gui element classes and the shared element helpers.
 
 import gui.element.base_element as base_element
-from gui.element.base_element import Component, Element
+from gui.element.base_element import Element, Element
 from gui.element.base_interactive import Interactive
 from gui.element.button import Button
 from gui.element.dropdown import Dropdown

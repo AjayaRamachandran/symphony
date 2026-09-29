@@ -10,8 +10,8 @@ from math import *
 ###### INTERNAL MODULES ######
 
 import gui.element.base_element as base
-from gui.element.base_element import stamp
-from gui.element.base_interactive import Interactive
+from gui.element.base_element import *
+from gui.element.base_interactive import *
 from gui.element.colors import *
 
 import gui.dom as dom
@@ -27,7 +27,7 @@ class TextBox(Interactive):
     *Note*: TextBoxes can only have one linkedValue, but they can watch as many values as needed.
     '''
     def __init__(self, width, height, suffix: str, font: pygame.font.Font | None = None, name=''):
-        super().__init__(width, height, name)
+        super().__init__(width, height, name=name)
 
         # text box properties
         self.linkedValue: utils.Watchable | None = None
@@ -36,7 +36,7 @@ class TextBox(Interactive):
         self.temporaryText: str = ''
         self.inputRestrict = None
         self.stateRestrict = None
-        self.font = font if (font != None) else base.SUBHEADING1
+        self.font = font if font else base.SUBHEADING1
         self.suffix = suffix
         self.selected = False
         self.focus = None

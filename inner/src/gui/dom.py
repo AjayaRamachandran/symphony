@@ -32,14 +32,14 @@ SM_ROUND = 2
 Z_INDEX = 0
 
 MASTER_PANEL = None
-DIRTY_ELEMENTS: list[gui.Component] = []
-DAMAGED_ELEMENTS: list[gui.Component] = []
+DIRTY_ELEMENTS: list[gui.Element] = []
+DAMAGED_ELEMENTS: list[gui.Element] = []
 
 def init(masterPanel: frame.Panel):
     global MASTER_PANEL
     MASTER_PANEL = masterPanel
 
-def setZOrderRecursively(curr: gui.Component):
+def setZOrderRecursively(curr: gui.Element):
     import gui.frame as frame
     global Z_INDEX
     curr.z = Z_INDEX
@@ -69,7 +69,7 @@ def damageClippingAbovePanelsRecursively(
 
     for el in currPanel.elements:
         # if we've already reached the damaged panel, damage any overlapping panels
-        if isAbove and isinstance(el, gui.Component):
+        if isAbove and isinstance(el, gui.Element):
             if damageRect.colliderect((el.x, el.y, el.width, el.height)):
                 if el.domStatus != 'dirty':
                     el.damage(damageRect)
@@ -89,13 +89,13 @@ def damageClippingAbovePanelsRecursively(
 
     return isAbove
 
-def dirty(component: gui.Component):
+def dirty(el: gui.Element):
     global DIRTY_ELEMENTS
-    DIRTY_ELEMENTS.append(component)
+    DIRTY_ELEMENTS.append(el)
 
-    component.dirty()
-    damageRect = pygame.Rect(component.x, component.y, component.width, component.height)
-    damageClippingAbovePanelsRecursively(damageRect, MASTER_PANEL, component.name, False)
+    el.dirty()
+    damageRect = pygame.Rect(el.x, el.y, el.width, el.height)
+    damageClippingAbovePanelsRecursively(damageRect, MASTER_PANEL, el.name, False)
 
 def flip(screen):
     '''

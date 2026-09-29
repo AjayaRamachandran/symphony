@@ -22,21 +22,20 @@ DRAG_THRESHOLD = 2
 LG_ROUND = 10
 SM_ROUND = 2
 
-class Panel(gui.Component):
+class Panel(gui.Element):
     '''
     Rectangular component that can render as a surface and hold other components within it.
-    Geometry, damage tracking, and dependency watching all come from Component.
+    Geometry, damage tracking, and dependency watching all come from Element.
     '''
-    def __init__(self, elements: list[gui.Component], style: dict = {}, name: str = ""):
-        super().__init__(0, 0, style, name)
-        self.elements: list[gui.Component] = elements
-        self.selfRender = None
+    def __init__(self, elements: list[gui.Element], style: dict = {}, name: str = ""):
+        super().__init__(1, 1, style, name)
+        self.elements: list[gui.Element] = elements
         self.debug = [random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)]
 
-    def addElement(self, el: gui.Component):
+    def addElement(self, el: gui.Element):
         '''
         fields:
-            el (gui.Component) - component to add to list
+            el (gui.Element) - component to add to list
         
         Adds an element or panel to the list of objects stored within this panel.
         '''
@@ -90,7 +89,7 @@ class Panel(gui.Component):
             "fit" if tempSizing[0] == "fit" else max(0, (parentDimensions[0] if tempSizing[0] == "fill" else tempSizing[0]) - padX),
             "fit" if tempSizing[1] == "fit" else max(0, (parentDimensions[1] if tempSizing[1] == "fill" else tempSizing[1]) - padY),
         ]
-        validElements = [el for el in self.elements if isinstance(el, gui.Component)]
+        validElements = [el for el in self.elements if isinstance(el, gui.Element)]
         for el in validElements:
             if isinstance(el, Panel):
                 el.calculateDimensions(effectiveDimensions)
@@ -125,8 +124,7 @@ class Panel(gui.Component):
                 el.calculateDimensions([self.width, self.height])
 
         # if the panel has no surface yet, or it does not match its new dimensions, (re)build it.
-        if self.surface is None or self.surface.get_size() != (self.width, self.height):
-            self.surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+        self.rebuildSurface()
 
         # UPDATE THE *POSITIONS* OF EVERY CHILD ELEMENT
         contentWidth = self.width - paddingR - paddingL
@@ -175,7 +173,7 @@ class Panel(gui.Component):
             runningOffset (list<int, int>) - screen-space origin of this element's content box
         outputs: nothing
         '''
-        validElements = [el for el in self.elements if isinstance(el, gui.Component)]
+        validElements = [el for el in self.elements if isinstance(el, gui.Element)]
         for el in validElements:
             if el.display == "fixed":
                 fixedOffset = el.style.get("offset", [0, 0])
@@ -194,7 +192,7 @@ class Panel(gui.Component):
         outputs: nothing
 
         Informs all children to update (poll for changes), then polls this panel's own
-        watched dependencies. Components automatically queue themselves to render if there
+        watched dependencies. Elements automatically queue themselves to render if there
         is need for it. ("self-awareness")
 
         Ex. hovering over a button should only make that button re-render with tint.
@@ -281,6 +279,6 @@ class Panel(gui.Component):
         for el in self.elements:
             if isinstance(el, Panel):
                 el.visualizeHierarchy(nestLevel+1)
-            elif isinstance(el, gui.Component):
+            elif isinstance(el, gui.Element):
                 console.warn(prefix + '    ' + f'<{el.__str__()} />')
         console.warn(prefix + f'</{self.__str__()}>')

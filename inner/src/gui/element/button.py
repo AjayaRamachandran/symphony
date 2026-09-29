@@ -10,8 +10,8 @@ from math import *
 ###### INTERNAL MODULES ######
 
 import gui.element.base_element as base
-from gui.element.base_element import stamp
-from gui.element.base_interactive import Interactive
+from gui.element.base_element import *
+from gui.element.base_interactive import *
 from gui.element.colors import *
 
 import gui.dom as dom
@@ -24,7 +24,7 @@ class Button(Interactive):
     Class to contain buttons, which inherit an interactive, having states and fully customizable function.
     '''
     def __init__(self, width, height, states: list, font: pygame.font.Font | None = None, name=''):
-        super().__init__(width, height, name)
+        super().__init__(width, height, name=name)
 
         # button properties
         self.states = states

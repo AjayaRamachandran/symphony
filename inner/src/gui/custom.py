@@ -12,7 +12,7 @@ from math import *
 ###### INTERNAL MODULES ######
 
 from console_controls.console import *
-import gui.element as gui
+import gui.element as element
 import gui.frame as frame
 import sound.sound_processing as sp
 import gui.dom as dom
@@ -42,10 +42,10 @@ def getColorStates(width, height, source_path):
     for idx, color in enumerate(colors):
         surf = pygame.Surface((width, height), pygame.SRCALPHA)
         pygame.draw.rect(surf, color, (0, 0, width, height), border_radius=3)
-        gui.stamp(surf, str(idx + 1), gui.SUBHEADING1, width/2, height/2, gui.COLOR_BG, justification='center')
+        element.stamp(surf, str(idx + 1), element.SUBHEADING1, width/2, height/2, element.COLOR_BG, justification='center')
         outputs.append(surf)
     
-    gui.stamp(rainbowImage, '7', gui.SUBHEADING1, rainbowImage.get_width()/2, rainbowImage.get_height()/2, gui.COLOR_BG, justification='center')
+    element.stamp(rainbowImage, '7', element.SUBHEADING1, rainbowImage.get_width()/2, rainbowImage.get_height()/2, element.COLOR_BG, justification='center')
     outputs.append(rainbowImage)
     return outputs
 
@@ -95,12 +95,12 @@ def convertWorldToGrid(mousePos, tileSize: tuple[int | float, int | float] | Non
 
 ###### CLASSES ######
 
-class PitchList(gui.Interactive):
+class PitchList(element.Interactive):
     '''
     Class that manages the Pitch list on the left side of the screen, and how it plays back notes.
     '''
     def __init__(self, width, height, name):
-        super().__init__(width, height, name)
+        super().__init__(width, height, name=name)
 
         # every piece of state below is owned elsewhere; these getters read the live value
         # so the PitchList never holds a stale shadow copy
@@ -203,7 +203,7 @@ class PitchList(gui.Interactive):
         key = self.keyGetter()
         notes = self.noteGetter()
 
-        screen.fill(gui.COLOR_BG)
+        screen.fill(element.COLOR_BG)
         # split viewRow into a stable integer row index and a fractional scroll offset
         # this avoids floating-point precision issues (e.g. 53.00000000000001)
         baseRow = int(viewRow.value)
@@ -218,20 +218,20 @@ class PitchList(gui.Interactive):
             noteToWrite = notes[11 - (rowIndex % 12)]
             octaveToWrite = 8 - (rowIndex // 12)
 
-            pygame.draw.rect(screen, gui.COLOR_ALT_BG_4 if litRow else gui.COLOR_ALT_BG_3, (1, offsetY + 1, 78, tileHeight.value - 2), border_radius=3)
-            gui.stamp(screen, f"{noteToWrite} {octaveToWrite}", gui.SUBHEADING1, 5, offsetY + 5, gui.COLOR_TEXT_ALT)
+            pygame.draw.rect(screen, element.COLOR_ALT_BG_4 if litRow else element.COLOR_ALT_BG_3, (1, offsetY + 1, 78, tileHeight.value - 2), border_radius=3)
+            element.stamp(screen, f"{noteToWrite} {octaveToWrite}", element.SUBHEADING1, 5, offsetY + 5, element.COLOR_TEXT_ALT)
 
             offsetY += tileHeight.value
             y += 1
 
 
 
-class NoteGrid(gui.Interactive):
+class NoteGrid(element.Interactive):
     '''
     Class that manages interactivity of the note grid, and renders the note elements.
     '''
     def __init__(self, width, height, name):
-        super().__init__(width, height, name)
+        super().__init__(width, height, name=name)
         # every piece of state below is owned elsewhere; these getters read the live value
         # so the NoteGrid never holds a stale shadow copy
         self.noteMapGetter = lambda: {}
@@ -397,7 +397,7 @@ class NoteGrid(gui.Interactive):
         mode = self.modeGetter()
         key = self.keyGetter()
 
-        self.surface.fill(gui.COLOR_BG)
+        self.surface.fill(element.COLOR_BG)
         # split viewCol into integer column index and fractional scroll offset
         baseCol = int(viewCol.value)
         fracCol = viewCol.value - baseCol
@@ -418,19 +418,19 @@ class NoteGrid(gui.Interactive):
 
                 litRow = ((11 - ((rowIndex + key) % 12)) in mode)
 
-                thisColor = gui.COLOR_GRID_BG
+                thisColor = element.COLOR_GRID_BG
                 if not litRow:
                     if litColAmount == 1:
-                        thisColor = gui.COLOR_GRID_BG_BEAT
+                        thisColor = element.COLOR_GRID_BG_BEAT
                     elif litColAmount == 2:
-                        thisColor = gui.COLOR_GRID_BG_MEASURE
+                        thisColor = element.COLOR_GRID_BG_MEASURE
                 else:
                     if litColAmount == 0:
-                        thisColor = gui.COLOR_GRID_LITROW
+                        thisColor = element.COLOR_GRID_LITROW
                     elif litColAmount == 1:
-                        thisColor = gui.COLOR_GRID_LITROW_BEAT
+                        thisColor = element.COLOR_GRID_LITROW_BEAT
                     elif litColAmount == 2:
-                        thisColor = gui.COLOR_GRID_LITROW_MEASURE
+                        thisColor = element.COLOR_GRID_LITROW_MEASURE
 
                 pygame.draw.rect(self.surface, thisColor, (offsetX + 1, offsetY + 1, tileWidth.value - 2, tileHeight.value - 2), border_radius=3)
 
@@ -472,14 +472,14 @@ class NoteGrid(gui.Interactive):
 
         super().render(screen, positioning)
 
-class PlayHead(gui.Element):
+class PlayHead(element.Element):
     '''
     Class to contain the playhead, which cues music playback and displays it on the screen.
     It draws straight onto its parent panel's surface, so it is sized 0x0 and kept out of
     the flexbox via absolute display.
     '''
     def __init__(self, name='PlayHead'):
-        super().__init__(0, 0, name, style={"display": "absolute", "offset": [0, 0]})
+        super().__init__(0, 0, name=name, style={"display": "absolute", "offset": [0, 0]})
 
         # playhead properties
         self.time = 0

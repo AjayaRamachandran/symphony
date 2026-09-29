@@ -9,7 +9,8 @@ from math import *
 
 ###### INTERNAL MODULES ######
 
-from gui.element.base_element import Element, mouseBounds, DRAG_THRESHOLD
+import gui.element.base_element
+from gui.element.base_element import *
 
 from console_controls.console import *
 import events
@@ -22,7 +23,7 @@ class Interactive(Element):
     '''
 
     def __init__(self, width, height, name):
-        super().__init__(width, height, name)
+        super().__init__(width, height, name=name)
 
         # clickable properties
         self.mouseAlrDown = False

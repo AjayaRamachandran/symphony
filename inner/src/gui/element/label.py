@@ -10,7 +10,7 @@ from math import *
 ###### INTERNAL MODULES ######
 
 import gui.element.base_element as base
-from gui.element.base_element import Element, stamp
+from gui.element.base_element import *
 from gui.element.colors import *
 
 import gui.dom as dom
@@ -24,7 +24,7 @@ class Label(Element):
     Class to contain labels, which inherit an element, having a text and a font.
     '''
     def __init__(self, width, height, text = '', font: pygame.font.Font | None = None, name=''):
-        super().__init__(width, height, name)
+        super().__init__(width, height, name=name)
 
         # label properties
         self.text = text

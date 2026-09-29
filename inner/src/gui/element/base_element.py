@@ -116,13 +116,13 @@ def unselectTextBoxes(globalTextBoxes):
 
 ###### CLASSES ######
 
-class Component():
+class Element():
     '''
-    Shared base for object in the DOM: damaging, style, dependency watching, etc.
-    Both Element and Panel inherit from this.
+    Base for object in the DOM: damaging, style, dependency watching, etc.
+    Panel inherits from this.
     '''
 
-    def __init__(self, width: int = 0, height: int = 0, style: dict | None = None, name: str = ''):
+    def __init__(self, width: int = 0, height: int = 0, style: dict | None = {}, name: str = ''):
         self.name = name
         self.style = style if style is not None else {}
         self.width = width
@@ -134,7 +134,7 @@ class Component():
         self.z = 0
         self.display = self.style.get("display", "flex")
         self.domStatus = "clean"
-        self.surface: pygame.Surface | None = None
+        self.surface: pygame.Surface = pygame.Surface((width, height), pygame.SRCALPHA)
         self.damageRects: list[pygame.Rect] = []
         self.watching: list[utils.Watchable] = []
         self.oldWatching: list = []
@@ -142,8 +142,6 @@ class Component():
 
     def __str__(self):
         return self.name
-
-    ###### WATCHING ######
 
     def watch(self, deps: list[utils.Watchable] | utils.Watchable, operation: str = 'set'):
         '''
@@ -239,6 +237,10 @@ class Component():
         '''
         None
 
+    def rebuildSurface(self):
+        if self.surface is None or self.surface.get_size() != (self.width, self.height):
+            self.surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+
     def dirty(self):
         '''
         Flags the component as needing to be redrawn next frame.
@@ -306,15 +308,4 @@ class Component():
         the positioning parameter.
         '''
         self.blit(screen, positioning)
-
-
-class Element(Component):
-    '''
-    A generic GUI element. Contains no functionality beyond what a Component provides,
-    other than eagerly owning a fixed-size surface and a selection flag.
-    '''
-
-    def __init__(self, width: int, height: int, name: str = '', style: dict | None = None):
-        super().__init__(width, height, style, name)
-        self.selected = False
-        self.surface = pygame.Surface((width, height), pygame.SRCALPHA)
+        

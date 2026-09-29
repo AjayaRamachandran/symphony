@@ -10,8 +10,8 @@ from math import *
 ###### INTERNAL MODULES ######
 
 import gui.element.base_element as base
-from gui.element.base_element import stamp
-from gui.element.base_interactive import Interactive
+from gui.element.base_element import *
+from gui.element.base_interactive import *
 from gui.element.colors import *
 
 import gui.dom as dom
@@ -24,7 +24,7 @@ class Dropdown(Interactive):
     Class to contain dropdowns, which inherit an interactive, having states and open/closed state.
     '''
     def __init__(self, width, height, states: list, font: pygame.font.Font | None = None, image: pygame.Surface | None = None, name=''):
-        super().__init__(width, height, name)
+        super().__init__(width, height, name=name)
 
         # button properties
         self.initHeight = height
@@ -48,12 +48,14 @@ class Dropdown(Interactive):
         self.expanded = not self.expanded
         if self.expanded:
             self.height = self.initHeight * (len(self.states) + 1)
+            self.rebuildSurface()
         else:
             if ((pygame.mouse.get_pos()[1] - self.offsetY) // self.initHeight) - 1 == -1:
                 self.handleClickOut() # if we select the top item (the placeholder), treat it like clicking out
             else:
                 self.setCurrentState(((pygame.mouse.get_pos()[1] - self.offsetY) // self.initHeight) - 1)
                 self.height = self.initHeight
+                self.rebuildSurface()
                 if callable(self.onSelectCallback) : self.onSelectCallback()
                 if callable(self.onCloseCallback): self.onCloseCallback()
 
@@ -61,6 +63,7 @@ class Dropdown(Interactive):
         self.redraw = True
         self.expanded = False
         self.height = self.initHeight
+        self.rebuildSurface()
         if callable(self.onCloseCallback): self.onCloseCallback()
 
     def onSelect(self, function):
