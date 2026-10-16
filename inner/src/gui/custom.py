@@ -13,7 +13,6 @@ from math import *
 
 from console_controls.console import *
 import gui.element as element
-import gui.frame as frame
 import sound.sound_processing as sp
 import gui.dom as dom
 import utils.util as utils
@@ -153,7 +152,7 @@ class PitchList(element.Interactive):
         '''
         self.waveGetter = waveGetter
 
-    def setLinkedPanels(self, panel: frame.Panel):
+    def setLinkedPanels(self, panel: element.Panel):
         '''
         fields:
             panel (Panel) - linked Panel
@@ -339,7 +338,7 @@ class NoteGrid(element.Interactive):
         '''
         self.keyGetter = keyGetter
 
-    def setLinkedPanels(self, panel: frame.Panel, notes: frame.Panel):
+    def setLinkedPanels(self, panel: element.Panel, notes: element.Panel):
         '''
         fields:
             panel (Panel) - the linked NotePanel

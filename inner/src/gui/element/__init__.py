@@ -8,6 +8,7 @@ from gui.element.button import Button
 from gui.element.dropdown import Dropdown
 from gui.element.label import Label
 from gui.element.textbox import TextBox
+from gui.element.frame import Panel
 
 def __getattr__(name):
     '''

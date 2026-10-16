@@ -18,8 +18,7 @@ import sound.sound_processing as sp
 import gui.element.base_element as gui
 # `gui.frame` imports this module's dependency chain, so it is imported lazily
 # inside the functions that need it to avoid a circular import at load time.
-if TYPE_CHECKING:
-    import gui.frame as frame
+import gui.element as element
 from utils.util import dedup
 import events
 
@@ -35,36 +34,34 @@ MASTER_PANEL = None
 DIRTY_ELEMENTS: list[gui.Element] = []
 DAMAGED_ELEMENTS: list[gui.Element] = []
 
-def init(masterPanel: frame.Panel):
+def init(masterPanel: element.Panel):
     global MASTER_PANEL
     MASTER_PANEL = masterPanel
 
 def setZOrderRecursively(curr: gui.Element):
-    import gui.frame as frame
     global Z_INDEX
     curr.z = Z_INDEX
     Z_INDEX += 1
-    if isinstance(curr, frame.Panel):
+    if isinstance(curr, element.Panel):
         for el in curr.elements:
             setZOrderRecursively(el)
 
 def damageClippingAbovePanelsRecursively(
     damageRect: pygame.Rect,
-    currPanel: frame.Panel,
+    currPanel: element.Panel,
     damagerName: str,
     isAbove: bool,
 ):
     '''
     fields:
         damageRect (pygame.Rect) - the screen space rect to damage based on\n
-        currPanel (frame.Panel) - the currently tracked panel to make decisions on\n
+        currPanel (element.Panel) - the currently tracked panel to make decisions on\n
         damagerName (string) - the name of the element that is doing the damaging\n
         isAbove (boolean) - tracks whether we are above the damaging element\n
     outputs: track of whether we are above the damaging element after checks
 
     Recursively damages the elements that clip an element and sit above it in the DOM.
     '''
-    import gui.frame as frame
     global DAMAGED_ELEMENTS
 
     for el in currPanel.elements:
@@ -75,7 +72,7 @@ def damageClippingAbovePanelsRecursively(
                     el.damage(damageRect)
                 DAMAGED_ELEMENTS.append(el)
 
-        if isinstance(el, frame.Panel):
+        if isinstance(el, element.Panel):
             isAbove = damageClippingAbovePanelsRecursively(
                 damageRect,
                 el,

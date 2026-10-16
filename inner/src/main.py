@@ -31,7 +31,6 @@ lastTime = time.time()
 
 import events
 import gui.element as element
-import gui.frame as frame
 import gui.custom as custom
 import gui.dom as dom
 import process_command.read_write as pcrw
@@ -138,30 +137,79 @@ lastTime = time.time()
 ###### VARIABLE & GUI ELEMENT SETUP ######
 
 # initialize constants to make style setting easier (adds intellisense and allows for no quotes)
+# initialize constants to make style setting easier (adds intellisense and allows for no quotes)
 background = "background"
-'''```type: list[int, int, int, int] # The RGBA background color of the Panel. \ndefault: gui.COLOR_TRANSPARENT'''
+'''
+type: `list[int, int, int, int]`\n
+default: `element.COLOR_TRANSPARENT`\n
+The RGBA background color of the Panel.
+'''
 border = "border"
-'''```type: int | list[int, int, int, int] # The thickness of the border around the Panel. \ndefault: 0'''
+'''
+type: `int | list[int, int, int, int]`\n
+default: `0`\n
+The thickness of the border around the Panel.
+'''
 borderColor = "border-color"
-'''```type: list[int, int, int, int] # The color of the border around the Panel. \ndefault: gui.COLOR_BORDER'''
+'''
+type: `list[int, int, int, int]`\n
+default: `element.COLOR_BORDER`\n
+The color of the border around the Panel.
+'''
 rounding = "rounding"
-'''```type: "sm" | "lg" | int | list[int, int, int, int] # The size of rounding on the corners of the Panel. \ndefault: 0'''
+'''
+type: `"sm" | "lg" | int | list[int, int, int, int]`\n
+default: `0`\n
+The size of rounding on the corners of the Panel.
+'''
 display = "display"
-'''```type: "flex" | "absolute" | "fixed" # Whether to make the object anchor relative to the DOM, to its parent, or to the screen. \ndefault: "flex"'''
+'''
+type: `"flex" | "absolute" | "fixed"`\n
+default: `"flex"`\n
+Whether to make the object anchor relative to the DOM, to its parent, or to the screen.
+'''
 offset = "offset"
-'''```type: list[int, int] # The offset of the object relative to its anchor. \ndefault: [0, 0]'''
+'''
+type: `list[int, int]`\n
+default: `[0, 0]`\n
+The offset of the object relative to its anchor.
+'''
 orient = "orient"
-'''```type: "row" | "col" # The direction to make the children of the panel flow. \ndefault: "row"'''
+'''
+type: `"row" | "col"`\n
+default: `"row"`\n
+The direction to make the children of the panel flow.
+'''
 align = "align"
-'''```type: "center" | "top" | "bottom" | "spread" # The layout of the children vertically. \ndefault: "top"'''
+'''
+type: `"center" | "top" | "bottom" | "spread"`\n
+default: `"top"`\n
+The layout of the children vertically.
+'''
 justify = "justify"
-'''```type: "center" | "left" | "right" | "spread" # The layout of the children horizontally. \ndefault: "left"'''
+'''
+type: `"center" | "left" | "right" | "spread"`\n
+default: `"left"`\n
+The layout of the children horizontally.
+'''
 sizing = "sizing"
-'''```type: list["fit" | "fill" | int, "fit" | "fill" | int] # Decides how to occupy the provided space. \ndefault: "fit"'''
+'''
+type: `list["fit" | "fill" | int, "fit" | "fill" | int]`\n
+default: `"fit"`\n
+Decides how to occupy the provided space.
+'''
 padding = "padding"
-'''```type: int | list[int, int, int, int] # The additional space internal to the Panel. \ndefault: 0'''
+'''
+type: `int | list[int, int, int, int]`\n
+default: `0`\n
+The additional space internal to the Panel.
+'''
 gap = "gap"
-'''```type: int # The space between children of the Panel. \ndefault: 0'''
+'''
+type: `int`\n
+default: `0`\n
+The space between children of the Panel.
+'''
 
 fps = 60
 
@@ -264,7 +312,7 @@ PlayPauseButton = element.Button(width=28, height=28, states=[playImage, pauseIm
 AccidentalsButton = element.Button(width=28, height=28, states=[flatsImage, sharpsImage], name='AccidentalsButton')
 PlayheadButton = element.Button(width=28, height=28, states=[headImage, headAltImage], name='PlayheadButton')
 BrushButton = element.Button(width=28, height=28, states=[brushImage, eraserImage, selectImage], name='BrushButton')
-ControlButtons = frame.Panel(
+ControlButtons = element.Panel(
     [PlayPauseButton, AccidentalsButton, PlayheadButton, BrushButton],
     style={
         background : element.COLOR_BORDER,
@@ -279,7 +327,7 @@ BeatLengthDownButton = element.Button(width=20, height=28, states=[downChevronIm
 BeatLengthTextBox = element.TextBox(width=90, height=28, suffix='tiles', name='BeatLengthTextBox')
 BeatLengthTextBox.linkToValue(BeatLength)
 BeatLengthUpButton = element.Button(width=20, height=28, states=[upChevronImage], name='BeatLengthUpButton')
-BeatLengthControls = frame.Panel(
+BeatLengthControls = element.Panel(
     [BeatLengthDownButton, BeatLengthTextBox, BeatLengthUpButton],
     style={
         background : element.COLOR_BORDER,
@@ -294,7 +342,7 @@ BeatsPerMeasureUpButton = element.Button(width=20, height=28, states=[upChevronI
 BeatsPerMeasureTextBox = element.TextBox(width=90, height=28, suffix='beats', name='BeatsPerMeasureTextBox')
 BeatsPerMeasureTextBox.linkToValue(BeatsPerMeasure)
 BeatsPerMeasureDownButton = element.Button(width=20, height=28, states=[downChevronImage], name='BeatsPerMeasureDownButton')
-BeatsPerMeasureControls = frame.Panel(
+BeatsPerMeasureControls = element.Panel(
     [BeatsPerMeasureDownButton, BeatsPerMeasureTextBox, BeatsPerMeasureUpButton],
     style={
         background : element.COLOR_BORDER,
@@ -305,7 +353,7 @@ BeatsPerMeasureControls = frame.Panel(
     name="BeatsPerMeasureControls"
 )
 
-LeftToolbar = frame.Panel(
+LeftToolbar = element.Panel(
     elements=[ControlButtons, BeatLengthControls, BeatsPerMeasureControls],
     style={
         gap : 24,
@@ -317,7 +365,7 @@ TempoDownButton = element.Button(width=20, height=28, states=[downChevronImage],
 TempoTextBox = element.TextBox(width=120, height=28, suffix='tiles/min', name='TempoTextBox')
 TempoTextBox.linkToValue(Tempo)
 TempoUpButton = element.Button(width=20, height=28, states=[upChevronImage], name='TempoUpButton')
-TempoControls = frame.Panel(
+TempoControls = element.Panel(
     elements=[TempoDownButton, TempoTextBox, TempoUpButton],
     style={
         background : element.COLOR_BORDER,
@@ -330,7 +378,7 @@ TempoControls = frame.Panel(
 
 ColorButton = element.Button(width=28, height=28, states=custom.getColorStates(28, 28, source_path), name='ColorButton')
 WaveDropdown = element.Dropdown(width=64, height=28, states=instrumentImages, image=upDownChevronImage, name='WaveDropdown')
-WaveControls = frame.Panel(
+WaveControls = element.Panel(
     [ColorButton, WaveDropdown],
     style={
         background : element.COLOR_BORDER,
@@ -343,7 +391,7 @@ WaveControls = frame.Panel(
 
 KeyDropdown = element.Dropdown(width=60, height=28, states=NOTES_FLAT, image=upDownChevronImage, name='KeyDropdown')
 ModeDropdown = element.Dropdown(width=140, height=28, states=modes, image=upDownChevronImage, name='ModeDropdown')
-KeySignatureControls = frame.Panel(
+KeySignatureControls = element.Panel(
     [KeyDropdown, ModeDropdown],
     style={
         background : element.COLOR_BORDER,
@@ -355,7 +403,7 @@ KeySignatureControls = frame.Panel(
 )
 
 QuestionButton = element.Button(width=28, height=28, states=[questionImage], name='QuestionButton')
-QuestionButtonPanel = frame.Panel(
+QuestionButtonPanel = element.Panel(
     [QuestionButton],
     style={
         background : element.COLOR_BORDER,
@@ -366,7 +414,7 @@ QuestionButtonPanel = frame.Panel(
     name="QuestionButtonPanel"
 )
 
-RightToolbar = frame.Panel(
+RightToolbar = element.Panel(
     [TempoControls, WaveControls, KeySignatureControls, QuestionButtonPanel],
     style={
         gap : 24,
@@ -375,7 +423,7 @@ RightToolbar = frame.Panel(
 )
 
 WorldMessageLabel = element.Label(width=width, height=20, text=WorldMessage, name='WorldMessage')
-MessagePanel = frame.Panel(
+MessagePanel = element.Panel(
     [WorldMessageLabel],
     style={
         display : "fixed"
@@ -383,7 +431,7 @@ MessagePanel = frame.Panel(
     name="MessagePanel"
 )
 
-ToolBar = frame.Panel(
+ToolBar = element.Panel(
     [LeftToolbar, RightToolbar, MessagePanel],
     style={
         background : element.COLOR_BG,
@@ -408,7 +456,7 @@ def bumpRight():
 
 PlayHead.onExitView(bumpRight)
 
-NotePanel = frame.Panel(
+NotePanel = element.Panel(
     elements=[NoteGrid, PlayHead],
     style={
         background : element.COLOR_BG,
@@ -417,7 +465,7 @@ NotePanel = frame.Panel(
     name="NotePanel"
 )
 PlayHead.setLinkedPanel(NotePanel)
-PitchPanel = frame.Panel(
+PitchPanel = element.Panel(
     elements=[PitchList],
     style={
         background : element.COLOR_BG,
@@ -429,7 +477,7 @@ PitchPanel = frame.Panel(
 NoteGrid.setLinkedPanels(NotePanel, PitchPanel)
 PitchList.setLinkedPanels(PitchPanel)
 
-GridPanel = frame.Panel(
+GridPanel = element.Panel(
     [PitchPanel, NotePanel],
     style={
         sizing: ['fill', 'fill']
@@ -460,7 +508,7 @@ PitchList.setKey(getKeyIndex)
 PitchList.setNotes(getPitchListNotes)
 PitchList.setWave(getPitchListWave)
 
-MasterPanel = frame.Panel(
+MasterPanel = element.Panel(
     [GridPanel, ToolBar],
     style={
         background : element.COLOR_BG,
