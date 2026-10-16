@@ -286,6 +286,7 @@ brushType = "brush"
 
 BeatLength = utils.LightWatchable(4)
 BeatsPerMeasure = utils.LightWatchable(4)
+CurrentChannel = utils.LightWatchable(0) # index into colorsList; 6 is the universal "all" view
 
 mainFont = f'{source_path}/assets/InterVariable.ttf'
 element.init(source_path)
@@ -377,6 +378,8 @@ TempoControls = element.Panel(
 )
 
 ColorButton = element.Button(width=28, height=28, states=custom.getColorStates(28, 28, source_path), name='ColorButton')
+ColorButton.watch(CurrentChannel)
+ColorButton.onDepChange(lambda: ColorButton.setCurrentState(CurrentChannel.value))
 WaveDropdown = element.Dropdown(width=64, height=28, states=instrumentImages, image=upDownChevronImage, name='WaveDropdown')
 WaveControls = element.Panel(
     [ColorButton, WaveDropdown],
@@ -488,7 +491,7 @@ GridPanel = element.Panel(
 # getters, so they are wired exactly once and never need re-pushing when the value changes
 def getNoteMap(): return noteMap
 def getColorNames(): return justColorNames
-def getColorIndex(): return ColorButton.currentStateIdx
+def getColorIndex(): return CurrentChannel.value
 def getBeatLength(): return BeatLength.value
 def getBeatsPerMeasure(): return BeatsPerMeasure.value
 def getKeyIndex(): return NOTES_SHARP.index(Key.value) if ('#' in Key.value) else NOTES_FLAT.index(Key.value)
@@ -576,7 +579,7 @@ def playPauseToggle():
     PlayPauseButton.render(screen, 'screen')
     if playing:
         play_obj = sp.playFull(noteMap, waveMap, PlayHead.time, Tempo.value, volume=0.3,
-                               channel='all' if ColorButton.currentStateIdx == 6 else ColorButton.currentStateIdx)
+                               channel='all' if CurrentChannel.value == 6 else CurrentChannel.value)
         PlayHead.play(Tempo.value)
     else:
         PlayHead.stop()
@@ -677,15 +680,15 @@ GridPanel.watch([BeatsPerMeasure, BeatLength, Key, Mode])
 
 def finalizeWave():
     global waveMap
-    waveMap[justColorNames[ColorButton.currentStateIdx]] = WaveDropdown.currentStateIdx
+    waveMap[justColorNames[CurrentChannel.value]] = WaveDropdown.currentStateIdx
     psm.pushEditorSnapshotTransaction("CHANGE_WAVE_TYPE", "Change wave type")
 
 def colorSync():
-    if ColorButton.currentStateIdx != 6:
-        WaveDropdown.setCurrentState(waveMap[justColorNames[ColorButton.currentStateIdx]])
+    if CurrentChannel.value != 6:
+        WaveDropdown.setCurrentState(waveMap[justColorNames[CurrentChannel.value]])
 
     # Clear selections when switching to universal view (channel 6)
-    if ColorButton.currentStateIdx == 6:
+    if CurrentChannel.value == 6:
         for color, notes in noteMap.items():
             # console.log(notes)
             clearSelection(notes)
@@ -693,10 +696,10 @@ def colorSync():
     NotePanel.render(screen, 'screen')
 
 def cycleColor():
-    oldColor = ColorButton.currentStateIdx
-    ColorButton.cycleStates()
+    oldColor = CurrentChannel.value
+    CurrentChannel.set((CurrentChannel.value + 1) % len(ColorButton.states))
     colorSync()
-    if oldColor != ColorButton.currentStateIdx:
+    if oldColor != CurrentChannel.value:
         psm.pushEditorSnapshotTransaction("CHANGE_COLOR", "Change color channel")
 
 WaveDropdown.onSelect(finalizeWave)
@@ -778,7 +781,7 @@ def snapshotEditorState():
         "key"             : str(KeyDropdown.currentState),
         "mode"            : str(ModeDropdown.currentState),
         "accidentals"     : "flats" if AccidentalsButton.currentStateIdx == 0 else "sharps",
-        "colorIndex"      : int(ColorButton.currentStateIdx),
+        "colorIndex"      : int(CurrentChannel.value),
         "waveIndex"       : int(WaveDropdown.currentStateIdx)
     }
 
@@ -847,7 +850,7 @@ def applyEditorStateToRuntime(stateSnapshot):
         if Mode.value in modes:
             ModeDropdown.setCurrentState(modes.index(Mode.value))
 
-        ColorButton.setCurrentState(int(stateSnapshot.get("colorIndex", ColorButton.currentStateIdx)))
+        CurrentChannel.set(int(stateSnapshot.get("colorIndex", CurrentChannel.value)))
         WaveDropdown.setCurrentState(int(stateSnapshot.get("waveIndex", WaveDropdown.currentStateIdx)))
         colorSync()
         preprocess()
@@ -932,13 +935,13 @@ def handleClick():
         PlayheadButton.render(screen, 'screen')
         NotePanel.render(screen, 'screen')
         return
-    if ColorButton.currentStateIdx == 6:
+    if CurrentChannel.value == 6:
         return
 
     if brushType in ["brush", "eraser", "select"]:
         psm.beginInteractionTransaction(brushType)
 
-    currColorName = colorsList[ColorButton.currentStateIdx][0]
+    currColorName = colorsList[CurrentChannel.value][0]
     if not (currColorName in noteMap):
         noteMap[currColorName] = []
     notes = noteMap[currColorName]
@@ -953,7 +956,7 @@ def handleClick():
         })
         # Track the note created for this mouse-down so drag only extends this note.
         noteMap[currColorName].append(activeBrushNote)
-        sp.playNote(note=mousePitch, waves=waveMap[justColorNames[ColorButton.currentStateIdx]], duration=0.2)
+        sp.playNote(note=mousePitch, waves=waveMap[justColorNames[CurrentChannel.value]], duration=0.2)
     elif brushType == "eraser":
         notes: list[custom.Note] = noteMap[currColorName]
         removeAt(mouseTime, mousePitch, currColorName)
@@ -982,7 +985,7 @@ def handleClick():
         else:
             clickedNote.select()
             if not extendingNote:
-                sp.playNote(note=clickedNote.pitch, waves=waveMap[justColorNames[ColorButton.currentStateIdx]], duration=0.2)
+                sp.playNote(note=clickedNote.pitch, waves=waveMap[justColorNames[CurrentChannel.value]], duration=0.2)
 
         if extendingNote:
             for note in notes:
@@ -1021,10 +1024,10 @@ def handleDrag(xy):
         return
 
     mouseTime, mousePitch = custom.convertWorldToGrid(pygame.mouse.get_pos(), rect=pygame.Rect(NoteGrid.x, NoteGrid.y, NoteGrid.width, NoteGrid.height))
-    if mouseTime is None or ColorButton.currentStateIdx == 6:
+    if mouseTime is None or CurrentChannel.value == 6:
         return
 
-    currColorName = colorsList[ColorButton.currentStateIdx][0]
+    currColorName = colorsList[CurrentChannel.value][0]
     notes = noteMap[currColorName]
 
     if brushType == "brush":
@@ -1227,7 +1230,7 @@ while run:
             # Initialize view position and color channel when opening GUI
             custom.viewRow.set(50)
             custom.viewCol.set(0)
-            ColorButton.setCurrentState(0)
+            CurrentChannel.set(0)
             
             # On macOS, show the hidden window; on other platforms, reinitialize
             if platform == 'mac' and pygame.display.get_init():
@@ -1307,27 +1310,27 @@ while run:
                     if event.key in [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7]:
                         # Skip color channel switching if a text box is selected
                         if not (TempoTextBox.selected or BeatLengthTextBox.selected or BeatsPerMeasureTextBox.selected):
-                            oldColorIdx = ColorButton.currentStateIdx
+                            oldColorIdx = CurrentChannel.value
                             numKeyPressed = [pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7].index(event.key)
                             altHeld = pygame.key.get_pressed()[pygame.K_LALT] or pygame.key.get_pressed()[pygame.K_RALT]
                             draggingNotes = []
                             draggingNotesToNewChannel = numKeyPressed < 6 and NoteGrid.mouseInside and pygame.mouse.get_pressed()[0]
                             # Only move notes when dragging to channels 1-6 (indices 0-5), not to universal view (channel 7, index 6)
                             if draggingNotesToNewChannel:
-                                draggingNotes = [note for note in noteMap[justColorNames[ColorButton.currentStateIdx]] if note.selected]
-                                noteMap[justColorNames[ColorButton.currentStateIdx]] = [note for note in noteMap[justColorNames[ColorButton.currentStateIdx]] if not note.selected]
-                            ColorButton.setCurrentState(numKeyPressed)
+                                draggingNotes = [note for note in noteMap[justColorNames[CurrentChannel.value]] if note.selected]
+                                noteMap[justColorNames[CurrentChannel.value]] = [note for note in noteMap[justColorNames[CurrentChannel.value]] if not note.selected]
+                            CurrentChannel.set(numKeyPressed)
                             if draggingNotesToNewChannel:
                                 try:
                                     for note in draggingNotes:
-                                        noteMap[justColorNames[ColorButton.currentStateIdx]].append(note)
+                                        noteMap[justColorNames[CurrentChannel.value]].append(note)
                                 except Exception as e:
                                     console.error(e)
-                            elif oldColorIdx != ColorButton.currentStateIdx:
+                            elif oldColorIdx != CurrentChannel.value:
                                 for notes in noteMap.values():
                                     clearSelection(notes)  # Clear selected notes on channel-only switch (no Alt-drag transfer).
                             colorSync()
-                            if oldColorIdx != ColorButton.currentStateIdx:
+                            if oldColorIdx != CurrentChannel.value:
                                 psm.pushEditorSnapshotTransaction("CHANGE_COLOR", "Change color channel")
                     if event.key in [pygame.K_MINUS, pygame.K_EQUALS]: # zoom out horizontally
                         if pygame.key.get_pressed()[CMD_KEY]:
@@ -1357,7 +1360,7 @@ while run:
                     elif event.key == pygame.K_y and pygame.key.get_pressed()[CMD_KEY]:
                         psm.performRedo()
                     elif event.key == pygame.K_a:
-                        for note in noteMap[justColorNames[ColorButton.currentStateIdx]]:
+                        for note in noteMap[justColorNames[CurrentChannel.value]]:
                             note.select()
                         NotePanel.render(screen, 'screen')
                     elif event.key == CMD_KEY: # Switch to eraser momentarily

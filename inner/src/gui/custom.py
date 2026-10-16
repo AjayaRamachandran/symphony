@@ -448,10 +448,10 @@ class NoteGrid(element.Interactive):
                 continue
             for note in colorNotes:
                 if isinstance(note, Note):
-                    note.render(self.surface, colors[colorIdx] if colorIdx < len(colors) else colors[0], color != 6 and color != colorIdx, [0,0])
+                    note.render(self.surface, colors[colorIdx] if colorIdx < len(colors) else colors[0], color != 6 and color != colorIdx)
                 else:
                     if isinstance(note, dict):
-                        note.render(self.surface, colors[colorIdx] if colorIdx < len(colors) else colors[0], color != 6 and color != colorIdx, [0,0])
+                        note.render(self.surface, colors[colorIdx] if colorIdx < len(colors) else colors[0], color != 6 and color != colorIdx)
 
                     raise ValueError(f'Invalid data type for note: {note.__class__()}')
         
