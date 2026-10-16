@@ -53,7 +53,7 @@ class Dropdown(Interactive):
             if ((pygame.mouse.get_pos()[1] - self.offsetY) // self.initHeight) - 1 == -1:
                 self.handleClickOut() # if we select the top item (the placeholder), treat it like clicking out
             else:
-                self.setCurrentState(((pygame.mouse.get_pos()[1] - self.offsetY) // self.initHeight) - 1)
+                self.setCurrentState(((pygame.mouse.get_pos()[1] - self.offsetY) // self.initHeight) - 2)
                 self.height = self.initHeight
                 self.rebuildSurface()
                 if callable(self.onSelectCallback) : self.onSelectCallback()
@@ -93,7 +93,6 @@ class Dropdown(Interactive):
     def setCurrentState(self, idx):
         if idx >= len(self.states):
             idx = 1
-            console.error
         if idx < 0:
             idx = 0
         self.currentStateIdx = idx

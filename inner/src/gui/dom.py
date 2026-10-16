@@ -46,53 +46,50 @@ def setZOrderRecursively(curr: gui.Element):
         for el in curr.elements:
             setZOrderRecursively(el)
 
-def damageClippingAbovePanelsRecursively(
-    damageRect: pygame.Rect,
+def damageIntersectingRecursively(
+    damageRects: list[pygame.Rect],
     currPanel: element.Panel,
-    damagerName: str,
-    isAbove: bool,
+    damager: gui.Element,
 ):
     '''
     fields:
-        damageRect (pygame.Rect) - the screen space rect to damage based on\n
+        damageRects (list[pygame.Rect]) - the screen space rects to damage based on\n
         currPanel (element.Panel) - the currently tracked panel to make decisions on\n
-        damagerName (string) - the name of the element that is doing the damaging\n
-        isAbove (boolean) - tracks whether we are above the damaging element\n
-    outputs: track of whether we are above the damaging element after checks
+        damager (gui.Element) - the element that is doing the damaging\n
+    outputs: nothing
 
-    Recursively damages the elements that clip an element and sit above it in the DOM.
+    Recursively damages every element that intersects the damage rects, regardless of z:
+    lower elements reconstruct what was underneath, higher elements re-occlude.
     '''
     global DAMAGED_ELEMENTS
 
     for el in currPanel.elements:
-        # if we've already reached the damaged panel, damage any overlapping panels
-        if isAbove and isinstance(el, gui.Element):
-            if damageRect.colliderect((el.x, el.y, el.width, el.height)):
-                if el.domStatus != 'dirty':
-                    el.damage(damageRect)
-                DAMAGED_ELEMENTS.append(el)
+        if el is damager:
+            continue
+
+        hits = [rect for rect in damageRects if rect.colliderect((el.x, el.y, el.width, el.height))]
+        if hits:
+            if el.domStatus != 'dirty':
+                for rect in hits:
+                    el.damage(rect)
+            DAMAGED_ELEMENTS.append(el)
 
         if isinstance(el, element.Panel):
-            isAbove = damageClippingAbovePanelsRecursively(
-                damageRect,
-                el,
-                damagerName,
-                isAbove,
-            )
-
-            # if this panel is the damager panel, everything after it is above
-            if el.name == damagerName:
-                isAbove = True
-
-    return isAbove
+            damageIntersectingRecursively(damageRects, el, damager)
 
 def dirty(el: gui.Element):
     global DIRTY_ELEMENTS
     DIRTY_ELEMENTS.append(el)
 
     el.dirty()
-    damageRect = pygame.Rect(el.x, el.y, el.width, el.height)
-    damageClippingAbovePanelsRecursively(damageRect, MASTER_PANEL, el.name, False)
+    currentRect = pygame.Rect(el.x, el.y, el.width, el.height)
+    if el.paintedRect is None:
+        damageRects = [currentRect]
+    elif el.paintedRect.colliderect(currentRect):
+        damageRects = [el.paintedRect.union(currentRect)]
+    else:
+        damageRects = [el.paintedRect, currentRect]
+    damageIntersectingRecursively(damageRects, MASTER_PANEL, el)
 
 def flip(screen):
     '''

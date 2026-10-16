@@ -136,6 +136,7 @@ class Element():
         self.domStatus = "clean"
         self.surface: pygame.Surface = pygame.Surface((width, height), pygame.SRCALPHA)
         self.damageRects: list[pygame.Rect] = []
+        self.paintedRect: pygame.Rect | None = None
         self.watching: list[utils.Watchable] = []
         self.oldWatching: list = []
         self.depChange = None
@@ -296,6 +297,7 @@ class Element():
             screen.blit(self.surface, (self.offsetX, self.offsetY))
         else:
             raise ValueError(f"Positioning of components must be either 'screen' or 'relative', not {positioning}")
+        self.paintedRect = pygame.Rect(self.x, self.y, self.width, self.height)
 
     def render(self, screen: pygame.Surface, positioning: str = 'relative'):
         '''

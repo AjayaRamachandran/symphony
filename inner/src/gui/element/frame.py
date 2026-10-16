@@ -267,6 +267,7 @@ class Panel(gui.Element):
 
         for el in self.elements:
             el.render(self.surface, positioning='relative')
+            el.paintedRect = pygame.Rect(el.x, el.y, el.width, el.height)
 
         self.blit(screen, positioning)
 
