@@ -724,7 +724,8 @@ def colorSync():
         for color, notes in noteMap.items():
             # console.log(notes)
             clearSelection(notes)
-    
+
+    NoteGrid.invalidateResizeHandles()
     NotePanel.render(screen, 'screen')
 
 def cycleColor():
@@ -795,6 +796,7 @@ def preprocess():
     '''
     trimOverlappingNotes()
     deleteZeroDurationNotes()
+    NoteGrid.invalidateResizeHandles()
 
 
 def snapshotEditorState():
@@ -1152,6 +1154,8 @@ NoteGrid.onMouseClick(handleClick)
 NoteGrid.onMouseDrag(handleDrag)
 NoteGrid.onMouseUnDrag(handleUnDrag)
 NoteGrid.onMouseUnClick(handleUnClick)
+NoteGrid.onMouseLeave(lambda: pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW))
+NoteGrid.setResizeCursorEnabled(lambda: BrushType.value == "select" and CurrentChannel.value != 6)
 
 console.log("Initialized NoteGrid Functionality "+ '(' + str(round(time.time() - lastTime, 5)) + ' secs)')
 lastTime = time.time()
@@ -1376,6 +1380,7 @@ while run:
                             ]
                         if beforeDelete != snapshotEditorState():
                             psm.pushEditorSnapshotTransaction("DELETE_NOTES", "Delete selected notes")
+                        NoteGrid.invalidateResizeHandles()
                         NotePanel.render(screen, 'screen')
                     elif event.key == pygame.K_z and pygame.key.get_pressed()[CMD_KEY]:
                         if pygame.key.get_pressed()[pygame.K_LSHIFT] or pygame.key.get_pressed()[pygame.K_RSHIFT]:

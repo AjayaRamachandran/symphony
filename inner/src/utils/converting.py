@@ -49,6 +49,71 @@ def createMidiFromNotes(noteMap: dict, filename: str, instrumentName="Acoustic G
     midi.write(candidate)
     return candidate
 
+def splitIntoNoteValues(count: int, unitQL: Fraction):
+    '''
+    fields:
+        count (int) - number of units to cover\n
+        unitQL (Fraction) - quarter length of one unit\n
+    outputs: list of music21 Durations
+
+    Splits count units into the fewest notatable note values (at most double-dotted),
+    longest first, so music21 never has to guess a complex duration.
+    '''
+    durations = []
+    remaining = count
+    while remaining > 0:
+        for take in range(remaining, 0, -1):
+            d = m21duration.Duration(quarterLength=take * unitQL)
+            if d.type not in ('complex', 'inexpressible') and d.dots <= 2 and not d.tuplets:
+                break
+        # mark as deliberate so music21 doesn't merge pieces back across beat lines on export
+        d.expressionIsInferred = False
+        durations.append(d)
+        remaining -= take
+    return durations
+
+def splitIntoBeatDurations(startTile: int, lengthTiles: int, beatLength: int, beatQL: Fraction):
+    '''
+    fields:
+        startTile (int) - start of the span, in tiles from the start of the measure\n
+        lengthTiles (int) - length of the span in tiles\n
+        beatLength (int) - number of tiles per beat\n
+        beatQL (Fraction) - quarter length of one beat\n
+    outputs: list of music21 Durations (to be tied together)
+
+    Converts a span of grid tiles into notated durations. When a beat is split into a
+    non power of two (triplets, quintuplets, ...), the span is cut at beat lines so each
+    partial beat gets its own beatLength:n tuplet that fills exactly that beat, while
+    whole beats are written as ordinary notes.
+    '''
+    if beatLength & (beatLength - 1) == 0:
+        return splitIntoNoteValues(lengthTiles, beatQL / beatLength)
+
+    normalNotes = 1 << (beatLength.bit_length() - 1)
+    tupletUnitQL = beatQL / normalNotes
+    tupletUnitType = m21duration.Duration(quarterLength=tupletUnitQL).type
+
+    durations = []
+    position = startTile
+    endTile = startTile + lengthTiles
+    while position < endTile:
+        if position % beatLength == 0 and endTile - position >= beatLength:
+            wholeBeats = (endTile - position) // beatLength
+            durations.extend(splitIntoNoteValues(wholeBeats, beatQL))
+            position += wholeBeats * beatLength
+        else:
+            chunkEnd = min((position // beatLength + 1) * beatLength, endTile)
+            for d in splitIntoNoteValues(chunkEnd - position, tupletUnitQL):
+                d.appendTuplet(m21duration.Tuplet(
+                    numberNotesActual=beatLength,
+                    numberNotesNormal=normalNotes,
+                    durationActual=tupletUnitType,
+                    durationNormal=tupletUnitType,
+                ))
+                durations.append(d)
+            position = chunkEnd
+    return durations
+
 def createMusicXMLFromNotes(
     noteMap: dict,
     filename: str,
@@ -92,17 +157,10 @@ def createMusicXMLFromNotes(
     score.metadata.alternativeTitle = f"in {key} {mode}"
     score.metadata.composer = "Created with Symphony"
 
-    # Calculate quarter length values
-    # One beat = (4 / timeSigDenominator) quarter notes
-    # Example: if denominator is 4, one beat = 1 quarter note
-    # Example: if denominator is 2, one beat = 2 quarter notes (half note)
+    # All timing is done in whole grid tiles, so every measure adds up exactly.
+    # One beat = (4 / timeSigDenominator) quarter notes, split into beatLength tiles.
     beatQL = Fraction(4, timeSigDenominator)
-    
-    # One tile = beatQL / beatLength quarter notes
-    tileQL = beatQL / beatLength
-    
-    # One measure = timeSigNumerator beats
-    measureQL = beatQL * timeSigNumerator
+    measureTiles = beatLength * timeSigNumerator
 
     # Clef mapping
     clefMap = {
@@ -132,10 +190,8 @@ def createMusicXMLFromNotes(
     maxMeasures = 0
     for color, notes in noteMap.items():
         if notes:
-            maxEndTile = max((n.time + n.duration) for n in notes)
-            maxEndQL = maxEndTile * tileQL
-            numMeasures = int(maxEndQL / measureQL) + 1
-            maxMeasures = max(maxMeasures, numMeasures)
+            maxEndTile = max((int(n.time) + int(n.duration)) for n in notes)
+            maxMeasures = max(maxMeasures, maxEndTile // measureTiles + 1)
 
     # Ensure at least one measure
     if maxMeasures == 0:
@@ -144,63 +200,35 @@ def createMusicXMLFromNotes(
     for color, notes in noteMap.items():
         part = stream.Part()
 
-        # Sort notes by start time
-        sortedNotes = sorted(notes, key=lambda n: n.time) if notes else []
-
         # Create a timeline for each measure
         measureTimelines = [[] for _ in range(maxMeasures)]
 
-        # Distribute notes into measures
-        for n in sortedNotes:
+        # Distribute notes into measures, splitting notes that cross bar lines
+        for n in (notes or []):
             pitch = n.pitch + 35
-            startQL = Fraction(n.time) * tileQL
-            durQL = Fraction(n.duration) * tileQL
-
-            measureIdx = int(startQL / measureQL)
-            if measureIdx >= maxMeasures:
+            startTile = int(n.time)
+            endTile = startTile + int(n.duration)
+            if endTile <= startTile:
                 continue
 
-            offsetInMeasure = startQL - (measureIdx * measureQL)
-            endQL = startQL + durQL
-            endMeasureIdx = int((endQL - Fraction(1, 100000)) / measureQL)
+            firstMeasure = startTile // measureTiles
+            lastMeasure = (endTile - 1) // measureTiles
 
-            if endMeasureIdx > measureIdx:
-                # Note spans multiple measures - split it
-                for mIdx in range(measureIdx, min(endMeasureIdx + 1, maxMeasures)):
-                    measureStartQL = mIdx * measureQL
-                    measureEndQL = (mIdx + 1) * measureQL
+            for mIdx in range(firstMeasure, min(lastMeasure + 1, maxMeasures)):
+                measureStart = mIdx * measureTiles
+                segmentStart = max(startTile, measureStart)
+                segmentEnd = min(endTile, measureStart + measureTiles)
 
-                    segmentStart = max(startQL, measureStartQL)
-                    segmentEnd = min(endQL, measureEndQL)
-                    segmentDur = segmentEnd - segmentStart
-
-                    if segmentDur > 0:
-                        offsetInThisMeasure = segmentStart - measureStartQL
-                        
-                        # Determine tie type
-                        if mIdx > measureIdx and mIdx < endMeasureIdx:
-                            tieType = 'continue'
-                        elif mIdx > measureIdx:
-                            tieType = 'stop'
-                        elif mIdx < endMeasureIdx:
-                            tieType = 'start'
-                        else:
-                            tieType = None
-
-                        measureTimelines[mIdx].append({
-                            'offset': offsetInThisMeasure,
-                            'duration': segmentDur,
-                            'pitch': pitch,
-                            'tie': tieType
-                        })
-            else:
-                # Note fits in single measure
-                measureTimelines[measureIdx].append({
-                    'offset': offsetInMeasure,
-                    'duration': durQL,
+                measureTimelines[mIdx].append({
+                    'offset': segmentStart - measureStart,
+                    'duration': segmentEnd - segmentStart,
                     'pitch': pitch,
-                    'tie': None
+                    'tiedFromPrevious': mIdx > firstMeasure,
+                    'tiedToNext': mIdx < lastMeasure,
                 })
+
+        # Pitches whose tie into the next measure was cut off by a chord
+        brokenTies = set()
 
         # Build measures
         for i in range(maxMeasures):
@@ -218,92 +246,68 @@ def createMusicXMLFromNotes(
                 m.keySignature = keys.Key(key, modeMap[mode])
                 m.insert(0, tempo.MetronomeMark(number=tempoBPM))
 
-            # Sort events by offset
-            timeline = sorted(measureTimelines[i], key=lambda x: x['offset'])
+            # A staff holds a single voice, so everything starting on the same tile
+            # becomes one chord, cut to its shortest note and to the next onset.
+            eventsByOffset = {}
+            for event in measureTimelines[i]:
+                eventsByOffset.setdefault(event['offset'], []).append(event)
 
-            if not timeline:
-                # Empty measure - add a measure rest
-                r = note.Rest()
-                r.duration = m21duration.Duration(quarterLength=float(measureQL))
-                m.append(r)
-            else:
-                # Group simultaneous notes into chords when they share
-                # offset, duration, and tie type.
-                groupedByTiming = {}
-                for event in timeline:
-                    groupKey = (event['offset'], event['duration'], event['tie'])
-                    if groupKey not in groupedByTiming:
-                        groupedByTiming[groupKey] = []
-                    groupedByTiming[groupKey].append(event['pitch'])
+            segments = []
+            nextBrokenTies = set()
+            offsets = sorted(eventsByOffset)
+            for idx, offset in enumerate(offsets):
+                events = eventsByOffset[offset]
+                length = min(e['duration'] for e in events)
+                if idx < len(offsets) - 1:
+                    length = min(length, offsets[idx + 1] - offset)
 
-                groupedEvents = sorted(
-                    (
-                        {
-                            'offset': groupKey[0],
-                            'duration': groupKey[1],
-                            'tie': groupKey[2],
-                            'pitches': pitches
-                        }
-                        for groupKey, pitches in groupedByTiming.items()
-                    ),
-                    key=lambda x: x['offset']
-                )
+                # pitch -> (tiedFromPrevious, tiedToNext)
+                pitchTies = {}
+                for e in events:
+                    tiedFromPrevious = e['tiedFromPrevious'] and e['pitch'] not in brokenTies
+                    tiedToNext = e['tiedToNext'] and e['duration'] == length
+                    if e['tiedToNext'] and not tiedToNext:
+                        # cut short, so it no longer reaches its continuation
+                        nextBrokenTies.add(e['pitch'])
+                    previous = pitchTies.get(e['pitch'], (False, False))
+                    pitchTies[e['pitch']] = (previous[0] or tiedFromPrevious, previous[1] or tiedToNext)
 
-                # Enforce single-voice timing per staff/measure:
-                # if an event overlaps the next event onset, truncate it.
-                normalizedEvents = []
-                for idx, event in enumerate(groupedEvents):
-                    eventOffset = event['offset']
-                    eventDuration = event['duration']
+                segments.append((offset, length, pitchTies))
+            brokenTies = nextBrokenTies
 
-                    if idx < len(groupedEvents) - 1:
-                        nextOffset = groupedEvents[idx + 1]['offset']
-                        if nextOffset > eventOffset and eventOffset + eventDuration > nextOffset:
-                            eventDuration = nextOffset - eventOffset
+            # Fill gaps with rests (pitchTies of None)
+            filledSegments = []
+            cursor = 0
+            for offset, length, pitchTies in segments:
+                if offset > cursor:
+                    filledSegments.append((cursor, offset - cursor, None))
+                filledSegments.append((offset, length, pitchTies))
+                cursor = offset + length
+            if cursor < measureTiles:
+                filledSegments.append((cursor, measureTiles - cursor, None))
 
-                    if eventDuration > 0:
-                        normalizedEvents.append({
-                            'offset': eventOffset,
-                            'duration': eventDuration,
-                            'tie': event['tie'],
-                            'pitches': event['pitches']
-                        })
+            for offset, length, pitchTies in filledSegments:
+                durations = splitIntoBeatDurations(offset, length, beatLength, beatQL)
+                for pieceIdx, pieceDuration in enumerate(durations):
+                    if pitchTies is None:
+                        m.append(note.Rest(duration=pieceDuration))
+                        continue
 
-                # Fill measure with notes/chords and rests
-                currentOffset = Fraction(0)
-
-                for event in normalizedEvents:
-                    eventOffset = event['offset']
-                    eventDuration = event['duration']
-
-                    # Add rest if there's a gap before this event
-                    if eventOffset > currentOffset:
-                        gapDur = eventOffset - currentOffset
-                        r = note.Rest()
-                        r.duration = m21duration.Duration(quarterLength=float(gapDur))
-                        m.insert(float(currentOffset), r)
-
-                    # Add note or chord
-                    if len(event['pitches']) == 1:
-                        musicalEvent = note.Note(event['pitches'][0])
-                        if event['tie']:
-                            musicalEvent.tie = tie.Tie(event['tie'])
-                    else:
-                        musicalEvent = chord.Chord(event['pitches'])
-                        if event['tie']:
-                            for chordNote in musicalEvent.notes:
-                                chordNote.tie = tie.Tie(event['tie'])
-                    musicalEvent.duration = m21duration.Duration(quarterLength=float(eventDuration))
-                    m.insert(float(eventOffset), musicalEvent)
-
-                    currentOffset = max(currentOffset, eventOffset + eventDuration)
-
-                # Fill remaining space at end of measure with rest
-                if currentOffset < measureQL:
-                    remainingDur = measureQL - currentOffset
-                    r = note.Rest()
-                    r.duration = m21duration.Duration(quarterLength=float(remainingDur))
-                    m.insert(float(currentOffset), r)
+                    pitches = sorted(pitchTies)
+                    musicalEvent = note.Note(pitches[0]) if len(pitches) == 1 else chord.Chord(pitches)
+                    musicalEvent.duration = pieceDuration
+                    eventNotes = [musicalEvent] if len(pitches) == 1 else list(musicalEvent.notes)
+                    for chordNote in eventNotes:
+                        tiedFromPrevious, tiedToNext = pitchTies[chordNote.pitch.midi]
+                        tieBack = pieceIdx > 0 or tiedFromPrevious
+                        tieForward = pieceIdx < len(durations) - 1 or tiedToNext
+                        if tieBack and tieForward:
+                            chordNote.tie = tie.Tie('continue')
+                        elif tieBack:
+                            chordNote.tie = tie.Tie('stop')
+                        elif tieForward:
+                            chordNote.tie = tie.Tie('start')
+                    m.append(musicalEvent)
             part.append(m)
         score.append(part)
 

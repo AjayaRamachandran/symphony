@@ -27,6 +27,9 @@ viewCol = utils.LightWatchable(0)  # will be initialized when GUI opens
 tileWidth = utils.LightWatchable(30)
 tileHeight = utils.LightWatchable(30)
 
+# screen-space rects of the grabbable right edge of every note in the active channel whose right edge is currently on screen
+resizeHandles: list[pygame.Rect] = []
+
 
 colors = [(235, 144, 74, 255),
         (184, 125, 227, 255),
@@ -246,6 +249,14 @@ class NoteGrid(element.Interactive):
 
         self.selectionRect = None
 
+        # resize-handle hover state
+        self.resizeCursorEnabledGetter = lambda: False
+        self.resizeHandlesStale = True
+        self.lastViewKey = None
+        self.lastViewChangeTime = 0
+        self.lastHoverMousePos = None
+        self.overResizeHandle = False
+
         def changeView(xy):
             self.redraw = True
 
@@ -353,6 +364,84 @@ class NoteGrid(element.Interactive):
     def setSelection(self, rect):
         self.selectionRect = rect
 
+    def setResizeCursorEnabled(self, enabledGetter):
+        '''
+        fields:
+            enabledGetter (function -> bool) - a getter for whether hovering a note's right edge should show the resize cursor
+        outputs: none
+
+        Sets the internal getter that gates resize-cursor switching (e.g. only in select mode, outside universal view).
+        '''
+        self.resizeCursorEnabledGetter = enabledGetter
+
+    def invalidateResizeHandles(self):
+        '''
+        fields: none\n
+        outputs: none
+
+        Marks the resize handles as out of date (ex. after notes were edited), so they are rebuilt
+        as soon as the view is not moving.
+        '''
+        self.resizeHandlesStale = True
+
+    def rebuildResizeHandles(self):
+        '''
+        fields: none\n
+        outputs: none
+
+        Re-evaluates which notes in the active channel have their right edge inside the grid's screen bounds,
+        and has each of them write its grabbable right-edge rect into the global resizeHandles list.
+        '''
+        resizeHandles.clear()
+        self.resizeHandlesStale = False
+
+        color = self.colorGetter()
+        colorNames = self.colorNamesGetter()
+        if color == 6 or color >= len(colorNames):
+            return
+
+        gridRect = pygame.Rect(self.x, self.y, self.width, self.height)
+        for note in self.noteMapGetter().get(colorNames[color], []):
+            if isinstance(note, Note):
+                handle = note.getResizeHandleRect(gridRect)
+                if handle is not None:
+                    resizeHandles.append(handle)
+
+    def updateResizeCursor(self, force: bool = False):
+        '''
+        fields:
+            force (bool) - re-evaluate even if the mouse has not moved
+        outputs: none
+
+        If the mouse moved, checks whether it entered or exited any resize handle and swaps the cursor
+        between the east-west resize arrows and the normal pointer accordingly.
+        '''
+        enabled = self.resizeCursorEnabledGetter()
+
+        if not enabled or not self.mouseInside:
+            # e.g. the tool changed while hovering a handle; leaving the grid is handled by onMouseLeave
+            if self.overResizeHandle and self.mouseInside:
+                pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
+            self.overResizeHandle = False
+            self.lastHoverMousePos = None
+            return
+
+        # while a click/drag is in progress the drag handlers own the cursor; forget our state so it
+        # is re-applied once the mouse is released and moves again
+        if self.mousePressed:
+            self.lastHoverMousePos = None
+            self.overResizeHandle = None
+            return
+
+        if not force and self.mousePosition == self.lastHoverMousePos:
+            return
+        self.lastHoverMousePos = self.mousePosition
+
+        inside = any(handle.collidepoint(self.mousePosition) for handle in resizeHandles)
+        if inside != self.overResizeHandle:
+            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_SIZEWE if inside else pygame.SYSTEM_CURSOR_ARROW)
+            self.overResizeHandle = inside
+
     def calculateDimensions(self, parentDimensions: list[int] | tuple[int]):
         '''
         Updates the NoteGrid's dimensions to be inherited from its parent. This overwrites the default calculateDimensions()
@@ -385,6 +474,22 @@ class NoteGrid(element.Interactive):
 
             dom.dirty(self.panel)
             dom.dirty(self.notes)
+
+        # debounced
+        viewKey = (viewCol.value, viewRow.value, tileWidth.value, tileHeight.value, self.x, self.y, self.width, self.height)
+        now = time.time()
+        if viewKey != self.lastViewKey:
+            self.lastViewKey = viewKey
+            self.lastViewChangeTime = now
+            self.resizeHandlesStale = True
+            resizeHandles.clear()
+
+        rebuilt = False
+        if self.resizeHandlesStale and now - self.lastViewChangeTime >= 0.12:
+            self.rebuildResizeHandles()
+            rebuilt = True
+
+        self.updateResizeCursor(force=rebuilt)
     
     def render(self, screen: pygame.Surface, positioning: str = 'relative'):
         # resolve every externally owned value once for this pass
@@ -601,6 +706,26 @@ class Note():
         self.time = newData.get('time', self.time)
         self.duration = newData.get('duration', self.duration)
         self.dataFields = newData.get('data_fields', self.dataFields)
+
+    def getResizeHandleRect(self, gridRect: pygame.Rect) -> pygame.Rect | None:
+        '''
+        fields:
+            gridRect (pygame.Rect) - screen-space rect of the NoteGrid
+        outputs: pygame.Rect | None
+
+        Returns the screen-space rect of this note's grabbable right edge (0.5 of a tile for notes longer
+        than 1, 0.25 for notes of length 1), clipped to the grid, or None if the right edge is off screen.
+        '''
+        localX, localY = convertGridToWorld(self.time, self.pitch)
+        rightEdge = gridRect.x + localX + self.duration * tileWidth.value
+        top = gridRect.y + localY
+
+        if not (gridRect.left <= rightEdge <= gridRect.right) or top + tileHeight.value <= gridRect.top or top >= gridRect.bottom:
+            return None
+
+        grabWidth = (0.5 if self.duration > 1 else 0.25) * tileWidth.value
+        handle = pygame.Rect(round(rightEdge - grabWidth), round(top), max(1, round(grabWidth)), round(tileHeight.value))
+        return handle.clip(gridRect)
 
     def render(self, screen: pygame.Surface, color: tuple[int, int, int, int], transparent: bool = False): 
         #drawScreen = pygame.Surface(pygame.display.get_window_size(), pygame.SRCALPHA)
