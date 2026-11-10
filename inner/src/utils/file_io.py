@@ -52,7 +52,7 @@ def dumpToFile(workingFile: str, destFile: str, programState: dict, autoSave: st
         with open(auto_save_path, 'wb') as auto_save_file:
             pkl.dump(programState, auto_save_file, -1)
     
-    worldMessage = (f"Last Saved {readableTime} to " + destFile) if (destFile != workingFile) else "You have unsaved changes - Please save to a file on your PC."
+    worldMessage = f"Last saved {readableTime} to {destFile}"
     return worldMessage
 
 def simpleDump(filePath: str, programState: dict):

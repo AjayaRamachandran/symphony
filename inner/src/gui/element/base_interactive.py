@@ -36,6 +36,8 @@ class Interactive(Element):
         self.onDrag = None
         self.onUnDrag = None
         self.onScroll = None
+        self.tooltip: str | None = None
+        self.tooltipLabel = None
 
         self.lastClickedPosition = None
         self.mouseInside = False
@@ -83,6 +85,24 @@ class Interactive(Element):
         '''
 
         self.onLeave = function
+
+    def setTooltip(self, text: str | None, label=None):
+        '''
+        fields:
+            text (string | None) - hint to show while hovered; None removes it
+
+            label (Label | None) - the label that displays the hint; keeps the current one if omitted
+
+        outputs: nothing
+
+        Sets a hover hint shown on `label`. Unlike onMouseEnter/onMouseLeave, this runs alongside
+        the element's own hover handlers rather than replacing them.
+        '''
+        if self.tooltipLabel is not None and (text is None or (label is not None and label is not self.tooltipLabel)):
+            self.tooltipLabel.clearHint(self)
+        self.tooltip = text
+        if label is not None:
+            self.tooltipLabel = label
 
     def onMouseClick(self, function):
         '''
@@ -299,10 +319,16 @@ class Interactive(Element):
         self._updateMouseState()
         self.redraw = False
 
-        if self.mouseEntered() and callable(self.onEnter):
-            self.onEnter()
-        if self.mouseLeft() and callable(self.onLeave):
-            self.onLeave()
+        if self.mouseEntered():
+            if callable(self.onEnter):
+                self.onEnter()
+            if self.tooltip and self.tooltipLabel is not None:
+                self.tooltipLabel.showHint(self, self.tooltip)
+        if self.mouseLeft():
+            if callable(self.onLeave):
+                self.onLeave()
+            if self.tooltipLabel is not None:
+                self.tooltipLabel.clearHint(self)
         if self.mouseClicked() and callable(self.onClick):
             self.onClick()
         if self.mouseClickedOut() and callable(self.onClickOut):

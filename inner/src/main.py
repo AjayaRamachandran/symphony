@@ -213,7 +213,6 @@ The space between children of the Panel.
 
 fps = 60
 
-WorldMessage = utils.LightWatchable('')
 questions_url = "https://docs.nimbial.com/symphony/4"
 
 Key = utils.LightWatchable('Eb')
@@ -442,7 +441,7 @@ RightToolbar = element.Panel(
     name="RightToolbar"
 )
 
-WorldMessageLabel = element.Label(width=width, height=20, text=WorldMessage, name='WorldMessage')
+WorldMessageLabel = element.Label(width=width, height=20, name='WorldMessage')
 MessagePanel = element.Panel(
     [WorldMessageLabel],
     style={
@@ -579,39 +578,25 @@ lastTime = time.time()
 
 ###### GUI LOGIC ######
 
-# PlayPauseButton.onMouseEnter(lambda: (WorldMessage.setText("Control playback"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
-# PlayPauseButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
-# AccidentalsButton.onMouseEnter(lambda: (WorldMessage.setText("Toggle between sharps and flats"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
-# AccidentalsButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
-# PlayheadButton.onMouseEnter(lambda: (WorldMessage.setText("Set where to play from"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
-# PlayheadButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
-# BrushButton.onMouseEnter(lambda: (WorldMessage.setText("Toggle brush type"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
-# BrushButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
-
-# TempoDownButton.onMouseEnter(lambda: (WorldMessage.setText("Decrease Tempo.value"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
-# TempoDownButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
-# TempoUpButton.onMouseEnter(lambda: (WorldMessage.setText("Increase Tempo.value"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
-# TempoUpButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
-# BeatLengthDownButton.onMouseEnter(lambda: (WorldMessage.setText("Decrease beat length (in tiles)"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
-# BeatLengthDownButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
-# BeatLengthUpButton.onMouseEnter(lambda: (WorldMessage.setText("Increase beat length (in tiles)"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
-# BeatLengthUpButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
-# BeatsPerMeasureDownButton.onMouseEnter(lambda: (WorldMessage.setText("Decrease # of beats per measure"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
-# BeatsPerMeasureDownButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
-# BeatsPerMeasureUpButton.onMouseEnter(lambda: (WorldMessage.setText("Increase # of beats per measure"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
-# BeatsPerMeasureUpButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
-
-# QuestionButton.onMouseEnter(lambda: (WorldMessage.setText("Open Symphony Help"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
-# QuestionButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
-
-# ModeDropdown.onMouseEnter(lambda: (WorldMessage.setText("Change musical mode"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
-# ModeDropdown.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
-# KeyDropdown.onMouseEnter(lambda: (WorldMessage.setText("Change key"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
-# KeyDropdown.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
-# WaveDropdown.onMouseEnter(lambda: (WorldMessage.setText("Change the sound of this channel"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
-# WaveDropdown.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
-# ColorButton.onMouseEnter(lambda: (WorldMessage.setText("Cycle color channel"), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
-# ColorButton.onMouseLeave(lambda: (WorldMessage.setText(""), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
+# Hover hints shown on the message bar (only visible when button tooltips are enabled in settings)
+for hoverableElement, hint in [
+    (PlayPauseButton,           "Play or pause"),
+    (AccidentalsButton,         "Switch between sharps and flats"),
+    (PlayheadButton,            "Set where playback starts"),
+    (BrushButton,               "Switch between brush, eraser, and select"),
+    (TempoDownButton,           "Decrease tempo"),
+    (TempoUpButton,             "Increase tempo"),
+    (BeatLengthDownButton,      "Decrease beat length (in tiles)"),
+    (BeatLengthUpButton,        "Increase beat length (in tiles)"),
+    (BeatsPerMeasureDownButton, "Decrease beats per measure"),
+    (BeatsPerMeasureUpButton,   "Increase beats per measure"),
+    (QuestionButton,            "Open Symphony Help"),
+    (ModeDropdown,              "Change musical mode"),
+    (KeyDropdown,               "Change key"),
+    (WaveDropdown,              "Change the sound of this color"),
+    (ColorButton,               "Switch color"),
+]:
+    hoverableElement.setTooltip(hint, WorldMessageLabel)
 
 # Key, Mode
 KeyDropdown.setCurrentState(keyIndex)
@@ -1234,6 +1219,7 @@ while run:
             showButtonTooltips = settings['show_button_tooltips']
 
             WorldMessageLabel.setDisabled(not showButtonTooltips)
+            WorldMessageLabel.setText('')
             #console.log(ps)
 
             noteMap : dict[str: list] = ps["noteMap"]
@@ -1309,13 +1295,13 @@ while run:
             if saveFrame > 1200: # Saves every 20 seconds
                 saveFrame = 0
                 working_file_path
-                WorldMessage.value = fio.dumpToFile(
+                WorldMessageLabel.setText(fio.dumpToFile(
                                         workingFile  = working_file_path,
                                         destFile     = working_file_path,
                                         programState = sl.newProgramState(Key.value, Mode.value, Tempo.value, noteMap, waveMap, BeatLength.value, BeatsPerMeasure.value, meta=projectMeta),
                                         autoSave     = autoSave,
                                         titleText    = title_text,
-                                        sessionID    = sessionID)
+                                        sessionID    = sessionID))
 
             try:
                 MasterPanel.update(screen)
@@ -1401,13 +1387,13 @@ while run:
                         playPauseToggle()
                     elif event.key == pygame.K_s:
                         if pygame.key.get_pressed()[CMD_KEY]: # if the user presses Ctrl+S (to save)
-                            WorldMessage.value = fio.dumpToFile(
+                            WorldMessageLabel.setText(fio.dumpToFile(
                                 workingFile  = working_file_path,
                                 destFile     = working_file_path,
                                 programState = sl.newProgramState(Key.value, Mode.value, Tempo.value, noteMap, waveMap, BeatLength.value, BeatsPerMeasure.value, meta=projectMeta),
                                 autoSave     = autoSave,
                                 titleText    = title_text,
-                                sessionID    = sessionID)
+                                sessionID    = sessionID))
                             saveFrame = 0
                 elif event.type == pygame.KEYUP:
                     if event.key == CMD_KEY: # Switches away from eraser when Ctrl is let go
@@ -1434,13 +1420,13 @@ while run:
             traceback.print_exc()
             break
 
-    WorldMessage.value = fio.dumpToFile(
+    WorldMessageLabel.setText(fio.dumpToFile(
         workingFile  = working_file_path,
         destFile     = working_file_path,
         programState = sl.newProgramState(Key.value, Mode.value, Tempo.value, noteMap, waveMap, BeatLength.value, BeatsPerMeasure.value, meta=projectMeta),
         autoSave     = autoSave,
         titleText    = title_text,
-        sessionID    = sessionID)
+        sessionID    = sessionID))
     
     try:
         # On macOS, destroying/recreating pygame's Cocoa window while the
