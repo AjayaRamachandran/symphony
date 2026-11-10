@@ -24,7 +24,7 @@ pefile==2023.2.7
 pillow==12.1.1
 pretty_midi==0.2.10
 pycparser==2.22
-pygame==2.6.1
+pygame-ce==2.5.8
 pyinstaller==6.15.0
 pyinstaller-hooks-contrib==2025.8
 pyparsing==3.3.2
