@@ -43,20 +43,27 @@ DEFAULT_META_FIELD = {
     "plugins" : []
 }
 
-def _isNewerVersion(file_version: str):
-    fileVersionList = [int(x) for x in file_version.split('.')]
-    symphonyVersionList = [int(x) for x in CURR_VERSION.split('.')]
+def _parseVersion(version: str):
+    '''
+    Parses "major.minor.patch" into a list of ints. Returns None if any part is not an integer.
+    '''
+    try:
+        return [int(x) for x in version.strip().split('.')]
+    except ValueError:
+        return None
 
-    rank = 0
-    while rank < len(symphonyVersionList):
-        if symphonyVersionList[rank] < fileVersionList[rank]:
-            return True
-        elif symphonyVersionList[rank] > fileVersionList[rank]:
-            return False
-        else:
-            rank += 1
-            if rank == len(symphonyVersionList):
-                return False
+def _isNewerVersion(file_version: str) -> bool:
+    fileVersionList = _parseVersion(file_version)
+    symphonyVersionList = _parseVersion(CURR_VERSION)
+    if fileVersionList is None or symphonyVersionList is None:
+        return False
+
+    # pad the shorter version with zeros so "1.1" compares as "1.1.0"
+    length = max(len(fileVersionList), len(symphonyVersionList))
+    fileVersionList += [0] * (length - len(fileVersionList))
+    symphonyVersionList += [0] * (length - len(symphonyVersionList))
+
+    return fileVersionList > symphonyVersionList
 
 def isFromNewerVersion(rawState) -> bool:
     '''
