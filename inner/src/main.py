@@ -7,7 +7,7 @@ from console_controls.console import *
 
 ###### IMPORT ######
 
-console.message('Welcome to Symphony v1.1.5.')
+console.message('Welcome to Symphony v1.1.6.')
 
 import time
 lastTime = time.time()
@@ -101,8 +101,8 @@ lastTime = time.time()
 
 ###### PYGAME & WINDOW INITIALIZE ######
 
-width, height = (1100, 592)
-minWidth, minHeight = (1000, 592)
+width, height = (1200, 592)
+minWidth, minHeight = (1200, 592)
 MAC_ICON_ZOOM_OUT_PERCENT = 20
 
 
@@ -279,14 +279,15 @@ waveMap = {}
 for index, color in enumerate(colorsList):
     waveMap[color[0]] = 0
 
-accidentals = "flats"
-head = False
-playing = False
-brushType = "brush"
+Head = utils.LightWatchable(False) # True while the user is picking where playback starts
+Playing = utils.LightWatchable(False)
+brushTypes = ["brush", "eraser", "select"] # order matches BrushButton states
+BrushType = utils.LightWatchable("brush") # one of brushTypes
 
 BeatLength = utils.LightWatchable(4)
 BeatsPerMeasure = utils.LightWatchable(4)
 CurrentChannel = utils.LightWatchable(0) # index into colorsList; 6 is the universal "all" view
+Accidentals = utils.LightWatchable("flats") # "flats" or "sharps"
 
 mainFont = f'{source_path}/assets/InterVariable.ttf'
 element.init(source_path)
@@ -312,7 +313,16 @@ zoomDimensions = [
 PlayPauseButton = element.Button(width=28, height=28, states=[playImage, pauseImage], name='PlayPauseButton')
 AccidentalsButton = element.Button(width=28, height=28, states=[flatsImage, sharpsImage], name='AccidentalsButton')
 PlayheadButton = element.Button(width=28, height=28, states=[headImage, headAltImage], name='PlayheadButton')
+PlayPauseButton.watch(Playing)
+PlayPauseButton.onDepChange(lambda: PlayPauseButton.setCurrentState(1 if Playing.value else 0))
+AccidentalsButton.watch(Accidentals)
+AccidentalsButton.onDepChange(lambda: AccidentalsButton.setCurrentState(0 if Accidentals.value == "flats" else 1))
+PlayheadButton.watch(Head)
+PlayheadButton.onDepChange(lambda: PlayheadButton.setCurrentState(1 if Head.value else 0))
 BrushButton = element.Button(width=28, height=28, states=[brushImage, eraserImage, selectImage], name='BrushButton')
+BrushButton.watch(BrushType)
+BrushButton.onDepChange(lambda: BrushButton.setCurrentState(brushTypes.index(BrushType.value)))
+BrushButton.onMouseClick(lambda: BrushType.set(brushTypes[(BrushButton.currentStateIdx + 1) % len(brushTypes)]))
 ControlButtons = element.Panel(
     [PlayPauseButton, AccidentalsButton, PlayheadButton, BrushButton],
     style={
@@ -391,8 +401,15 @@ WaveControls = element.Panel(
     },
     name="WaveControls"
 )
+WaveDropdown.watch(CurrentChannel)
 
 KeyDropdown = element.Dropdown(width=60, height=28, states=NOTES_FLAT, image=upDownChevronImage, name='KeyDropdown')
+KeyDropdown.watch(Accidentals)
+def syncKeyDropdownAccidentals():
+    # flat and sharp note lists line up index for index, so the selected key stays put
+    KeyDropdown.states = getPitchListNotes()
+    KeyDropdown.setCurrentState(KeyDropdown.currentStateIdx)
+KeyDropdown.onDepChange(syncKeyDropdownAccidentals)
 ModeDropdown = element.Dropdown(width=140, height=28, states=modes, image=upDownChevronImage, name='ModeDropdown')
 KeySignatureControls = element.Panel(
     [KeyDropdown, ModeDropdown],
@@ -434,20 +451,46 @@ MessagePanel = element.Panel(
     name="MessagePanel"
 )
 
+ToolIndicator = element.Panel(
+    [],
+    style={
+        background : element.COLOR_TOOL_BRUSH,
+        sizing : ["fill", 2],
+        display: "fixed",
+        offset : [0, 78]
+    },
+    name='ToolIndicator'
+)
+
+ToolIndicator.watch([BrushType])
+
+def updateToolIndicatorBG():
+    ToolIndicator.style[background] = element.COLOR_TOOL_BRUSH if BrushType.value == 'brush' else element.COLOR_TOOL_ERASER if BrushType.value == 'eraser' else element.COLOR_TOOL_SELECT
+
+ToolIndicator.onDepChange(updateToolIndicatorBG)
+
 ToolBar = element.Panel(
     [LeftToolbar, RightToolbar, MessagePanel],
     style={
         background : element.COLOR_BG,
-        border : (0, 0, 1, 0),
-        borderColor : (255, 0, 0, 0),
         display : "fixed",
         offset : [0, 0],
         align : "center",
         justify : "spread",
-        sizing : ["fill", 80],
+        sizing : ["fill", 78],
         padding : 26
     },
     name="ToolBar"
+)
+
+ToolPanel = element.Panel(
+    [ToolIndicator, ToolBar],
+    style={
+        display : "fixed",
+        sizing : ["fill", 80],
+        offset : [0, 0]
+    },
+    name="ToolPanel"
 )
 
 PitchList = custom.PitchList(width=80, height=height-80, name='PitchList')
@@ -455,7 +498,7 @@ NoteGrid = custom.NoteGrid(width=width-80, height=height-80, name='NoteGrid')
 PlayHead = custom.PlayHead()
 
 def bumpRight():
-    if playing: custom.viewCol.set(custom.viewCol.value + 25)
+    if Playing.value: custom.viewCol.set(custom.viewCol.value + 25)
 
 PlayHead.onExitView(bumpRight)
 
@@ -496,8 +539,8 @@ def getBeatLength(): return BeatLength.value
 def getBeatsPerMeasure(): return BeatsPerMeasure.value
 def getKeyIndex(): return NOTES_SHARP.index(Key.value) if ('#' in Key.value) else NOTES_FLAT.index(Key.value)
 def getModeIntervals(): return modesMap[Mode.value]
-def getPitchListNotes(): return NOTES_FLAT if (AccidentalsButton.currentStateIdx == 0) else NOTES_SHARP
-def getPitchListWave(): return waveMap
+def getPitchListNotes(): return NOTES_FLAT if (Accidentals.value == "flats") else NOTES_SHARP
+def getPitchListWave(): return waveMap[justColorNames[CurrentChannel.value]]
 
 NoteGrid.setNoteMap(getNoteMap)
 NoteGrid.setColorNames(getColorNames)
@@ -511,8 +554,10 @@ PitchList.setKey(getKeyIndex)
 PitchList.setNotes(getPitchListNotes)
 PitchList.setWave(getPitchListWave)
 
+PitchPanel.watch(Accidentals)
+
 MasterPanel = element.Panel(
-    [GridPanel, ToolBar],
+    [GridPanel, ToolPanel],
     style={
         background : element.COLOR_BG,
         sizing: ["fill", "fill"],
@@ -573,11 +618,9 @@ KeyDropdown.setCurrentState(keyIndex)
 ModeDropdown.setCurrentState(modes.index(Mode.value))
 
 def playPauseToggle():
-    global playing, play_obj, Tempo
-    playing = not playing
-    PlayPauseButton.cycleStates()
-    PlayPauseButton.render(screen, 'screen')
-    if playing:
+    global play_obj, Tempo
+    Playing.set(not Playing.value)
+    if Playing.value:
         play_obj = sp.playFull(noteMap, waveMap, PlayHead.time, Tempo.value, volume=0.3,
                                channel='all' if CurrentChannel.value == 6 else CurrentChannel.value)
         PlayHead.play(Tempo.value)
@@ -590,9 +633,7 @@ def playPauseToggle():
 PlayPauseButton.onMouseClick(playPauseToggle)
 
 def headToggle():
-    global head
-    head = not head
-    PlayheadButton.setCurrentState(1 if head else 0)
+    Head.set(not Head.value)
 
 PlayheadButton.onMouseClick(headToggle)
 
@@ -651,16 +692,7 @@ BeatLengthDownButton.onMouseClick(beatLengthDown)
 
 # Accidentals Controls
 def toggleAccidentals():
-    AccidentalsButton.cycleStates()
-    AccidentalsButton.render(screen, 'screen')
-    if AccidentalsButton.currentStateIdx == 0: # changed to flats
-        KeyDropdown.states = NOTES_FLAT
-        KeyDropdown.setCurrentState(keyIndex)
-        KeyDropdown.render(screen, 'screen')
-    else:
-        KeyDropdown.states = NOTES_SHARP
-        KeyDropdown.setCurrentState(keyIndex)
-        KeyDropdown.render(screen, 'screen')
+    Accidentals.set("sharps" if Accidentals.value == "flats" else "flats")
 AccidentalsButton.onMouseClick(toggleAccidentals)
 
 def finalizeKey():
@@ -780,7 +812,7 @@ def snapshotEditorState():
         "beatsPerMeasure" : int(BeatsPerMeasure.value),
         "key"             : str(KeyDropdown.currentState),
         "mode"            : str(ModeDropdown.currentState),
-        "accidentals"     : "flats" if AccidentalsButton.currentStateIdx == 0 else "sharps",
+        "accidentals"     : str(Accidentals.value),
         "colorIndex"      : int(CurrentChannel.value),
         "waveIndex"       : int(WaveDropdown.currentStateIdx)
     }
@@ -838,11 +870,10 @@ def applyEditorStateToRuntime(stateSnapshot):
         Mode.value = stateSnapshot.get("mode", Mode.value)
 
         accidentalsState = stateSnapshot.get("accidentals", "flats")
-        AccidentalsButton.setCurrentState(0 if accidentalsState == "flats" else 1)
-        KeyDropdown.states = NOTES_FLAT if accidentalsState == "flats" else NOTES_SHARP
+        Accidentals.set(accidentalsState)
 
         try:
-            keyIdx = KeyDropdown.states.index(Key.value)
+            keyIdx = getPitchListNotes().index(Key.value)
         except ValueError:
             keyIdx = 0
         KeyDropdown.setCurrentState(keyIdx)
@@ -904,7 +935,7 @@ def removeAt(time, pitch, color):
     return None
 
 def handleClick():
-    global selectingAnything, draggingSelection, selectionStartPos, dragStartGridPos, drawStartPos, extendingNote, extendStartGridPos, activeBrushNote, head, waveMap
+    global selectingAnything, draggingSelection, selectionStartPos, dragStartGridPos, drawStartPos, extendingNote, extendStartGridPos, activeBrushNote, waveMap
     if (pygame.mouse.get_pos()[1] < 80) or (pygame.mouse.get_pos()[0] < 80):
         # console.log("click was outside of the notegrid, we don't care")
         return
@@ -927,26 +958,24 @@ def handleClick():
     drawStartPos = (mouseTime, mousePitch)
     if mouseTime is None:
         return
-    if head:
-        head = False
+    if Head.value:
+        Head.set(False)
         PlayHead.setHome(mouseTime)
         # console.log(f"home: {mouseTime}")
-        PlayheadButton.setCurrentState(0)
-        PlayheadButton.render(screen, 'screen')
         NotePanel.render(screen, 'screen')
         return
     if CurrentChannel.value == 6:
         return
 
-    if brushType in ["brush", "eraser", "select"]:
-        psm.beginInteractionTransaction(brushType)
+    if BrushType.value in brushTypes:
+        psm.beginInteractionTransaction(BrushType.value)
 
     currColorName = colorsList[CurrentChannel.value][0]
     if not (currColorName in noteMap):
         noteMap[currColorName] = []
     notes = noteMap[currColorName]
 
-    if brushType == "brush":
+    if BrushType.value == "brush":
         notes: list[custom.Note] = noteMap[currColorName]
         activeBrushNote = custom.Note({
             "pitch"       : mousePitch,
@@ -957,7 +986,7 @@ def handleClick():
         # Track the note created for this mouse-down so drag only extends this note.
         noteMap[currColorName].append(activeBrushNote)
         sp.playNote(note=mousePitch, waves=waveMap[justColorNames[CurrentChannel.value]], duration=0.2)
-    elif brushType == "eraser":
+    elif BrushType.value == "eraser":
         notes: list[custom.Note] = noteMap[currColorName]
         removeAt(mouseTime, mousePitch, currColorName)
     else:
@@ -1030,21 +1059,21 @@ def handleDrag(xy):
     currColorName = colorsList[CurrentChannel.value][0]
     notes = noteMap[currColorName]
 
-    if brushType == "brush":
+    if BrushType.value == "brush":
         if not activeBrushNote:
             return
         if mousePitch != activeBrushNote.pitch:
             return
         if mouseTime >= activeBrushNote.time:
             activeBrushNote.duration = mouseTime - activeBrushNote.time + 1
-    elif brushType == "eraser":
+    elif BrushType.value == "eraser":
         notes: list[custom.Note] = noteMap[currColorName]
         for note in notes:
             if (mousePitch == note.pitch) and (
                 (mouseTime >= note.time) and (mouseTime < note.time + note.duration)
                 ):
                 notes.remove(note)
-    elif brushType == 'select':
+    elif BrushType.value == 'select':
         if extendingNote:
             # EXTEND/RETRACT
             dx = round(xy[0] / custom.tileWidth.value)
@@ -1201,7 +1230,7 @@ while run:
             showButtonTooltips = settings['show_button_tooltips']
 
             WorldMessageLabel.setDisabled(not showButtonTooltips)
-            console.log(ps)
+            #console.log(ps)
 
             noteMap : dict[str: list] = ps["noteMap"]
             waveMap = ps["waveMap"]
@@ -1209,15 +1238,11 @@ while run:
             BeatLength.value = ps['beatLength']
             BeatsPerMeasure.value = ps['beatsPerMeasure']
             if "#" in Key.value:
-                accidentals = "sharps"
-                KeyDropdown.states = NOTES_SHARP
-                AccidentalsButton.setCurrentState(1)
+                Accidentals.set("sharps")
             elif "b" in Key.value:
-                accidentals = "flats"
-                KeyDropdown.states = NOTES_FLAT
-                AccidentalsButton.setCurrentState(0)
+                Accidentals.set("flats")
             try:
-                keyIndex = KeyDropdown.states.index(Key.value)
+                keyIndex = getPitchListNotes().index(Key.value)
             except ValueError:
                 keyIndex = 0
             Mode.value = ps["mode"]
@@ -1239,7 +1264,7 @@ while run:
                     plat.setDockIconVisible(True)
                     sdl_window = SDLWindow.from_display_module()
                     sdl_window.show()
-                    pygame.display.set_caption(f"{title_text} - Symphony v1.1.5")
+                    pygame.display.set_caption(f"{title_text} - Symphony v1.1.6")
                     screen = pygame.display.get_surface()
                     if screen is None or screen.get_size() != (width, height):
                         screen = pygame.display.set_mode((width, height), pygame.RESIZABLE | pygame.SHOWN)
@@ -1247,7 +1272,7 @@ while run:
                     console.warn(f"Error showing hidden window: {e}")
                     # Fallback to full init
                     pygame.display.init()
-                    pygame.display.set_caption(f"{title_text} - Symphony v1.1.5")
+                    pygame.display.set_caption(f"{title_text} - Symphony v1.1.6")
                     pygame.display.set_icon(gameIcon)
                     screen = pygame.display.set_mode((width, height), pygame.RESIZABLE | pygame.SHOWN)
             else:
@@ -1255,7 +1280,7 @@ while run:
                 if platform == 'mac':
                     plat.setDockIconVisible(True)
                 pygame.display.init()
-                pygame.display.set_caption(f"{title_text} - Symphony v1.1.5")
+                pygame.display.set_caption(f"{title_text} - Symphony v1.1.6")
                 pygame.display.set_icon(gameIcon)
                 screen = pygame.display.set_mode((width, height), pygame.RESIZABLE | pygame.SHOWN)
 
@@ -1364,13 +1389,9 @@ while run:
                             note.select()
                         NotePanel.render(screen, 'screen')
                     elif event.key == CMD_KEY: # Switch to eraser momentarily
-                        brushType = "eraser"
-                        BrushButton.setCurrentState(1)
-                        BrushButton.render(screen, 'screen')
+                        BrushType.set("eraser")
                     elif event.key == pygame.K_LSHIFT: # Switch to select permanently
-                        brushType = "select"
-                        BrushButton.setCurrentState(2)
-                        BrushButton.render(screen, 'screen')
+                        BrushType.set("select")
                     elif event.key == pygame.K_SPACE: # Play / pause
                         playPauseToggle()
                     elif event.key == pygame.K_s:
@@ -1385,9 +1406,7 @@ while run:
                             saveFrame = 0
                 elif event.type == pygame.KEYUP:
                     if event.key == CMD_KEY: # Switches away from eraser when Ctrl is let go
-                        brushType = "brush"
-                        BrushButton.setCurrentState(0)
-                        BrushButton.render(screen, 'screen')
+                        BrushType.set("brush")
                         for color, colorChannel in noteMap.items():
                             for note in colorChannel:
                                 note.selected = False

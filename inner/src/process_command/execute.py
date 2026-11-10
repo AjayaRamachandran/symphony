@@ -34,6 +34,28 @@ def processCommandResponse(pcFile: dict, payload=None):
     }
 
 
+def isFromNewerVersion(pcFile: dict):
+    '''
+    fields:
+        pcFile (dict) - the process command payload.
+    outputs: bool
+
+    Returns True when the project file was saved by a newer version of Symphony.
+    If the file can't be read here, returns False and leaves error handling to the normal load path.
+    '''
+    args = pcFile['args']
+
+    projectFilePath = path.join(args['project_folder_path'], args['project_file_name']) + '.symphony'
+    try:
+        with open(projectFilePath, "rb") as pf:
+            rawState = pkl.load(pf)
+    except Exception as exc:
+        console.warn(f"Could not read {projectFilePath} for version check: {exc}")
+        return False
+
+    return sl.isFromNewerVersion(rawState)
+
+
 def retrieve(pcFile: dict):
     '''
     fields:

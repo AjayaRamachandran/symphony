@@ -607,6 +607,34 @@ def doProcessCommand(symphony_file_path: str, command: str, extra_args: dict | N
     return response
 
 
+def showNewerVersionAlert() -> None:
+    '''
+    fields: none
+    outputs: nothing
+
+    Shows a native popup explaining that the file needs a newer version of Symphony.
+    '''
+    title = "Symphony"
+    message = (
+        "This file was created in a newer version of Symphony.\n\n"
+        "To open it, get the latest version at symphony.nimbial.com."
+    )
+    try:
+        if sys.platform == "win32":
+            from ctypes import windll  # local import: Windows-only
+            MB_ICONWARNING = 0x30
+            MB_SETFOREGROUND = 0x10000
+            MB_TOPMOST = 0x40000
+            windll.user32.MessageBoxW(None, message, title, MB_ICONWARNING | MB_SETFOREGROUND | MB_TOPMOST)
+        elif sys.platform == "darwin":
+            script = f'display alert {json.dumps(title)} message {json.dumps(message)} as warning'
+            subprocess.run(["osascript", "-e", script], check=False)
+        elif _main_window is not None:
+            _main_window.create_confirmation_dialog(title, message)
+    except Exception as exc:  # noqa: BLE001
+        console.log(f"showNewerVersionAlert failed: {exc}")
+
+
 def postProcessCommandPayload(payload: dict, timeout: float = 15.0) -> dict:
     '''
     fields:
@@ -1463,6 +1491,16 @@ class Api:
                 else None
             ),
         }
+
+    def showNewerVersionAlert(self) -> None:
+        '''
+        fields: none
+        outputs: nothing
+
+        Shows the OS-native "made in a newer version" popup. Used by the
+        Open With flow; Project Manager opens show an in-app notice instead.
+        '''
+        showNewerVersionAlert()
 
     def copyAndOpenSymphonyFile(self, source_path: str, dest_dir: str) -> dict:
         '''

@@ -17,6 +17,7 @@ import "@/modals/modals-styling/splash-screen.css";
 import banner from "@/assets/banner.svg";
 import symphonyFileTypeIcon from "@/assets/symphony-file-type-icon.svg";
 import { useDirectory } from "@/contexts/directory-context";
+import { openInEditor } from "@/utils/open-in-editor";
 import ProgramData from "@/assets/program-data.json";
 
 function SplashScreen({ onComplete }) {
@@ -58,10 +59,8 @@ function SplashScreen({ onComplete }) {
     if (item.type === "symphony") {
       try {
         setGlobalUpdateTimestamp(Date.now());
-        const result = await window.electronAPI.doProcessCommand(
+        const result = await openInEditor(
           path.join(item.fileLocation, item.name),
-          "open",
-          {},
         );
         console.log("Python script succeeded:", result.output);
       } catch (err) {

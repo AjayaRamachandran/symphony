@@ -9,6 +9,7 @@ from gui.element.dropdown import Dropdown
 from gui.element.label import Label
 from gui.element.textbox import TextBox
 from gui.element.frame import Panel
+from gui.element.colors import *
 
 def __getattr__(name):
     '''

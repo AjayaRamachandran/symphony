@@ -10,6 +10,7 @@ import GenericModal from "@/modals/generic-modal";
 import symphonyFileTypeIcon from "@/assets/symphony-file-type-icon.svg";
 
 import { useDirectory } from "@/contexts/directory-context";
+import { openInEditor, isNewerVersionError } from "@/utils/open-in-editor";
 
 function SearchResults({
   getSearchResults,
@@ -75,11 +76,9 @@ function SearchResults({
     if (ext === ".symphony") {
       try {
         setGlobalUpdateTimestamp(Date.now());
-        const result = await window.electronAPI.doProcessCommand(
-          filePath,
-          "open",
-          {},
-        );
+        const result = await openInEditor(filePath);
+        // NewerVersionNotice already told the user, so skip the "missing file" path
+        if (isNewerVersionError(result)) return;
         if (result?.timeout) {
           console.error("Python script timed out");
           await handleOpenFailure(filePath);

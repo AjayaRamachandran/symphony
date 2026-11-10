@@ -178,6 +178,7 @@ class Panel(gui.Element):
             if el.display == "fixed":
                 fixedOffset = el.style.get("offset", [0, 0])
                 el.x, el.y = fixedOffset[0], fixedOffset[1]
+                el.offsetX, el.offsetY = el.x - self.x, el.y - self.y
             else:
                 el.x = runningOffset[0] + el.offsetX
                 el.y = runningOffset[1] + el.offsetY
@@ -250,20 +251,26 @@ class Panel(gui.Element):
                             border_top_left_radius=roundingTL
                             )
 
-        if isinstance(border, list):
+        if isinstance(border, int):
+            effectiveBorder = border
+        elif isinstance(border, list) or isinstance(border, tuple):
+            if (border[0] == border[1] == border[2] == border[3]):
+                effectiveBorder = border[0]
+
+        if isinstance(border, list) or isinstance(border, tuple):
             if not (border[0] == border[1] == border[2] == border[3]):
                 pygame.draw.line(self.surface, borderColor, (0, ceil(border[0]/2)), (self.width, ceil(border[0]/2)), border[0])
                 pygame.draw.line(self.surface, borderColor, (self.width - ceil(border[1]/2), 0), (self.width - ceil(border[1]/2), self.height), border[1])
                 pygame.draw.line(self.surface, borderColor, (self.width, self.height - ceil(border[2]/2)), (0, self.height - ceil(border[2]/2)), border[2])
                 pygame.draw.line(self.surface, borderColor, (ceil(border[3]/2), self.height), (ceil(border[3]/2), 0), border[3])
-            effectiveBorder = border[0]
+
         if effectiveBorder != None and effectiveBorder > 0:
             pygame.draw.rect(self.surface, borderColor, (ceil(effectiveBorder / 2), ceil(effectiveBorder / 2), self.width - ceil(effectiveBorder / 2), self.height - ceil(effectiveBorder / 2)), effectiveBorder,
-                             border_top_right_radius=roundingTR,
-                             border_bottom_right_radius=roundingBR,
-                             border_bottom_left_radius=roundingBL,
-                             border_top_left_radius=roundingTL
-                             )
+                            border_top_right_radius=roundingTR,
+                            border_bottom_right_radius=roundingBR,
+                            border_bottom_left_radius=roundingBL,
+                            border_top_left_radius=roundingTL
+                            )
 
         for el in self.elements:
             el.render(self.surface, positioning='relative')

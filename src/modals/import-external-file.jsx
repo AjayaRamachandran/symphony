@@ -6,6 +6,7 @@ import Dropdown from "@/ui/dropdown";
 import GenericModal from "@/modals/generic-modal";
 import NewFolder from "@/modals/new-folder";
 import { useDirectory } from "@/contexts/directory-context";
+import { isNewerVersionError } from "@/utils/open-in-editor";
 
 // Modal shown when the user opens a .symphony file via Explorer / Open With
 // whose containing folder isn't registered with the Project Manager. Lets
@@ -97,8 +98,11 @@ function ImportExternalFile({ sourcePath, onCancel, onImported }) {
       setGlobalUpdateTimestamp(Date.now());
 
       await window.electronAPI.runEditorProgram();
-      await window.electronAPI.doProcessCommand(newPath, "open", {});
+      const result = await window.electronAPI.doProcessCommand(newPath, "open", {});
       onImported?.();
+      if (isNewerVersionError(result)) {
+        await window.electronAPI.showNewerVersionAlert();
+      }
     } catch (exc) {
       console.error("importAndOpen failed:", exc);
       setError(String(exc?.message || exc));

@@ -12,6 +12,7 @@ import path from "path-browserify";
 import Tooltip from "@/ui/tooltip";
 import "@/components/components-styling/recently-viewed.css";
 import { useDirectory } from "@/contexts/directory-context";
+import { openInEditor } from "@/utils/open-in-editor";
 import FileNotExist from "@/modals/file-not-exist";
 import GenericModal from "@/modals/generic-modal";
 import symphonyFileTypeIcon from "@/assets/symphony-file-type-icon.svg";
@@ -62,10 +63,8 @@ function RecentlyViewed() {
     if (item.type === "symphony") {
       try {
         setGlobalUpdateTimestamp(Date.now());
-        const result = await window.electronAPI.doProcessCommand(
+        const result = await openInEditor(
           path.join(item.fileLocation, item.name),
-          "open",
-          {},
         );
         console.log("Python script succeeded:", result.output);
       } catch (err) {

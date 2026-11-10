@@ -115,6 +115,9 @@ def handleProcessCommandPayload(pc):
         if guiIsOpen:
             return errorResponse(pc, "GuiAlreadyRunningError"), None, False
 
+        if pce.isFromNewerVersion(pc):
+            return errorResponse(pc, "NewerVersionError"), None, False
+
         guiIsOpen = True
         return successResponse(pc), copy.deepcopy(pc), False
 

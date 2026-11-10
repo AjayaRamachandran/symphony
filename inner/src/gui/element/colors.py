@@ -86,6 +86,21 @@ COLOR_TEXT_ALT = (115, 115, 115, 255)  # #737373FF
 Gray (#737373FF)
 '''
 
+COLOR_TOOL_ERASER = (170, 75, 89, 255) # #AA4B59FF
+'''
+Light Red (#AA4B59FF)
+'''
+
+COLOR_TOOL_BRUSH = (159, 117, 45, 255) # #9F752DFF
+'''
+Mustard (#9F752DFF)
+'''
+
+COLOR_TOOL_SELECT = (45, 83, 159, 255) # #2D539FFF
+'''
+Cobalt Blue (#2D539FFF)
+'''
+
 COLOR_TRANSPARENT = (0, 0, 0, 0)  # #00000000
 '''
 Transparent (#00000000)

@@ -7,6 +7,7 @@ import Field from "@/ui/field";
 import Tooltip from "@/ui/tooltip";
 
 import { useDirectory } from "@/contexts/directory-context";
+import { openInEditor } from "@/utils/open-in-editor";
 
 function RightPanel() {
   const [hovered, setHovered] = useState(false);
@@ -151,11 +152,7 @@ function RightPanel() {
 
   const runProcessCommand = async (title) => {
     console.log(title);
-    const result = await window.electronAPI.doProcessCommand(
-      path.join(globalDirectory, `${title}`),
-      "open",
-      {},
-    );
+    const result = await openInEditor(path.join(globalDirectory, `${title}`));
     console.log(result);
   };
 

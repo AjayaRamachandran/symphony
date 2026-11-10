@@ -15,6 +15,7 @@ import { useDirectory } from "@/contexts/directory-context";
 import Tooltip from "@/ui/tooltip";
 import GenericModal from "@/modals/generic-modal";
 import GUIAlreadyRunning from "@/modals/gui-already-running";
+import { openInEditor } from "@/utils/open-in-editor";
 
 const fileTypeMap = {
   ".symphony": {
@@ -67,11 +68,7 @@ function File({ name }) {
   const runProcessCommand = async (title) => {
     console.log(title);
     setGlobalUpdateTimestamp(Date.now);
-    const result = await window.electronAPI.doProcessCommand(
-      path.join(globalDirectory, `${title}`),
-      "open",
-      {},
-    );
+    const result = await openInEditor(path.join(globalDirectory, `${title}`));
     console.log(result);
     return result;
   };

@@ -1,6 +1,7 @@
 import React, { useEffect, useCallback } from "react";
 import HomePage from "@/pages/home-page";
 import PendingFileHandoff from "@/components/pending-file-handoff";
+import NewerVersionNotice from "@/components/newer-version-notice";
 import { useDirectory } from "@/contexts/directory-context";
 import path from "path-browserify";
 import { isSupportedDropExtension } from "@/utils/move-in-app-file";
@@ -206,6 +207,7 @@ function App() {
     <>
       <HomePage />
       <PendingFileHandoff />
+      <NewerVersionNotice />
     </>
   );
 }

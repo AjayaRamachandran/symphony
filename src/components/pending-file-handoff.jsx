@@ -6,6 +6,7 @@ import FileNotExist from "@/modals/file-not-exist";
 import GUIAlreadyRunning from "@/modals/gui-already-running";
 import ImportExternalFile from "@/modals/import-external-file";
 import { useDirectory } from "@/contexts/directory-context";
+import { isNewerVersionError } from "@/utils/open-in-editor";
 
 // Drives the OS-level "Open With Symphony" flow at both startup and on
 // duplicate-launch (single-instance handoff). On each invocation we ask the
@@ -55,6 +56,8 @@ function PendingFileHandoff() {
             result.message === "GuiAlreadyRunningError"
           ) {
             setGuiAlreadyRunning(true);
+          } else if (isNewerVersionError(result)) {
+            await window.electronAPI.showNewerVersionAlert();
           }
         } catch (err) {
           console.error("[symphony-open] doProcessCommand failed:", err);

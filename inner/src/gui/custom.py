@@ -106,7 +106,7 @@ class PitchList(element.Interactive):
         self.modeGetter = lambda: [0, 2, 4, 6, 7, 9, 11]
         self.keyGetter = lambda: 3
         self.noteGetter = lambda: []
-        self.waveGetter = lambda: {}
+        self.waveGetter = lambda: 0
 
         self.onMouseEnter(lambda: (setattr(self, 'redraw', True), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)))
         self.onMouseLeave(lambda: (setattr(self, 'redraw', True), pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)))
@@ -145,10 +145,10 @@ class PitchList(element.Interactive):
     def setWave(self, waveGetter):
         '''
         fields:
-            waveGetter (function -> list[str]) - a getter function for the latest waveMap
+            waveGetter (function -> int) - a getter for the wave type of the current channel
         outputs: none
 
-        Sets the internal waveGetter lambda so it can be called to get the wavemap whenever needed.
+        Sets the internal waveGetter lambda so the live wave type can be read whenever needed.
         '''
         self.waveGetter = waveGetter
 

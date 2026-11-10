@@ -12,6 +12,8 @@ from utils.transactions import Transaction
 
 ###### INITIALIZE ######
 
+CURR_VERSION = "1.1.6"
+
 DEFAULT_NOTE_MAP = {
     "orange": [],
     "purple": [],
@@ -32,7 +34,7 @@ DEFAULT_WAVE_MAP = {
 }
 
 DEFAULT_META_FIELD = {
-    "version" : "1.1.5",
+    "version" : CURR_VERSION,
     "file_data" : {
         "description" : "",
         "composer" : "",
@@ -40,6 +42,44 @@ DEFAULT_META_FIELD = {
     },
     "plugins" : []
 }
+
+def _isNewerVersion(file_version: str):
+    fileVersionList = [int(x) for x in file_version.split('.')]
+    symphonyVersionList = [int(x) for x in CURR_VERSION.split('.')]
+
+    rank = 0
+    while rank < len(symphonyVersionList):
+        if symphonyVersionList[rank] < fileVersionList[rank]:
+            return True
+        elif symphonyVersionList[rank] > fileVersionList[rank]:
+            return False
+        else:
+            rank += 1
+            if rank == len(symphonyVersionList):
+                return False
+
+def isFromNewerVersion(rawState) -> bool:
+    '''
+    fields:
+        rawState (Any) - the unpickled contents of a .symphony file, before any conversion
+    outputs: bool
+
+    Returns True when the file was saved by a newer version of Symphony than this one.
+    Files that predate the "meta" field (or have no readable version) are treated as compatible.
+    '''
+    if not isinstance(rawState, dict):
+        return False
+
+    meta = rawState.get("meta")
+    if not isinstance(meta, dict):
+        return False
+
+    fileVersion = meta.get("version")
+    if not isinstance(fileVersion, str):
+        return False
+
+    return bool(_isNewerVersion(fileVersion))
+
 
 def _has_required_shape(candidate: dict, required: dict) -> bool:
     """

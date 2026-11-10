@@ -466,6 +466,7 @@ const electronAPI = {
   getPendingOpenFile: () => call("getPendingOpenFile"),
   copyAndOpenSymphonyFile: (sourcePath, destDirAbsPath) =>
     call("copyAndOpenSymphonyFile", sourcePath, destDirAbsPath),
+  showNewerVersionAlert: () => call("showNewerVersionAlert"),
 };
 
 if (typeof window !== "undefined" && !window.electronAPI) {

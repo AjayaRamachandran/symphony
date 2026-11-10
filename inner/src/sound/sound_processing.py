@@ -21,12 +21,11 @@ SAMPLE_RATE = 44100
 # loudness at a given user volume. Keys are the wave-type ids from
 # `instruments.INSTRUMENTS_BY_WAVE`.
 WAVE_LOUDNESS_SCALE = {
-    0: 0.45,  # Square     — loudest by RMS, most attenuation
-    1: 1.00,  # Triangle
-    2: 0.60,  # Sawtooth   — bright, second-loudest
-    3: 1.00,  # Piano3
-    4: 1.00,  # Bells
-    5: 1.00,  # Voice
+    0: 0.22,  # Square     — loudest by RMS, most attenuation
+    1: 0.75,  # Triangle
+    2: 0.25,  # Sawtooth   — bright, second-loudest
+    3: 0.90,  # Piano
+    5: 1.10,  # Voice
 }
 
 ###### METHODS / CLASSES ######
